@@ -24,6 +24,7 @@ local sCols = {}
 local Position = 0
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
+local PlayerXd = 0
 local PlayerVl = 0
 
 function InitSegments()
@@ -68,15 +69,16 @@ function _update()
     end
 
     if btn(0) then -- left
-        PlayerX-=0.04
+        PlayerXd-=0.05
     elseif btn(1) then -- right
-        PlayerX+=0.04
+        PlayerXd+=0.05
     end
+    PlayerXd=PlayerXd*0.7
+    PlayerX+=PlayerXd*0.6
 
      if btn(4) then -- z / btn1
         PlayerVl=PlayerVl+1
     end
-
     PlayerVl=PlayerVl*0.98
 
     Position=Position+PlayerVl*0.6
@@ -95,12 +97,13 @@ function RenderPoly4( v1, v2, v3, v4, c )
 
 end
 
-function RenderSeg( x1, y1, w1, x2, y2, w2, col )
+function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
 -- x1-w1, y1, 
 -- x1+w1, y1, 
 -- x2+w2, y2, 
 -- x2-w2, y2
+
 
 px1=ScreenClamp( x1-w1 )
 py1=ScreenClamp( y1 )
@@ -114,6 +117,7 @@ py3=ScreenClamp( y2 )
 px4=ScreenClamp( x2-w2 )
 py4=ScreenClamp( y2 )
 
+
 --[[
 print(px1)
 print(py1)
@@ -123,8 +127,26 @@ print(px3)
 print(py3)
 --]]
 
+-- Edge
+if idx % 4 > 1 then
+    col = 4
+else
+    col = 6
+end
+edgew1=w1*1.2
+edgew2=w2*1.2
+RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+
 -- Road
-RenderPoly4( {px1,py1},{px2,py2},{px3,py3},{px4,py4}, col )
+if idx % 2 == 0 then
+    col = 5
+else
+    col = 13
+end
+RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
+
+
 
 --polyfill({{x=px1,y=py1},{x=px2,y=py2},{x=px3,y=py3}},col)
 --polyfill({{x=px1,y=py1},{x=px4,y=py4},{x=px3,y=py3}},col)
@@ -156,7 +178,7 @@ function _draw()
     print( flr(stat(1)*100).."%", 2,2,3 )
     print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
     --print( flr(stat(0)), 30,2,3 )
-    --print("/2048 KiB", 2,2,3 )
+    print(PlayerXd, 2,30,3 )
 
 end
 
@@ -170,7 +192,11 @@ end
 
 function RenderPlayer()
 
+if PlayerXd > 0.06 or PlayerXd < -0.06 then
+spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
+else
 spr( 0, 48, 100, 4, 3 )
+end
 
 end
 
@@ -249,7 +275,7 @@ function RenderRoad()
         --]]
 
         if pscreeny1 < 128 or pscreeny2 < 128 then
-            RenderSeg( pscreenx1, pscreeny1, pscreenw1, pscreenx2, pscreeny2, pscreenw2, col )
+            RenderSeg( pscreenx1, pscreeny1, pscreenw1, pscreenx2, pscreeny2, pscreenw2, segidx )
         end     
 
         --[[
@@ -295,30 +321,30 @@ end
 
 
 __gfx__
-fffffffeeeeeeeeeeeeeeeeeeffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffff5eeeeeeeeeeeeeeeeee5fffffffffffddddeddd5555555555d555dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff155ddd555555555555ddd551ffffff8ddddd0dddddddddddddddddd66fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff555dddddddddddddddddddd555fffff1155d5e6666666666dddddddddddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff15e6666666666666666666666e51ffff21555edddddddddddddddddddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff0d8dddddddddddddddddddddd8d0ffff2115ee666666666666666666666dddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffd86666666666666666666666668dffff22eeedddd55555dddddd5555555555ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff8dddd55555dddddddd55555dddd8ffff00eedd555555666666666666000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f866666666666666666666666666668fff022e6ee000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fee00000000000000000000000000eefff002eee00000022222222222222222000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fe0000022222222222222222200000efff0002e000222222222222222222222eeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-e000022222222222222222222220000eff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeff0002eeeeeeeeeeeeddddddddd448877888eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee888877844dddddddddd448778888eefff000ee888778844dddddddddd448878222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee888877844dddddddddd448778888eefff000ee222dd2244d5555555dd4422d2222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee2222dd244dd555555dd442dd2222eefff000ee222dd2244d555eeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee2222dd244dd555555dd442dd2222eeffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff00eeee2222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-22222222222222222222222222222222ffff002222222222222222225555d6d5555555ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-22222222222222222222222222222222fffff055555555d6d555555555556065555550ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-55555555d6d5555555555d6d55555555fffff05555555560600000000000d6d0000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-00000000606000000000060600000000fffff000000000d6d000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f0000000d6d0000000000d6d0000000fffffff0000000000000000000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f000000000000000000000000000000ffffffff0000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff155ddd555555555555ddd551ffffffff8ddddd0dddddddddddddddddd66fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff0d8dddddddddddddddddddddd8d0ffffff2115ee666666666666666666666dddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffd86666666666666666666666668dffffff22eeedddd55555dddddd5555555555ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff8dddd55555dddddddd55555dddd8ffffff00eedd555555666666666666000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+f866666666666666666666666666668fffff022e6ee000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fee00000000000000000000000000eefffff002eee00000022222222222222222000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff0002eeeeeeeeeeeeddddddddd448877888eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ee888877844dddddddddd448778888eefffff000ee888778844dddddddddd448878222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ee888877844dddddddddd448778888eefffff000ee222dd2244d5555555dd4422d2222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ee2222dd244dd555555dd442dd2222eefffff000ee222dd2244d555eeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ee2222dd244dd555555dd442dd2222eeffffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+22222222222222222222222222222222ffffff002222222222222222225555d6d5555555ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+22222222222222222222222222222222fffffff055555555d6d555555555556065555550ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+55555555d6d5555555555d6d55555555fffffff05555555560600000000000d6d0000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+f000000000000000000000000000000ffffffffff0000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
