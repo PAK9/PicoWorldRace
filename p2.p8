@@ -9,8 +9,8 @@ __lua__
 -- music(0)
 
 local SEG_LEN = 100
-local NUM_SEGS = 19
-local DRAW_DIST = 10
+local NUM_SEGS = 0
+local DRAW_DIST = 20
 local CANVAS_SIZE = 128
 local ROAD_WIDTH = 200 -- half
 local CAM_HEIGHT = 80
@@ -18,32 +18,49 @@ local CAM_DEPTH = 1.5; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
-local sCols = {}
-
+local sPointsC = {}
 
 local Position = 0
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
 local PlayerXd = 0
 local PlayerVl = 0
+local PlayerDrift = 0
+
+function AddSeg( c )
+    NUM_SEGS+=1
+    add( sPointsC, c )
+    add( sPointsX, 0 )
+    add( sPointsY, 0 )
+    add( sPointsZ, NUM_SEGS * SEG_LEN + 1 )
+end
+
+function AddCurve( enter, hold, exit, c )
+
+    for i=1,enter do
+    AddSeg( i/enter * c )
+    end
+    for i=1,hold do
+    AddSeg( c )
+    end
+    for i=1,exit do
+    AddSeg( (1-i/exit) * c )
+    end
+
+end
+
+function AddStraight( n )
+    for i=1,n do
+    AddSeg( 0 )
+    end
+end
 
 function InitSegments()
 
-    for i=1,NUM_SEGS do
-        x = 0
-        y = 0
-        z = i * SEG_LEN + 1 -- avoid zero
-        if i % 2 == 0 then
-            col = 5
-        else
-            col = 13
-        end
-
-        add( sPointsX, x )
-        add( sPointsY, y )
-        add( sPointsZ, z )
-        add( sCols, col )
-    end
+    AddStraight( 10 )
+    AddCurve( 5,20,10,8 )
+    AddStraight( 10 )
+    AddCurve( 10,20,5,-13 )
 
 end
 
@@ -60,28 +77,45 @@ end
 
 function _update()
 
+    lpdpos=LoopedTrackPos(Position)
+    playerseg = DepthToSegIndex(lpdpos)
+
     -- input
     if btn(2) then -- up
         -- PlayerVl=PlayerVl+1
-        DRAW_DIST = DRAW_DIST + 1
+        --DRAW_DIST = DRAW_DIST + 1
     elseif btn(3) then -- down
-        DRAW_DIST = DRAW_DIST - 1
+        if abs( PlayerXd ) > 0.1 then
+            PlayerDrift=sgn(PlayerXd)
+        else
+            PlayerVl=PlayerVl-1
+        end
+        
+        --DRAW_DIST = DRAW_DIST - 1
     end
 
-    if btn(0) then -- left
-        PlayerXd-=0.05
-    elseif btn(1) then -- right
-        PlayerXd+=0.05
-    end
-    PlayerXd=PlayerXd*0.7
-    PlayerX+=PlayerXd*0.6
-
-     if btn(4) then -- z / btn1
+    if btn(4) then -- z / btn1
         PlayerVl=PlayerVl+1
     end
-    PlayerVl=PlayerVl*0.98
+    PlayerVl=PlayerVl*0.99
+
+    if btn(0) then -- left
+        PlayerXd-= (0.05 + -PlayerDrift*0.04)
+    elseif btn(1) then -- right
+        PlayerXd+= (0.05 + PlayerDrift*0.04)
+    end
+    PlayerXd=PlayerXd*0.9
+    PlayerX+=PlayerXd*0.2
+    PlayerX+=sPointsC[playerseg]*0.01*PlayerVl*0.01
+
+    if abs( PlayerXd ) < 0.08 then
+        PlayerDrift=0
+    end
 
     Position=Position+PlayerVl*0.6
+    if Position > SEG_LEN*NUM_SEGS then
+        Position -= SEG_LEN*NUM_SEGS
+    end
 
 end
 
@@ -135,8 +169,8 @@ else
 end
 edgew1=w1*1.2
 edgew2=w2*1.2
-RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
-RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
+RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
 -- Road
 if idx % 2 == 0 then
@@ -192,11 +226,13 @@ end
 
 function RenderPlayer()
 
-if PlayerXd > 0.06 or PlayerXd < -0.06 then
-spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
-else
-spr( 0, 48, 100, 4, 3 )
-end
+    if PlayerDrift != 0 then
+    spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
+    elseif PlayerXd > 0.05 or PlayerXd < -0.05 then
+    spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
+    else
+    spr( 0, 48, 100, 4, 3 )
+    end
 
 end
 
@@ -213,98 +249,50 @@ function RenderRoad()
     
     lpdpos=LoopedTrackPos(Position)
     startseg = DepthToSegIndex(lpdpos)
+    
     loopoff=0
 
-    maxy = CANVAS_SIZE
+    psx = {}
+    psy = {}
+    psw = {}
+
+    xoff = 0
+    posinseg=1-(startseg*SEG_LEN-lpdpos)/SEG_LEN
+    dxoff = - sPointsC[startseg] * posinseg
+
     for i = 0, DRAW_DIST - 1 do
-
-        foo = NUM_SEGS*SEG_LEN
-        --foo=500
-
-        segidx = (startseg - 1 + i) % NUM_SEGS + 1
-
-        col = sCols[segidx]
-
-        -- Projection
 
         camx = PlayerX * ROAD_WIDTH
 
-        pcamx = sPointsX[segidx] - camx;
-        pcamy = sPointsY[segidx] - CAM_HEIGHT;
-        pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
-       
-        pscreenscale = CAM_DEPTH/pcamz;
-        -- TODO might need to round all of these
-        pscreenx1 = flr((CANVAS_SIZE/2) + (pscreenscale * pcamx  * CANVAS_SIZE/2));
-        pscreeny1 = flr((CANVAS_SIZE/2) - (pscreenscale * pcamy  * CANVAS_SIZE/2));
-        pscreenw1 = flr((pscreenscale * ROAD_WIDTH * CANVAS_SIZE/2));
+        for j = 1, 2 do
 
-        --[[
-        print(pcamx,8)
-        print(pcamy,8)
-        print(pcamz,8)
-        print(pscreenscale,4)
-        print(pscreenx1,5)
-        print(pscreeny1,5)
-        print(pscreenw1,5) 
-        --]]
+            segidx = (startseg - 1 + ( j - 1 ) + i) % NUM_SEGS + 1
 
-        if segidx == NUM_SEGS then
-            loopoff+=foo
+            -- Projection
+
+            pcamx = sPointsX[segidx] - camx - xoff - dxoff * (j-1);
+            pcamy = sPointsY[segidx] - CAM_HEIGHT;
+            pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
+
+            pscreenscale = CAM_DEPTH/pcamz;
+            psx[j] = flr((CANVAS_SIZE/2) + (pscreenscale * pcamx  * CANVAS_SIZE/2));
+            psy[j] = flr((CANVAS_SIZE/2) - (pscreenscale * pcamy  * CANVAS_SIZE/2));
+            psw[j] = flr((pscreenscale * ROAD_WIDTH * CANVAS_SIZE/2));
+
+            if j == 1 and segidx == NUM_SEGS then
+                loopoff+=NUM_SEGS*SEG_LEN
+            end
         end
 
-        segidx = (startseg - 1 + i + 1) % NUM_SEGS + 1
+        xoff = xoff + dxoff
+        dxoff = dxoff + sPointsC[segidx]
 
-        pcamx = sPointsX[segidx] - camx;
-        pcamy = sPointsY[segidx] - CAM_HEIGHT;
-        pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
-        pscreenscale = CAM_DEPTH/pcamz;
-        -- TODO might need to round all of these
-        pscreenx2 = flr((CANVAS_SIZE/2) + (pscreenscale * pcamx  * CANVAS_SIZE/2));
-        pscreeny2 = flr((CANVAS_SIZE/2) - (pscreenscale * pcamy  * CANVAS_SIZE/2));
-        pscreenw2 = flr((pscreenscale * ROAD_WIDTH * CANVAS_SIZE/2));
+        if psy[1] < 128 or psy[2] < 128 then
+            RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], segidx )
+        end
+    end
 
-        --[[
-        print(pcamx,8)
-        print(pcamy,8)
-        print(pcamz,8)
-        print(pscreenscale,4)
-        print(pscreenx1,5)
-        print(pscreeny1,5)
-        print(pscreenw1,5)
-        --]]
-
-        if pscreeny1 < 128 or pscreeny2 < 128 then
-            RenderSeg( pscreenx1, pscreeny1, pscreenw1, pscreenx2, pscreeny2, pscreenw2, segidx )
-        end     
-
-        --[[
-        Util.project(segment.p1, (playerX * roadWidth), cameraHeight, position, cameraDepth, width, height, roadWidth);
-        Util.project(segment.p2, (playerX * roadWidth), cameraHeight, position, cameraDepth, width, height, roadWidth);
-
-        if ((segment.p1.camera.z <= cameraDepth) || // behind us
-            (segment.p2.screen.y >= maxy))          // clip by (already rendered) segment
-        continue;
-
-        Render.segment(ctx, width, lanes,
-                    segment.p1.screen.x,
-                    segment.p1.screen.y,
-                    segment.p1.screen.w,
-                    segment.p2.screen.x,
-                    segment.p2.screen.y,
-                    segment.p2.screen.w,
-                    segment.color);
-
-        maxy = segment.p2.screen.y;
-        --]]
-  end
-
-  --[[
-  for i = 0, DRAW_DIST - 1 do
-  print(tostr((startseg - 1 + i) % NUM_SEGS + 1),8)
-  print(tostr((startseg - 1 + i + 1) % NUM_SEGS + 1),8)
-  end
-  --]]
+    print(tostr(Position),2,40,4)
 
 end
 
@@ -321,30 +309,30 @@ end
 
 
 __gfx__
-fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff155ddd555555555555ddd551ffffffff8ddddd0dddddddddddddddddd66fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff0d8dddddddddddddddddddddd8d0ffffff2115ee666666666666666666666dddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffd86666666666666666666666668dffffff22eeedddd55555dddddd5555555555ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff8dddd55555dddddddd55555dddd8ffffff00eedd555555666666666666000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f866666666666666666666666666668fffff022e6ee000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fee00000000000000000000000000eefffff002eee00000022222222222222222000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff0002eeeeeeeeeeeeddddddddd448877888eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee888877844dddddddddd448778888eefffff000ee888778844dddddddddd448878222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee888877844dddddddddd448778888eefffff000ee222dd2244d5555555dd4422d2222eeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee2222dd244dd555555dd442dd2222eefffff000ee222dd2244d555eeeeeeeeeeeeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ee2222dd244dd555555dd442dd2222eeffffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-22222222222222222222222222222222ffffff002222222222222222225555d6d5555555ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-22222222222222222222222222222222fffffff055555555d6d555555555556065555550ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-55555555d6d5555555555d6d55555555fffffff05555555560600000000000d6d0000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f000000000000000000000000000000ffffffffff0000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffe1eeeeeeeeeeeeeeeeeeffffffffffffffffffffff
+ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dfffffffffffffffffffff1dddd1eeeeee55555555dddddffffffffffffffffffff
+ffff155ddd555555555555ddd551ffffffff8ddddd0dddddddddddddddddd66fffffffffffffffffdddddddde0eddddddddd666666666fffffffffffffffffff
+fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffff8e8e8e1d5ddddddd5ee6666666ddddddddddddffffffffffffffffff
+ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffe800e811155d5dd5eeeddddddddddddd66666666ffffffffffffffff
+ff0d8dddddddddddddddddddddd8d0ffffff2115ee666666666666666666666dddffffff8e108e8e11151de0eedddd66666666ddd5555555dfffffffffffffff
+ffd86666666666666666666666668dffffff22eeedddd55555dddddd5555555555ddffffe001e8e8e8111d5eee66dd5555d5dddd55556666660000ffffffffff
+ff8dddd55555dddddddd55555dddd8ffffff00eedd555555666666666666000000000fff80000e8e8e8e15eeeedd555556666666000000000000000fffffffff
+f866666666666666666666666666668fffff022e6ee000000000000000000000000000ff10000218e811e8eeee666666000000000000022222000000ffffffff
+fee00000000000000000000000000eefffff002eee00000022222222222222222000000f100001212e818e88eeeeeee00002222222222222222eeeeeffffffff
+fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeee005002121218e8e0e8eeee00002222222eeeeeeeeeeeeeeeffffffff
+e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef015012121212e00008e8000eeeeeeeeeeeeeed44877888effffffff
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff0002eeeeeeeeeeeeddddddddd448877888eeff1102121212120000e8eeeeeeeee4ddddddddd4487d222effffffff
+ee888877844dddddddddd448778888eefffff000ee888778844dddddddddd448878222eeffff002121212101010e8ee8877844dddd555dd442dd222effffffff
+ee888877844dddddddddd448778888eefffff000ee222dd2244d5555555dd4422d2222eeffffff00121212010008eee88dd244d555555deeeeeeeeeeffffffff
+ee2222dd244dd555555dd442dd2222eefffff000ee222dd2244d555eeeeeeeeeeeeeeeeefffffff000212101d0008ee22dd244eeeeeeeeeeeee22222ffffffff
+ee2222dd244dd555555dd442dd2222eeffffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222fffffffff0021201d0002eeeeeeeeeeeee22222222222225ffffffff
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffffff00010150002eeeee2222222222222d6d555555ffffffff
+22222222222222222222222222222222ffffff002222222222222222225555d6d5555555ffffffffffff000100002222222222255555555d06500000ffffffff
+22222222222222222222222222222222fffffff055555555d6d555555555556065555550fffffffffffff00005002222555d6d555550000d6d000000ffffffff
+55555555d6d5555555555d6d55555555fffffff05555555560600000000000d6d0000000fffffffffffffff055002555555d0600000000000000000fffffffff
+00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
+f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
+f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
