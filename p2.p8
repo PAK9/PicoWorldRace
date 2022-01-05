@@ -10,7 +10,7 @@ __lua__
 
 local SEG_LEN = 100
 local NUM_SEGS = 0
-local DRAW_DIST = 20
+local DRAW_DIST = 30
 local CANVAS_SIZE = 128
 local ROAD_WIDTH = 200 -- half
 local CAM_HEIGHT = 80
@@ -60,7 +60,9 @@ function InitSegments()
     AddStraight( 10 )
     AddCurve( 5,20,10,8 )
     AddStraight( 10 )
-    AddCurve( 10,20,5,-13 )
+    AddCurve( 5,20,15,-13 )
+    AddStraight( 4 )
+    AddCurve( 4,10,4,4 )
 
 end
 
@@ -133,78 +135,45 @@ end
 
 function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
--- x1-w1, y1, 
--- x1+w1, y1, 
--- x2+w2, y2, 
--- x2-w2, y2
-
-
-px1=ScreenClamp( x1-w1 )
-py1=ScreenClamp( y1 )
-
-px2=ScreenClamp( x1+w1 )
-py2=ScreenClamp( y1 )
-
-px3=ScreenClamp( x2+w2 )
-py3=ScreenClamp( y2 )
-
-px4=ScreenClamp( x2-w2 )
-py4=ScreenClamp( y2 )
-
-
---[[
-print(px1)
-print(py1)
-print(px2)
-print(py2)
-print(px3)
-print(py3)
---]]
-
 -- Edge
 if idx % 4 > 1 then
-    col = 4
-else
+    fillp(0)
     col = 6
+else
+    fillp(0x5A5A)
+    col = 0x82
 end
 edgew1=w1*1.2
 edgew2=w2*1.2
 RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
 RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
+if idx % 8 > 3 then
+    fillp(0)
+    col = 3
+else
+    fillp(0x5A5A)
+    col = 0x3B
+end
+-- Grass
+RenderPoly4( {-10,y2},{-10,y1},{x1-edgew1,y1},{x2-edgew2,y2}, col )
+RenderPoly4( {138,y2},{138,y1},{x1+edgew1,y1},{x2+edgew2,y2}, col )
+
 -- Road
 if idx % 2 == 0 then
+    fillp(0)
     col = 5
 else
-    col = 13
+    fillp(0x5A5A)
+    col = 0x5D
 end
 RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
-
-
-
---polyfill({{x=px1,y=py1},{x=px2,y=py2},{x=px3,y=py3}},col)
---polyfill({{x=px1,y=py1},{x=px4,y=py4},{x=px3,y=py3}},col)
-
--- polyfill({{x=x1-w1,y=y1},{x=x1+w1,y=y1},{x=x2+w2,y=y2}},col)
---polyfill({{x=10,y=10},{x=20,y=10},{x=20,y=20}},col)
 
 end
 
 function _draw()
 	cls()
 	
-	--[[
-    z=30000
-	
-	print("segment") 
-    segidx=DepthToSegIndex(z)
-    print(segidx)
-    print(sPointsX[segidx])
-    print(sPointsY[segidx])
-    print(sPointsZ[segidx])
-    print(sCols[segidx])
-    --]]
-
     RenderRoad()
     RenderPlayer()
     RenderHUD()
