@@ -121,9 +121,28 @@ function _update()
 
 end
 
-function ScreenClamp(n)
-    -- return max(min(n,128),0)
-    return n
+function RenderSky()
+
+    fillp(0)
+    rectfill( 0, 0, 128, 66, 12 ) -- block out
+
+    grad={{10,0,13},{20,0x5F5F,0xDC,},{30,0x5A5A,0xCD,},{40,0x5F5F,0xCD,}}
+    y1=0
+    --print(#grad,0)
+    
+    for i = 1,#grad do
+        fillp(grad[i][2])
+        rectfill( 0, y1, 128, grad[i][1], grad[i][3] ) -- block out
+        y1 = grad[i][1]
+    end
+    
+    --fillp(0)
+
+    --rectfill( 0, 0, 128, 10, 13 ) -- grey solid
+    --fillp(0x5F5F)
+    --rectfill( 0, 10, 128, 20, 0xCD )
+
+
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
@@ -135,45 +154,46 @@ end
 
 function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
--- Edge
-if idx % 4 > 1 then
-    fillp(0)
-    col = 6
-else
-    fillp(0x5A5A)
-    col = 0x82
-end
-edgew1=w1*1.2
-edgew2=w2*1.2
-RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
-RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
+    -- Edge
+    if idx % 4 > 1 then
+        fillp(0)
+        col = 6
+    else
+        fillp(0x5A5A)
+        col = 0x82
+    end
+    edgew1=w1*1.2
+    edgew2=w2*1.2
+    RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
+    RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
-if idx % 8 > 3 then
-    fillp(0)
-    col = 3
-else
-    fillp(0x5A5A)
-    col = 0x3B
-end
--- Grass
-RenderPoly4( {-10,y2},{-10,y1},{x1-edgew1,y1},{x2-edgew2,y2}, col )
-RenderPoly4( {138,y2},{138,y1},{x1+edgew1,y1},{x2+edgew2,y2}, col )
+    if idx % 8 > 3 then
+        fillp(0)
+        col = 3
+    else
+        fillp(0x5A5A)
+        col = 0x3B
+    end
+    -- Grass
+    RenderPoly4( {-10,y2},{-10,y1},{x1-edgew1,y1},{x2-edgew2,y2}, col )
+    RenderPoly4( {138,y2},{138,y1},{x1+edgew1,y1},{x2+edgew2,y2}, col )
 
--- Road
-if idx % 2 == 0 then
-    fillp(0)
-    col = 5
-else
-    fillp(0x5A5A)
-    col = 0x5D
-end
-RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
+    -- Road
+    if idx % 2 == 0 then
+        fillp(0)
+        col = 5
+    else
+        fillp(0x5A5A)
+        col = 0x5D
+    end
+    RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
 
-end
+end -- RenderSeg
 
 function _draw()
 	cls()
 	
+    RenderSky()
     RenderRoad()
     RenderPlayer()
     RenderHUD()
@@ -263,7 +283,7 @@ function RenderRoad()
 
     print(tostr(Position),2,40,4)
 
-end
+end -- RenderRoad
 
 
 
