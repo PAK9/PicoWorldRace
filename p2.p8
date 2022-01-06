@@ -121,28 +121,33 @@ function _update()
 
 end
 
+function RenderHorizon()
+
+    fillp(0)
+
+end
+
 function RenderSky()
 
     fillp(0)
     rectfill( 0, 0, 128, 66, 12 ) -- block out
 
-    grad={{10,0,13},{20,0x5F5F,0xDC,},{30,0x5A5A,0xCD,},{40,0x5F5F,0xCD,}}
+    grad={  {0,6},
+            {0x0208,0xC6},
+            {0x0A0A,0xC6},
+            {0x1A4A,0xC6},
+            {0x5A5A,0xC6},
+            {0x1A4A,0x6C},
+            {0x0A0A,0x6C},
+            {0x0208,0x6C}}
     y1=0
-    --print(#grad,0)
-    
+    inc = 5;
+
     for i = 1,#grad do
-        fillp(grad[i][2])
-        rectfill( 0, y1, 128, grad[i][1], grad[i][3] ) -- block out
-        y1 = grad[i][1]
+        fillp(grad[i][1])
+        rectfill( 0, y1, 128, y1+inc, grad[i][2] ) -- block out
+        y1 = y1 + inc;
     end
-    
-    --fillp(0)
-
-    --rectfill( 0, 0, 128, 10, 13 ) -- grey solid
-    --fillp(0x5F5F)
-    --rectfill( 0, 10, 128, 20, 0xCD )
-
-
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
