@@ -8,13 +8,13 @@ __lua__
 
 -- music(0)
 
-local SEG_LEN = 100
+local SEG_LEN = 10
 local NUM_SEGS = 0
 local DRAW_DIST = 30
 local CANVAS_SIZE = 128
-local ROAD_WIDTH = 200 -- half
-local CAM_HEIGHT = 80
-local CAM_DEPTH = 1.5; -- 1 / tan((100/2) * pi/180)  (fov is 100)
+local ROAD_WIDTH = 40 -- half
+local CAM_HEIGHT = 17
+local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
@@ -25,8 +25,13 @@ local Position = 0
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
 local PlayerXd = 0
+local PlayerY = 0
+local PlayerYd = 0
 local PlayerVl = 0
 local PlayerDrift = 0
+local PlayerAir = 0
+
+local sScreenShake = {0,0}
 
 function AddSeg( c, y )
     NUM_SEGS+=1
@@ -83,14 +88,15 @@ end
 function InitSegments()
 
     LastY = 0
+    
     AddStraight( 10, 0 )
-    AddStraight( 20, 200 )
-    AddCurve( 10,10,10,10, -100 )
+    AddStraight( 20, 40 )
+    AddCurve( 10,10,10,1, -20 )
     AddStraight( 20, 0 )
-    AddCurve( 10,10,20,-10, 200 )
+    AddCurve( 10,10,20,-1, 20 )
     AddStraight( 20, 0 )
     --AddStraight( 10 )
-    AddCurve( 6,20,15,-13, -50 )
+    AddCurve( 6,20,15,-2, -50 )
     AddStraight( 10, 20 )
     AddStraight( 4, 0 )
     --AddCurve( 4,10,4,4 )
@@ -108,48 +114,95 @@ function _init()
 
 end
 
+function constedits()
+    if btn(2) then -- up
+        CAM_HEIGHT=CAM_HEIGHT+1
+    elseif btn(3) then -- down
+        CAM_HEIGHT=CAM_HEIGHT-1
+    end
+    
+    if btn(0) then -- left
+        CAM_DEPTH=CAM_DEPTH+0.05
+    elseif btn(1) then -- right
+        CAM_DEPTH=CAM_DEPTH-0.05
+    end
+
+    Position=Position+2
+
+end
+
 function _update()
+
+    -- screenshake
+
+    sScreenShake[1] = -sScreenShake[1]*0.8
+    sScreenShake[2] = -sScreenShake[2]*0.8
+    if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
+        sScreenShake = {0,0}
+    end
+    camera(sScreenShake[1],sScreenShake[2])
+
+    -- player input/movement
 
     lpdpos=LoopedTrackPos(Position)
     playerseg = DepthToSegIndex(lpdpos)
-
+    nxtseg=(playerseg)%NUM_SEGS + 1
+    posinseg=1-(playerseg*SEG_LEN-lpdpos)/SEG_LEN
+    
     -- input
-    if btn(2) then -- up
-        -- PlayerVl=PlayerVl+1
-        -- DRAW_DIST = DRAW_DIST + 1
-    elseif btn(3) then -- down
-        if abs( PlayerXd ) > 0.1 then
-            PlayerDrift=sgn(PlayerXd)
-        else
-            PlayerVl=PlayerVl-1
+    if PlayerAir == 0 then
+        if btn(2) then -- up
+            -- PlayerVl=PlayerVl+1
+        elseif btn(3) then -- down
+            if abs( PlayerXd ) > 0.1 then
+                PlayerDrift=sgn(PlayerXd)
+            else
+                PlayerVl=PlayerVl-0.08
+            end
         end
-        
-        -- DRAW_DIST = DRAW_DIST - 1
-    end
 
-    if btn(4) then -- z / btn1
-        PlayerVl=PlayerVl+1
-    end
-    PlayerVl=PlayerVl*0.99
+        if btn(4) then -- z / btn1
+            PlayerVl=PlayerVl+0.1
+        end
+        PlayerVl=PlayerVl*0.99
 
-    if btn(0) then -- left
-        PlayerXd-= (0.05 + -PlayerDrift*0.04)
-    elseif btn(1) then -- right
-        PlayerXd+= (0.05 + PlayerDrift*0.04)
+        if btn(0) then -- left
+            PlayerXd-= (0.04 + -PlayerDrift*0.04) * PlayerVl*0.1
+        elseif btn(1) then -- right
+            PlayerXd+= (0.04 + PlayerDrift*0.04) * PlayerVl*0.1
+        end
+        PlayerXd=PlayerXd*0.9
     end
-    PlayerXd=PlayerXd*0.9
-    PlayerX+=PlayerXd*0.2
-    PlayerX+=sPointsC[playerseg]*0.01*PlayerVl*0.01
+    PlayerX+=sPointsC[playerseg]*0.6*PlayerVl*0.01
+    PlayerX+=PlayerXd*0.3
 
     if abs( PlayerXd ) < 0.08 then
         PlayerDrift=0
     end
 
-    Position=Position+PlayerVl*0.6
+    finalvel = PlayerVl*0.6
+    Position=Position+finalvel
     if Position > SEG_LEN*NUM_SEGS then
         Position -= SEG_LEN*NUM_SEGS
     end
 
+    ground = lerp( sPointsY[playerseg], sPointsY[nxtseg], posinseg)
+    PlayerY=max(PlayerY+PlayerYd, ground)
+    if( PlayerY == ground ) then
+        if PlayerYd < -2 and PlayerAir > 4 then
+            sScreenShake = {2,7}
+        end
+        nposinseg=1-(playerseg*SEG_LEN-(lpdpos+finalvel ))/SEG_LEN
+        nground = lerp( sPointsY[playerseg], sPointsY[nxtseg], nposinseg )
+        PlayerYd = ( nground - ground ) - 0.4
+        
+        PlayerAir = 0
+    else
+        PlayerYd=PlayerYd-0.7
+        PlayerAir = PlayerAir + 1
+    end
+
+--constedits()
 end
 
 function RenderHorizon()
@@ -161,7 +214,7 @@ end
 function RenderSky()
 
     fillp(0)
-    rectfill( 0, 0, 128, 80, 12 ) -- block out
+    rectfill( -10, 0, 138, 80, 12 ) -- block out
 
     grad={  {0,6},
             {0x0208,0xC6},
@@ -176,7 +229,7 @@ function RenderSky()
 
     for i = 1,#grad do
         fillp(grad[i][1])
-        rectfill( 0, y1, 128, y1+inc, grad[i][2] ) -- block out
+        rectfill( -10, y1, 138, y1+inc, grad[i][2] )
         y1 = y1 + inc;
     end
 end
@@ -262,7 +315,10 @@ function _draw()
     print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
     --print( flr(stat(0)), 30,2,3 )
     --print(flr(DRAW_DIST), 2,30,3 )
-    --print(easeinout(10,100,Position/100), 2,30,3 )
+    --print(CAM_DEPTH, 2,30,3 )
+    --print(CAM_HEIGHT, 2,50,3 )
+    print(PlayerAir, 2,30,3 )
+    print(PlayerYd, 2,50,3 )
 
 end
 
@@ -278,7 +334,7 @@ function RenderPlayer()
 
     if PlayerDrift != 0 then
     spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
-    elseif PlayerXd > 0.05 or PlayerXd < -0.05 then
+    elseif PlayerXd > 0.07 or PlayerXd < -0.07 then
     spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
     else
     spr( 0, 48, 100, 4, 3 )
@@ -297,6 +353,7 @@ end
 
 function RenderRoad()
     
+    --Position=-10
     lpdpos=LoopedTrackPos(Position)
     startseg = DepthToSegIndex(lpdpos)
     
@@ -310,10 +367,7 @@ function RenderRoad()
     posinseg=1-(startseg*SEG_LEN-lpdpos)/SEG_LEN
     dxoff = - sPointsC[startseg] * posinseg
     miny=1000
-
-    nxtseg=(startseg)%NUM_SEGS + 1
-    playery = lerp( sPointsY[startseg], sPointsY[nxtseg], posinseg)
-    
+   
     for i = 0, DRAW_DIST - 1 do
 
         camx = PlayerX * ROAD_WIDTH
@@ -325,7 +379,7 @@ function RenderRoad()
             -- Projection
 
             pcamx = sPointsX[segidx] - camx - xoff - dxoff * (j-1);
-            pcamy = sPointsY[segidx] - ( CAM_HEIGHT + playery );
+            pcamy = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
             pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
 
             pscreenscale = CAM_DEPTH/pcamz;
