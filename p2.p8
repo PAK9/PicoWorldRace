@@ -19,6 +19,7 @@ local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
 local sPointsC = {}
+local LastY = 0
 
 local Position = 0
 
@@ -27,42 +28,72 @@ local PlayerXd = 0
 local PlayerVl = 0
 local PlayerDrift = 0
 
-function AddSeg( c )
+function AddSeg( c, y )
     NUM_SEGS+=1
     add( sPointsC, c )
     add( sPointsX, 0 )
-    add( sPointsY, 0 )
+    add( sPointsY, y )
     add( sPointsZ, NUM_SEGS * SEG_LEN + 1 )
 end
 
-function AddCurve( enter, hold, exit, c )
+function lerp( a,b,f )
+return a+(b-a)*f
+end
+
+function easein( a, b, fact )
+return a + (b-a)*fact*fact
+end
+
+function easeout( a, b, fact )
+return a + (b-a)*(1-(1-fact)*(1-fact))
+end
+
+function easeinout( a, b, fact )
+    if fact <= 0.5 then
+        return easein(a,lerp(a,b,0.5),fact*2)
+    else
+        return easeout(lerp(a,b,0.5),b,(fact-0.5)*2)
+    end
+end
+
+function AddCurve( enter, hold, exit, c, y )
+
+    tot=(enter+hold+exit)
 
     for i=1,enter do
-    AddSeg( i/enter * c )
+    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
     end
     for i=1,hold do
-    AddSeg( c )
+    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
     end
     for i=1,exit do
-    AddSeg( (1-i/exit) * c )
+    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
     end
+    LastY=y
 
 end
 
-function AddStraight( n )
+function AddStraight( n, y )
     for i=1,n do
-    AddSeg( 0 )
+    AddSeg( 0, easeinout( LastY, y, i/n ) )
     end
+    LastY=y
 end
 
 function InitSegments()
 
-    AddStraight( 10 )
-    AddCurve( 5,20,10,8 )
-    AddStraight( 10 )
-    AddCurve( 5,20,15,-13 )
-    AddStraight( 4 )
-    AddCurve( 4,10,4,4 )
+    LastY = 0
+    AddStraight( 10, 0 )
+    AddStraight( 20, 200 )
+    AddCurve( 10,10,10,10, -100 )
+    AddStraight( 20, 0 )
+    AddCurve( 10,10,20,-10, 200 )
+    AddStraight( 20, 0 )
+    --AddStraight( 10 )
+    AddCurve( 6,20,15,-13, -50 )
+    AddStraight( 10, 20 )
+    AddStraight( 4, 0 )
+    --AddCurve( 4,10,4,4 )
 
 end
 
@@ -85,7 +116,7 @@ function _update()
     -- input
     if btn(2) then -- up
         -- PlayerVl=PlayerVl+1
-        --DRAW_DIST = DRAW_DIST + 1
+        -- DRAW_DIST = DRAW_DIST + 1
     elseif btn(3) then -- down
         if abs( PlayerXd ) > 0.1 then
             PlayerDrift=sgn(PlayerXd)
@@ -93,7 +124,7 @@ function _update()
             PlayerVl=PlayerVl-1
         end
         
-        --DRAW_DIST = DRAW_DIST - 1
+        -- DRAW_DIST = DRAW_DIST - 1
     end
 
     if btn(4) then -- z / btn1
@@ -130,7 +161,7 @@ end
 function RenderSky()
 
     fillp(0)
-    rectfill( 0, 0, 128, 66, 12 ) -- block out
+    rectfill( 0, 0, 128, 80, 12 ) -- block out
 
     grad={  {0,6},
             {0x0208,0xC6},
@@ -190,6 +221,8 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     else
         fillp(0x5A5A)
         col = 0x5D
+        --fillp(0)
+        --col = 13
     end
     RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
 
@@ -206,7 +239,8 @@ function _draw()
     print( flr(stat(1)*100).."%", 2,2,3 )
     print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
     --print( flr(stat(0)), 30,2,3 )
-    print(PlayerXd, 2,30,3 )
+    --print(flr(DRAW_DIST), 2,30,3 )
+    --print(easeinout(10,100,Position/100), 2,30,3 )
 
 end
 
@@ -214,7 +248,7 @@ function RenderHUD()
 
     -- print(tostr(PlayerVl),2,20,4)
     --print(tostr(LoopedTrackPos(Position)),2,20,4)
-    print(tostr(DRAW_DIST),2,20,4)
+    --print(tostr(DRAW_DIST),2,20,4)
 
 end
 
@@ -253,7 +287,11 @@ function RenderRoad()
     xoff = 0
     posinseg=1-(startseg*SEG_LEN-lpdpos)/SEG_LEN
     dxoff = - sPointsC[startseg] * posinseg
+    miny=1000
 
+    nxtseg=(startseg)%NUM_SEGS + 1
+    playery = lerp( sPointsY[startseg], sPointsY[nxtseg], posinseg)
+    
     for i = 0, DRAW_DIST - 1 do
 
         camx = PlayerX * ROAD_WIDTH
@@ -265,7 +303,7 @@ function RenderRoad()
             -- Projection
 
             pcamx = sPointsX[segidx] - camx - xoff - dxoff * (j-1);
-            pcamy = sPointsY[segidx] - CAM_HEIGHT;
+            pcamy = sPointsY[segidx] - ( CAM_HEIGHT + playery );
             pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
 
             pscreenscale = CAM_DEPTH/pcamz;
@@ -281,12 +319,15 @@ function RenderRoad()
         xoff = xoff + dxoff
         dxoff = dxoff + sPointsC[segidx]
 
-        if psy[1] < 128 or psy[2] < 128 then
+        if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) and ( psy[1] <= miny+1 ) then
             RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], segidx )
         end
+
+        miny=min(psy[2],miny)
     end
 
-    print(tostr(Position),2,40,4)
+    --print(tostr(psy[1]),2,40,4)
+    --print(tostr(psy[2]),20,40,4)
 
 end -- RenderRoad
 
