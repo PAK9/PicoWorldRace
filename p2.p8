@@ -196,7 +196,7 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         col = 6
     else
         fillp(0x5A5A)
-        col = 0x82
+        col = 0x42
     end
     edgew1=w1*1.2
     edgew2=w2*1.2
@@ -225,6 +225,28 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         --col = 13
     end
     RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
+
+     -- Lanes
+     
+     -- centre
+     --[[
+     if idx % 4 > 2 then
+        fillp(0)
+        col = 9
+        lanew=0.02
+        RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, col )
+    end
+    --]]
+
+    -- edge
+    if idx % 2 > 0 then
+        fillp(0)
+        col = 6
+        dst1=0.86
+        dst2=0.9
+        RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
+        RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
+    end
 
 end -- RenderSeg
 
