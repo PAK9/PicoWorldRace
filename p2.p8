@@ -10,7 +10,7 @@ __lua__
 
 local SEG_LEN = 10
 local NUM_SEGS = 0
-local DRAW_DIST = 30
+local DRAW_DIST = 40
 local CANVAS_SIZE = 128
 local ROAD_WIDTH = 40 -- half
 local CAM_HEIGHT = 17
@@ -32,6 +32,19 @@ local PlayerDrift = 0
 local PlayerAir = 0
 
 local sScreenShake = {0,0}
+
+function BayerRectV( x1, y1, x2, y2, c1, c2 )
+
+    grad={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
+    col = bor( c1 << 4, c2 );
+    h=y2-y1
+    for i = 1,#grad do
+        fillp(grad[i])
+        rectfill( x1, flr(y1), x2, y1+flr(h/#grad), col )
+        y1 = y1 + h/#grad;
+    end
+
+end
 
 function AddSeg( c, y )
     NUM_SEGS+=1
@@ -207,31 +220,14 @@ end
 
 function RenderHorizon()
 
-    fillp(0)
+    BayerRectV( -10, 64, 138, 74, 3, 13 )
+    sspr( 0,24,48,16, 40, 48 )
 
 end
 
 function RenderSky()
-
-    fillp(0)
-    rectfill( -10, 0, 138, 80, 12 ) -- block out
-
-    grad={  {0,6},
-            {0x0208,0xC6},
-            {0x0A0A,0xC6},
-            {0x1A4A,0xC6},
-            {0x5A5A,0xC6},
-            {0x1A4A,0x6C},
-            {0x0A0A,0x6C},
-            {0x0208,0x6C}}
-    y1=0
-    inc = 5;
-
-    for i = 1,#grad do
-        fillp(grad[i][1])
-        rectfill( -10, y1, 138, y1+inc, grad[i][2] )
-        y1 = y1 + inc;
-    end
+    rectfill( -10, 0, 128, 44, 12 ) -- block out
+    BayerRectV( -10, 40, 138, 64, 6, 12 )
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
@@ -307,6 +303,7 @@ function _draw()
 	cls()
 	
     RenderSky()
+    RenderHorizon()
     RenderRoad()
     RenderPlayer()
     RenderHUD()
@@ -318,7 +315,8 @@ function _draw()
     --print(CAM_DEPTH, 2,30,3 )
     --print(CAM_HEIGHT, 2,50,3 )
     print(PlayerAir, 2,30,3 )
-    print(PlayerYd, 2,50,3 )
+
+    --BayerRectV( 20,20, 100,100, 4, 7)
 
 end
 
@@ -444,22 +442,22 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff7ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffff55fffdffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6555ffdffffff5111ff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff51d551115ffffff5151ff55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffdfffd16555111ffffff51116d51fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff5fddd5d1d1d5111116ddd61115166515ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff656d5d55151d55511161ddd15111d651166df6dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff5d5dd5d15151d51511161d1d11151111111ddd66ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff56dd11d155d1d11511161d1d1111111111dddddd151fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+dd565d15d11dd1d11511161d1d5511111111115ddd66d5d6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+5d5d5666666dd5d11115155515515115111151ddddd66dd6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
