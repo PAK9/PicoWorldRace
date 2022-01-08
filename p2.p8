@@ -9,19 +9,22 @@ __lua__
 -- music(0)
 
 local SEG_LEN = 10
-local NUM_SEGS = 0
 local DRAW_DIST = 40
 local CANVAS_SIZE = 128
 local ROAD_WIDTH = 40 -- half
 local CAM_HEIGHT = 17
 local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
+
+local NumSegs = 0
 local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
 local sPointsC = {}
-local LastY = 0
 
-local Position = 0
+local LastY = 0 -- last y height when building a track
+
+local Position = 0 -- current position around the track
+local PositionL = 0 -- ..accounting for laps
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
 local PlayerXd = 0
@@ -30,6 +33,9 @@ local PlayerYd = 0
 local PlayerVl = 0
 local PlayerDrift = 0
 local PlayerAir = 0
+local PlayerSeg = 0 -- current player segment
+
+local HznOffset = 0
 
 local sScreenShake = {0,0}
 
@@ -46,12 +52,21 @@ function BayerRectV( x1, y1, x2, y2, c1, c2 )
 
 end
 
+function LoopedTrackPos(z)
+    lps=flr(z/(SEG_LEN*NumSegs))
+    return z-SEG_LEN*NumSegs*lps
+end
+
+function DepthToSegIndex(z)
+  return flr(z/SEG_LEN) % NumSegs + 1;
+end
+
 function AddSeg( c, y )
-    NUM_SEGS+=1
+    NumSegs+=1
     add( sPointsC, c )
     add( sPointsX, 0 )
     add( sPointsY, y )
-    add( sPointsZ, NUM_SEGS * SEG_LEN + 1 )
+    add( sPointsZ, NumSegs * SEG_LEN + 1 )
 end
 
 function lerp( a,b,f )
@@ -103,6 +118,17 @@ function InitSegments()
     LastY = 0
     
     AddStraight( 10, 0 )
+    AddCurve( 10,10,10,1, -20 )
+    AddStraight( 10, -30 )
+    AddCurve( 10,10,10,1, 10 )
+    AddStraight( 10, -10 )
+    AddCurve( 10,10,10,1, 20 )
+    AddStraight( 10, -10 )
+    AddCurve( 10,10,10,1, 20 )
+    AddStraight( 10, 0 )
+
+    --[[
+    AddStraight( 10, 0 )
     AddStraight( 20, 40 )
     AddCurve( 10,10,10,1, -20 )
     AddStraight( 20, 0 )
@@ -113,7 +139,7 @@ function InitSegments()
     AddStraight( 10, 20 )
     AddStraight( 4, 0 )
     --AddCurve( 4,10,4,4 )
-
+    --]]
 end
 
 function _init()
@@ -146,6 +172,9 @@ end
 
 function _update()
 
+    PositionL=LoopedTrackPos(Position)
+    PlayerSeg=DepthToSegIndex(PositionL)
+
     -- screenshake
 
     sScreenShake[1] = -sScreenShake[1]*0.8
@@ -157,10 +186,8 @@ function _update()
 
     -- player input/movement
 
-    lpdpos=LoopedTrackPos(Position)
-    playerseg = DepthToSegIndex(lpdpos)
-    nxtseg=(playerseg)%NUM_SEGS + 1
-    posinseg=1-(playerseg*SEG_LEN-lpdpos)/SEG_LEN
+    nxtseg=(PlayerSeg)%NumSegs + 1
+    posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
     
     -- input
     if PlayerAir == 0 then
@@ -186,7 +213,7 @@ function _update()
         end
         PlayerXd=PlayerXd*0.9
     end
-    PlayerX+=sPointsC[playerseg]*0.6*PlayerVl*0.01
+    PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
     PlayerX+=PlayerXd*0.3
 
     if abs( PlayerXd ) < 0.08 then
@@ -195,18 +222,22 @@ function _update()
 
     finalvel = PlayerVl*0.6
     Position=Position+finalvel
-    if Position > SEG_LEN*NUM_SEGS then
-        Position -= SEG_LEN*NUM_SEGS
+    if Position > SEG_LEN*NumSegs then
+        Position -= SEG_LEN*NumSegs
     end
 
-    ground = lerp( sPointsY[playerseg], sPointsY[nxtseg], posinseg)
+    HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.15 * finalvel
+
+    -- jumps / player y
+
+    ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     PlayerY=max(PlayerY+PlayerYd, ground)
     if( PlayerY == ground ) then
         if PlayerYd < -2 and PlayerAir > 4 then
             sScreenShake = {2,7}
         end
-        nposinseg=1-(playerseg*SEG_LEN-(lpdpos+finalvel ))/SEG_LEN
-        nground = lerp( sPointsY[playerseg], sPointsY[nxtseg], nposinseg )
+        nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+finalvel ))/SEG_LEN
+        nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
         PlayerYd = ( nground - ground ) - 0.4
         
         PlayerAir = 0
@@ -218,10 +249,29 @@ function _update()
 --constedits()
 end
 
+function HrzSprite( x, sx, sy, f )
+ sspr( 0,24,48,16, (HznOffset + x) % 256 - 128, 64 - flr( sy * 16 ), sx * 48, sy * 16, f )
+end
+
 function RenderHorizon()
 
     BayerRectV( -10, 64, 138, 74, 3, 13 )
-    sspr( 0,24,48,16, 40, 48 )
+    HrzSprite(10, 1.0, 0.7, true)
+    HrzSprite(64, 0.3, 1.5, false)
+    HrzSprite(60, 2.3, 0.3, false)
+    HrzSprite(128, 1, 1, false)
+    HrzSprite(178, 1.5, 0.5, true)
+    --[[
+    hznoff =  HznOffset % 256 - 128
+    BayerRectV( -10, 64, 138, 74, 3, 13 )
+    sspr( 0,24,48,16, hznoff, 48, 48, 16 )
+    sspr( 0,24,48,16, hznoff + 40, 56, 24, 8 )
+    sspr( 0,24,48,16, hznoff + 90, 56, 24, 8 )
+    sspr( 0,24,48,16, hznoff + 128, 56, 24, 8 )
+    sspr( 0,24,48,16, hznoff + 160, 56, 24, 8 )
+    sspr( 0,24,48,16, hznoff + 196, 48, 48, 16 )
+    --]]
+ --   sspr( 0,24,48,16, HznOffset + 20, 48, )
 
 end
 
@@ -332,7 +382,7 @@ function RenderPlayer()
 
     if PlayerDrift != 0 then
     spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
-    elseif PlayerXd > 0.07 or PlayerXd < -0.07 then
+    elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
     spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
     else
     spr( 0, 48, 100, 4, 3 )
@@ -340,21 +390,8 @@ function RenderPlayer()
 
 end
 
-function LoopedTrackPos(z)
-    lps=flr(z/(SEG_LEN*NUM_SEGS))
-    return z-SEG_LEN*NUM_SEGS*lps
-end
-
-function DepthToSegIndex(z)
-  return flr(z/SEG_LEN) % NUM_SEGS + 1;
-end
-
 function RenderRoad()
-    
-    --Position=-10
-    lpdpos=LoopedTrackPos(Position)
-    startseg = DepthToSegIndex(lpdpos)
-    
+       
     loopoff=0
 
     psx = {}
@@ -362,8 +399,8 @@ function RenderRoad()
     psw = {}
 
     xoff = 0
-    posinseg=1-(startseg*SEG_LEN-lpdpos)/SEG_LEN
-    dxoff = - sPointsC[startseg] * posinseg
+    posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
+    dxoff = - sPointsC[PlayerSeg] * posinseg
     miny=1000
    
     for i = 0, DRAW_DIST - 1 do
@@ -372,28 +409,28 @@ function RenderRoad()
 
         for j = 1, 2 do
 
-            segidx = (startseg - 1 + ( j - 1 ) + i) % NUM_SEGS + 1
+            segidx = (PlayerSeg - 1 + ( j - 1 ) + i) % NumSegs + 1
 
             -- Projection
 
             pcamx = sPointsX[segidx] - camx - xoff - dxoff * (j-1);
             pcamy = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
-            pcamz = sPointsZ[segidx] - (lpdpos - loopoff);
+            pcamz = sPointsZ[segidx] - (PositionL - loopoff);
 
             pscreenscale = CAM_DEPTH/pcamz;
-            psx[j] = flr((CANVAS_SIZE/2) + (pscreenscale * pcamx  * CANVAS_SIZE/2));
-            psy[j] = flr((CANVAS_SIZE/2) - (pscreenscale * pcamy  * CANVAS_SIZE/2));
-            psw[j] = flr((pscreenscale * ROAD_WIDTH * CANVAS_SIZE/2));
+            psx[j] = flr(64 + (pscreenscale * pcamx  * 64));
+            psy[j] = flr(64 - (pscreenscale * pcamy  * 64));
+            psw[j] = flr(pscreenscale * ROAD_WIDTH * 64);
 
-            if j == 1 and segidx == NUM_SEGS then
-                loopoff+=NUM_SEGS*SEG_LEN
+            if j == 1 and segidx == NumSegs then
+                loopoff+=NumSegs*SEG_LEN
             end
         end
 
         xoff = xoff + dxoff
         dxoff = dxoff + sPointsC[segidx]
 
-        if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) and ( psy[1] <= miny+1 ) then
+        if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) and ( psy[2] <= miny+1 ) then
             RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], segidx )
         end
 
