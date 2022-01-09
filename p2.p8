@@ -15,11 +15,16 @@ local ROAD_WIDTH = 40 -- half
 local CAM_HEIGHT = 17
 local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
+local BAYER={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
+
 local NumSegs = 0
 local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
 local sPointsC = {}
+
+local sSprite = {}
+local sSpriteX = {}
 
 local LastY = 0 -- last y height when building a track
 
@@ -39,15 +44,23 @@ local HznOffset = 0
 
 local sScreenShake = {0,0}
 
+function BayerRectT( x1, y1, x2, y2, c1, fact )
+    
+    if fact < 1 and fact >= 0 then
+        local BAYERT={ 0, 0x0208.8, 0x0A0A.8, 0x1A4A.8, 0x5A5A.8, 0xDA7A.8, 0xFAFA.8, 0xFBFE.8 }
+        fillp(BAYERT[flr(1+fact*#BAYERT)])
+        rectfill( x1,y1, x2, y2, c1 )
+    end
+end
+
 function BayerRectV( x1, y1, x2, y2, c1, c2 )
 
-    grad={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
     col = bor( c1 << 4, c2 );
     h=y2-y1
-    for i = 1,#grad do
-        fillp(grad[i])
-        rectfill( x1, flr(y1), x2, y1+flr(h/#grad), col )
-        y1 = y1 + h/#grad;
+    for i = 1,#BAYER do
+        fillp(BAYER[i])
+        rectfill( x1, flr(y1), x2, y1+flr(h/#BAYER), col )
+        y1 = y1 + h/#BAYER;
     end
 
 end
@@ -61,7 +74,7 @@ function DepthToSegIndex(z)
   return flr(z/SEG_LEN) % NumSegs + 1;
 end
 
-function AddSeg( c, y )
+function AddSeg( c, y, s )
     NumSegs+=1
     add( sPointsC, c )
     add( sPointsX, 0 )
@@ -89,18 +102,37 @@ function easeinout( a, b, fact )
     end
 end
 
+function AddSprites( n, p )
+
+    for i = 1, n do
+        if p == 0 then
+            add( sSprite, 0 )
+            add( sSpriteX, 0 )
+        elseif p == 1 then
+            if i%3 == 0 then
+                add( sSprite, 1 )
+                add( sSpriteX, -ROAD_WIDTH * 1.6 )
+            else
+                add( sSprite, 0 )
+                add( sSpriteX, 0 )
+            end
+        end
+    end
+
+end
+
 function AddCurve( enter, hold, exit, c, y )
 
     tot=(enter+hold+exit)
 
     for i=1,enter do
-    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
+    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ), 0 )
     end
     for i=1,hold do
-    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
+    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ), 0 )
     end
     for i=1,exit do
-    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
+    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ), 0 )
     end
     LastY=y
 
@@ -118,14 +150,16 @@ function InitSegments()
     LastY = 0
     
     AddStraight( 10, 0 )
-    AddCurve( 10,10,10,1, -20 )
-    AddStraight( 10, -30 )
-    AddCurve( 10,10,10,1, 10 )
-    AddStraight( 10, -10 )
-    AddCurve( 10,10,10,1, 20 )
-    AddStraight( 10, -10 )
-    AddCurve( 10,10,10,1, 20 )
+    AddSprites( 10, 0 )
+
+    AddCurve( 8,10,8,-2, -50 )
+    AddSprites( 26, 1 )
+
+    AddStraight( 10, 30 )
+    AddSprites( 10, 0 )
+
     AddStraight( 10, 0 )
+    AddSprites( 10, 0 )
 
     --[[
     AddStraight( 10, 0 )
@@ -233,7 +267,7 @@ function _update()
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     PlayerY=max(PlayerY+PlayerYd, ground)
     if( PlayerY == ground ) then
-        if PlayerYd < -2 and PlayerAir > 4 then
+        if PlayerYd < -3 and PlayerAir > 4 then
             sScreenShake = {2,7}
         end
         nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+finalvel ))/SEG_LEN
@@ -255,6 +289,8 @@ end
 
 function RenderHorizon()
 
+    fillp(0)
+    rectfill( -10, 74, 138, 128, 3 ) -- block out
     BayerRectV( -10, 64, 138, 74, 3, 13 )
     HrzSprite(10, 1.0, 0.7, true)
     HrzSprite(64, 0.3, 1.5, false)
@@ -358,13 +394,13 @@ function _draw()
     RenderPlayer()
     RenderHUD()
 
-    print( flr(stat(1)*100).."%", 2,2,3 )
-    print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
+     print( flr(stat(1)*100).."%", 2,2,3 )
+     print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
     --print( flr(stat(0)), 30,2,3 )
     --print(flr(DRAW_DIST), 2,30,3 )
     --print(CAM_DEPTH, 2,30,3 )
     --print(CAM_HEIGHT, 2,50,3 )
-    print(PlayerAir, 2,30,3 )
+    -- print(PlayerAir, 2,30,3 )
 
     --BayerRectV( 20,20, 100,100, 4, 7)
 
@@ -381,61 +417,151 @@ end
 function RenderPlayer()
 
     if PlayerDrift != 0 then
-    spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
+        spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
     elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
-    spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
+        spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
     else
-    spr( 0, 48, 100, 4, 3 )
+        spr( 0, 48, 100, 4, 3 )
     end
 
+end
+
+function RenderSprite( x1, y1, w1, s, d )
+    
+    ssc=w1*0.3
+    -- sprite definitions (the bottom of the sprite should be on the ground)
+    -- sx, sy, sw, sh, scale, flip
+    sdef = { 
+        { 48, 24, 8, 8, 1.4, 0 } -- chevron r
+    }
+    aspx = 1
+    aspy = 1
+    if sdef[s][3] > sdef[s][4] then
+        aspx = sdef[s][3]/sdef[s][4]
+    else
+        aspy = sdef[s][4]/sdef[s][3]
+    end
+    
+    rect= { x1 - ssc * sdef[s][5] * aspx * 0.5,
+            y1 - ssc * sdef[s][5] * aspy,
+            ssc * sdef[s][5] * aspx,
+            ssc * sdef[s][5] * aspy }
+    
+    --[[
+    sh=sdef[s][4]
+    if ( yclip < rect[2] + rect[4] ) then
+        -- print( tostr( yclip ) .. " / " .. tostr( rect[2] + rect[4]) .. " - " .. tostr( yclip < rect[2] + rect[4]) )
+        frac = ( rect[4] - ( ( rect[2] + rect[4] ) - yclip ) ) / rect[4]
+        sh = sh * frac
+        rect[4] = ssc * sdef[s][5] * aspy * frac
+        
+    end
+    if sh >= 1 then
+        sspr( sdef[s][1], sdef[s][2], sdef[s][3], sh, rect[1], rect[2], rect[3], rect[4] )
+        rectfill( x1, y1, x1 + 1,y1+1, 8 )
+        rectfill( x1 + 2, yclip, x1 + 4, yclip, 9 )
+    end
+    --]]
+    --sspr( sdef[s][1], sdef[s][2], sdef[s][3], sdef[s][4], rect[1], rect[2], rect[3], rect[4] )
+    -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
+    -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
+    -- sspr seems to over-round the h/w down for some reason, so correct it
+    sspr( sdef[s][1], sdef[s][2], sdef[s][3], sdef[s][4], rect[1], rect[2], ceil(rect[3] + 1), ceil(rect[4] + 1) )
+    BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 3, d )
 end
 
 function RenderRoad()
        
     loopoff=0
 
+    pscreenscale = {}
     psx = {}
     psy = {}
     psw = {}
 
+    pcamx = {}
+    pcamy = {}
+    pcamz = {}
+
+    clipy={}
+
+    camx = PlayerX * ROAD_WIDTH
     xoff = 0
     posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
     miny=1000
    
-    for i = 0, DRAW_DIST - 1 do
+    -- calculate projections
+    
+    for i = 1, DRAW_DIST do
 
-        camx = PlayerX * ROAD_WIDTH
+        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
 
-        for j = 1, 2 do
+        pcamx[i] = sPointsX[segidx] - camx - xoff - dxoff;
+        pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
+        pcamz[i] = sPointsZ[segidx] - (PositionL - loopoff);
 
-            segidx = (PlayerSeg - 1 + ( j - 1 ) + i) % NumSegs + 1
-
-            -- Projection
-
-            pcamx = sPointsX[segidx] - camx - xoff - dxoff * (j-1);
-            pcamy = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
-            pcamz = sPointsZ[segidx] - (PositionL - loopoff);
-
-            pscreenscale = CAM_DEPTH/pcamz;
-            psx[j] = flr(64 + (pscreenscale * pcamx  * 64));
-            psy[j] = flr(64 - (pscreenscale * pcamy  * 64));
-            psw[j] = flr(pscreenscale * ROAD_WIDTH * 64);
-
-            if j == 1 and segidx == NumSegs then
-                loopoff+=NumSegs*SEG_LEN
-            end
+        if segidx == NumSegs then
+            loopoff+=NumSegs*SEG_LEN
         end
 
         xoff = xoff + dxoff
         dxoff = dxoff + sPointsC[segidx]
 
-        if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) and ( psy[2] <= miny+1 ) then
-            RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], segidx )
+    end
+
+    -- segments
+    for i = DRAW_DIST - 1, 1, -1 do
+
+        for j = 1, 2 do
+            pscreenscale[j] = CAM_DEPTH/pcamz[i+(j-1)];
+            psx[j] = flr(64 + (pscreenscale[j] * pcamx[i+(j-1)]  * 64));
+            psy[j] = flr(64 - (pscreenscale[j] * pcamy[i+(j-1)]  * 64));
+            psw[j] = flr(pscreenscale[j] * ROAD_WIDTH * 64);
         end
 
-        miny=min(psy[2],miny)
+
+
+        if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) then -- and ( psy[2] <= miny+1 )
+            RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], PlayerSeg + i )
+        end
+
+        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+        if sSprite[segidx] != 0 then
+
+            psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] ) * 64));
+            d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
+            RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d ) -- clipy[i]
+        end
+        
+
+        --miny=min(psy[2],miny)
+
+        --rectfill( 3 * i, miny+1, 3 * i + 1, miny+1, 10 )
+        -- print( miny )
     end
+
+    
+--[[
+for i = 1, DRAW_DIST - 1 do
+    rectfill( 3 * i, clipy[i], 3 * i + 1, clipy[i], 10 )
+    end
+
+    -- sprites
+    for i = DRAW_DIST - 1, 1, -1 do
+        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+
+        if sSprite[segidx] != 0 then
+
+            pscreenscale = CAM_DEPTH/pcamz[i];
+            psx = flr(64 + (pscreenscale * ( pcamx[i] + sSpriteX[segidx] ) * 64));
+            psy = flr(64 - (pscreenscale * pcamy[i]  * 64));
+            psw = flr(pscreenscale * ROAD_WIDTH * 64);
+
+            RenderSprite( psx,psy,psw, sSprite[segidx], clipy[i] )
+
+    end
+--]]
 
     --print(tostr(psy[1]),2,40,4)
     --print(tostr(psy[2]),20,40,4)
@@ -479,22 +605,22 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
-fffffffffffffff7ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffff55fffdffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6555ffdffffff5111ff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff51d551115ffffff5151ff55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffdfffd16555111ffffff51116d51fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff5fddd5d1d1d5111116ddd61115166515ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff656d5d55151d55511161ddd15111d651166df6dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff5d5dd5d15151d51511161d1d11151111111ddd66ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff56dd11d155d1d11511161d1d1111111111dddddd151fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-dd565d15d11dd1d11511161d1d5511111111115ddd66d5d6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-5d5d5666666dd5d11115155515515115111151ddddd66dd6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff7ddffffffffffffffffffffffffffffff90009d4dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffffd90009a4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffff4ad0009dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffff55fffdffffffffffffffd9a90009ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffff4a90009dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6555ffdffffff5111ff56fffffffffffffd90009a4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff51d551115ffffff5151ff55fffffffffffff90009d4dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffdfffd16555111ffffff51116d51fffffffffffff55556556ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651ffffffffffffffff67fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffddd5f5d1d5551116d6d65515166516fffffffffffffff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffffff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff656d5d55151d55511161ddd15111d651166df6dfffffffff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff5d5dd5d15151d51511161d1d11151111111ddd66fffffffff56fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff56dd11d155d1d11511161d1d1111111111dddddd151ffffff67fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+dd565d15d11dd1d11511161d1d5511111111115ddd66d5d6fff55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+5d5d5666666dd5d11115155515515115111151ddddd66dd6ff011dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
