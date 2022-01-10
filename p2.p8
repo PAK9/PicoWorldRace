@@ -36,6 +36,7 @@ SDEF = {
     { 56, 24, 10, 11, 2.5, 4.5, 0 }, -- 4. tree
     { 48, 32, 8, 8, 0.5, 0.8, 0 }, -- 5. shrub
     { 0, 40, 16, 11, 4, 4, 0 }, -- 6. bilboard
+    { 0, 0, 32, 24, 0.6, 0.6, 0 }, -- 7. opponent car
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -61,6 +62,10 @@ local PlayerVl = 0
 local PlayerDrift = 0
 local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
+
+local OpptPos = {}
+local OpptX = {}
+local OpptV = {}
 
 local HznOffset = 0
 
@@ -190,30 +195,16 @@ function InitSegments()
     SpriteSd = 0
     
     AddStraight( 40, 0, 3 )
-    AddStraight( 40, 0, 4 )
-    AddCurve( 8,10,8,-2, -50, 1 )
-    AddStraight( 14, 30, 3 )
-    AddStraight( 10, -10, 3 )
-    AddStraight( 20, 0, 4 )
-    AddCurve( 10,10,10, 0.6, -20, 4 )
+    --AddStraight( 40, 0, 4 )
+    --AddCurve( 8,10,8,-2, -50, 1 )
+    --AddStraight( 14, 30, 3 )
+    --AddStraight( 10, -10, 3 )
+    --AddStraight( 20, 0, 4 )
+    --AddCurve( 10,10,10, 0.6, -20, 4 )
     AddStraight( 10, -10, 3 )
     AddCurve( 10,10,10, -0.6, 0, 4 )
     AddCurve( 10,20,10, 1.6, 50, 2 )
     AddStraight( 40, 0, 3 )
-
-    --[[
-    AddStraight( 10, 0 )
-    AddStraight( 20, 40 )
-    AddCurve( 10,10,10,1, -20 )
-    AddStraight( 20, 0 )
-    AddCurve( 10,10,20,-1, 20 )
-    AddStraight( 20, 0 )
-    --AddStraight( 10 )
-    AddCurve( 6,20,15,-2, -50 )
-    AddStraight( 10, 20 )
-    AddStraight( 4, 0 )
-    --AddCurve( 4,10,4,4 )
-    --]]
 end
 
 function _init()
@@ -224,6 +215,21 @@ function _init()
     palt(15, true)
 
     InitSegments()
+    
+    OpptPos[1] = SEG_LEN * 2
+    OpptPos[2] = SEG_LEN * 2
+    OpptPos[3] = SEG_LEN * 4
+    OpptPos[4] = SEG_LEN * 4
+
+    OpptX[1] = -15
+    OpptX[2] = 15
+    OpptX[3] = -10
+    OpptX[4] = 10
+
+    OpptV[1] = 0
+    OpptV[2] = 0
+    OpptV[3] = 0
+    OpptV[4] = 0
 
 end
 
@@ -308,6 +314,29 @@ function UpdatePlayer()
         PlayerYd=PlayerYd-0.7
         PlayerAir = PlayerAir + 1
     end
+
+    -- Position=Position+0.5
+end
+
+local RubberBand = 0
+
+function UpdateOpts()
+    
+    rbandnxt=0
+    for i=1,#OpptPos do
+
+        opposl=LoopedTrackPos(OpptPos[i])
+        opseg=DepthToSegIndex(opposl)
+        plsegoff1=(opseg-PlayerSeg)%NumSegs+1
+
+        rbrange=20
+        rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
+
+        OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i/16
+        OpptV[i]=OpptV[i]*0.95
+        OpptPos[i]=OpptPos[i]+OpptV[i]
+    end
+    RubberBand = rbandnxt
 end
 
 function _update()
@@ -322,6 +351,7 @@ function _update()
     camera(sScreenShake[1],sScreenShake[2])
 
     UpdatePlayer()
+    UpdateOpts()
     --constedits()
 
 end
@@ -355,6 +385,7 @@ function RenderHorizon()
 end
 
 function RenderSky()
+    fillp(0)
     rectfill( -10, 0, 128, 44, 12 ) -- block out
     BayerRectV( -10, 40, 138, 64, 6, 12 )
 end
@@ -393,16 +424,24 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     RenderPoly4( {138,y2},{138,y1},{x1+edgew1,y1},{x2+edgew2,y2}, col )
 
     -- Road
-    if idx % 2 == 0 then
-        fillp(0)
-        col = 5
-    else
+    if idx % 3 == 0 then
         fillp(0x5A5A)
         col = 0x5D
-        --fillp(0)
-        --col = 13
+    else
+        fillp(0)
+        col = 5
     end
     RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
+
+    -- patches
+    --[[
+    fillp(0)
+    col = 5
+    srand( idx )
+    pminx=rnd( 0.6 ) + 0.3
+    pmaxx=rnd( 0.6 ) + 0.3
+    RenderPoly4( {x1-w1*pminx,y1},{x1+w1*pmaxx,y1},{x2+w2*pmaxx,y2},{x2-w2*pminx,y2}, col )
+    --]]
 
      -- Lanes
      
@@ -446,6 +485,7 @@ function _draw()
     -- print(PlayerAir, 2,30,3 )
 
     --BayerRectV( 20,20, 100,100, 4, 7)
+    print(tostr(RubberBand),2,16,14)
 
 end
 
@@ -501,11 +541,11 @@ function RenderSprite( x1, y1, w1, s, d, seg )
         rectfill( x1 + 2, yclip, x1 + 4, yclip, 9 )
     end
     --]]
-    --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], rect[3], rect[4] )
     -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
     -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
     -- sspr seems to over-round the h/w down for some reason, so correct it
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], ceil(rect[3] + 1), ceil(rect[4] + 1), SDEF[s][7] == 1 )
+    --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], rect[3], rect[4] )
     BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 13, d )
 end
 
@@ -521,6 +561,7 @@ function RenderRoad()
     pcamx = {}
     pcamy = {}
     pcamz = {}
+    pcrv = {}
 
     clipy={}
 
@@ -536,7 +577,8 @@ function RenderRoad()
 
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
 
-        pcamx[i] = sPointsX[segidx] - camx - xoff - dxoff;
+        pcrv[i] = xoff - dxoff
+        pcamx[i] = sPointsX[segidx] - camx - pcrv[i];
         pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
         pcamz[i] = sPointsZ[segidx] - (PositionL - loopoff);
 
@@ -559,8 +601,6 @@ function RenderRoad()
             psw[j] = flr(pscreenscale[j] * ROAD_WIDTH * 64);
         end
 
-
-
         if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) then -- and ( psy[2] <= miny+1 )
             RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], PlayerSeg + i )
         end
@@ -571,15 +611,41 @@ function RenderRoad()
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d, segidx )
-        end
-        
-
-        --miny=min(psy[2],miny)
-
-        --rectfill( 3 * i, miny+1, 3 * i + 1, miny+1, 10 )
-        -- print( miny )
+        end     
     end
 
+    -- opponents
+    for o = 1,#OpptPos do
+        opposl=LoopedTrackPos(OpptPos[o])
+        opseg=DepthToSegIndex(opposl)
+
+        plsegoff1=(opseg-PlayerSeg)%NumSegs+1
+        if plsegoff1 < ( DRAW_DIST - 2 ) then
+
+            opinseg=1-(opseg*SEG_LEN-opposl)/SEG_LEN
+
+            nxtseg = (opseg) % NumSegs + 1
+           
+            plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
+            
+            ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
+            opcamx = lerp( sPointsX[opseg] + OpptX[o], sPointsX[nxtseg] + OpptX[o], opinseg ) - camx - ocrv;
+            opcamy = lerp( sPointsY[opseg], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
+            opcamz = lerp( sPointsZ[opseg], sPointsZ[nxtseg], opinseg ) - (PositionL);
+
+            
+            --print(tostr(opcamx),2,16 + o * 10,4)
+            --print(tostr(opcamx),2,22 + o * 10,4)
+            --print(tostr(opcamy),2,28 + o * 10,4)
+
+            opss = CAM_DEPTH/opcamz;
+            opsx = flr(64 + (opss * opcamx * 64));
+            opsy = flr(64 - (opss * opcamy * 64));
+            opsw = flr(opss * ROAD_WIDTH * 64);
+
+            RenderSprite( opsx, opsy, opsw, 7, 1, segidx )
+        end
+    end
     
 --[[
 for i = 1, DRAW_DIST - 1 do
