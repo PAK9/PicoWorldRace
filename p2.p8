@@ -41,10 +41,10 @@ SDEF = {
 -- when conflict first is used
 -- index in SDEF, interval, minx (*roadw), maxx (*roadw), rand l/r
 SPDEF = {
-    { { 1, 3, -1.6, -1.6, 0 }, { 3, 2, 1.5, 4, 1 }, { 4, 1, 1.4, 4, 1 }  }, --  1. chevron r, grass, trees
-    { { 2, 3, 1.6, 1.6, 0 }, { 3, 2, 1.5, 4, 1 }, { 4, 1, 1.4, 4, 1 }  }, --  2. chevron l, grass, trees
-    { { 4, 2, 1.5, 4, 1 }, { 5, 3, 1.4, 3, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. trees, shrubs, grass
-    { { 6, 8, 2, 2, 0 }, { 4, 2, 1.5, 4, 1 }, { 5, 3, 1.4, 3, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. billboard, trees, shrubs, grass
+    { { 1, 3, -1.6, -1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  1. chevron r, trees, grass
+    { { 2, 3, 1.6, 1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  2. chevron l, trees, grass
+    { { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. trees, shrubs, grass
+    { { 6, 18, 2, 2, 0 }, { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. billboard, trees, shrubs, grass
     
 }
 
@@ -189,13 +189,17 @@ function InitSegments()
     LastY = 0
     SpriteSd = 0
     
-    AddStraight( 10, 0, 3 )
-    AddStraight( 10, 0, 4 )
+    AddStraight( 40, 0, 3 )
+    AddStraight( 40, 0, 4 )
     AddCurve( 8,10,8,-2, -50, 1 )
-    AddStraight( 10, 30, 3 )
-    AddStraight( 10, 0, 4 )
+    AddStraight( 14, 30, 3 )
+    AddStraight( 10, -10, 3 )
+    AddStraight( 20, 0, 4 )
+    AddCurve( 10,10,10, 0.6, -20, 4 )
+    AddStraight( 10, -10, 3 )
+    AddCurve( 10,10,10, -0.6, 0, 4 )
     AddCurve( 10,20,10, 1.6, 50, 2 )
-    AddStraight( 10, 0, 3 )
+    AddStraight( 40, 0, 3 )
 
     --[[
     AddStraight( 10, 0 )
@@ -224,6 +228,7 @@ function _init()
 end
 
 function constedits()
+
     if btn(2) then -- up
         CAM_HEIGHT=CAM_HEIGHT+1
     elseif btn(3) then -- down
@@ -236,30 +241,18 @@ function constedits()
         CAM_DEPTH=CAM_DEPTH-0.05
     end
 
-    Position=Position+2
+    Position=Position+5
 
 end
 
-function _update()
+function UpdatePlayer()
 
     PositionL=LoopedTrackPos(Position)
     PlayerSeg=DepthToSegIndex(PositionL)
 
-    -- screenshake
-
-    sScreenShake[1] = -sScreenShake[1]*0.8
-    sScreenShake[2] = -sScreenShake[2]*0.8
-    if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
-        sScreenShake = {0,0}
-    end
-    camera(sScreenShake[1],sScreenShake[2])
-
-    -- player input/movement
-
     nxtseg=(PlayerSeg)%NumSegs + 1
     posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
-    
-    -- input
+
     if PlayerAir == 0 then
         if btn(2) then -- up
             -- PlayerVl=PlayerVl+1
@@ -272,7 +265,7 @@ function _update()
         end
 
         if btn(4) then -- z / btn1
-            PlayerVl=PlayerVl+0.1
+            PlayerVl=PlayerVl+0.14
         end
         PlayerVl=PlayerVl*0.99
 
@@ -298,7 +291,7 @@ function _update()
 
     HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.15 * finalvel
 
-    -- jumps / player y
+     -- jumps / player y
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     PlayerY=max(PlayerY+PlayerYd, ground)
@@ -315,8 +308,22 @@ function _update()
         PlayerYd=PlayerYd-0.7
         PlayerAir = PlayerAir + 1
     end
+end
 
---constedits()
+function _update()
+
+    -- screenshake
+
+    sScreenShake[1] = -sScreenShake[1]*0.8
+    sScreenShake[2] = -sScreenShake[2]*0.8
+    if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
+        sScreenShake = {0,0}
+    end
+    camera(sScreenShake[1],sScreenShake[2])
+
+    UpdatePlayer()
+    --constedits()
+
 end
 
 function HrzSprite( x, sx, sy, f )
@@ -499,7 +506,7 @@ function RenderSprite( x1, y1, w1, s, d, seg )
     -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
     -- sspr seems to over-round the h/w down for some reason, so correct it
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], ceil(rect[3] + 1), ceil(rect[4] + 1), SDEF[s][7] == 1 )
-    BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 3, d )
+    BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 13, d )
 end
 
 function RenderRoad()
