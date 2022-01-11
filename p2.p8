@@ -25,18 +25,18 @@ local sPointsC = {}
 
 local sSprite = {}
 local sSpriteX = {}
-local SpriteSd = 0
+local sSpriteSc = {} -- scale
 
 -- sprite definitions (the bottom of the sprite should be on the ground)
--- sx, sy, sw, sh, scalemin, scalemax, flip
+-- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max
 SDEF = { 
-    { 48, 24, 8, 8, 1.4, 1.4, 0 }, -- 1. chevron r
-    { 48, 24, 8, 8, 1.4, 1.4, 1 }, -- 2. chevron l
-    { 57, 35, 7, 5, 0.4, 0.6, 0 }, -- 3. grass
-    { 56, 24, 10, 11, 2.5, 4.5, 0 }, -- 4. tree
-    { 48, 32, 8, 8, 0.5, 0.8, 0 }, -- 5. shrub
-    { 0, 40, 16, 11, 4, 4, 0 }, -- 6. bilboard
-    { 0, 0, 32, 24, 0.6, 0.6, 0 }, -- 7. opponent car
+    { 48, 24, 8, 8, 1.4, 1.4, 0, 0, 1 }, -- 1. chevron r
+    { 48, 24, 8, 8, 1.4, 1.4, 1, 0, 1 }, -- 2. chevron l
+    { 57, 35, 7, 5, 0.4, 0.6, 0, 0, 0 }, -- 3. grass
+    { 56, 24, 10, 11, 2.5, 4.5, 0, 0.2, 0.8 }, -- 4. tree
+    { 48, 32, 8, 8, 0.5, 0.8, 0, 0, 0 }, -- 5. shrub
+    { 0, 40, 16, 11, 4, 4, 0, 0.1, 0.9 }, -- 6. bilboard
+    { 0, 0, 32, 24, 1, 1, 0, 0, 0 }, -- 7. opponent car
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -65,6 +65,8 @@ local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
 
 local OpptPos = {}
+local OpptPosL = {}
+local OpptSeg = {}
 local OpptX = {}
 local OpptV = {}
 local RubberBand = 0
@@ -142,23 +144,25 @@ end
 function AddSprites( n, p )
 
     for i = 1, n do
-        SpriteSd = SpriteSd + 1
 
         if p == 0 then
             add( sSprite, 0 )
             add( sSpriteX, 0 )
+            add( sSpriteSc, 0 )
         else
-            srand( SpriteSd )
+            srand( #sSprite )
             added = false
             for j = 1, #SPDEF[p] do
-                if SpriteSd % SPDEF[p][j][2] == 0 then
+                if #sSprite % SPDEF[p][j][2] == 0 then
                     -- index in SDEF, interval, minx (*roadw), maxx (*roadw), rand l/r
                     xrand = 1
                     if SPDEF[p][j][5] == 1 and rnd( 30000 ) > 15000 then
                         xrand = -1
                     end
-                    add( sSprite, SPDEF[p][j][1] )
+                    spindex=SPDEF[p][j][1]
+                    add( sSprite, spindex )
                     add( sSpriteX, ROAD_WIDTH * ( SPDEF[p][j][3] + rnd( SPDEF[p][j][4] - SPDEF[p][j][3] ) ) * xrand )
+                    add( sSpriteSc, 0.3*(SDEF[spindex][5]+rnd(SDEF[spindex][6]-SDEF[spindex][5])) )
                     added = true
                     break
                 end
@@ -166,6 +170,7 @@ function AddSprites( n, p )
             if added == false then
                 add( sSprite, 0 )
                 add( sSpriteX, 0 )
+                add( sSpriteSc, 0 )
             end
         end
     end
@@ -202,7 +207,6 @@ end
 function InitSegments()
 
     LastY = 0
-    SpriteSd = 0
     
     AddStraight( 40, 0, 3 )
     --AddStraight( 40, 0, 4 )
@@ -333,9 +337,9 @@ function UpdateOpts()
     rbandnxt=0
     for i=1,#OpptPos do
 
-        opposl=LoopedTrackPos(OpptPos[i])
-        opseg=DepthToSegIndex(opposl)
-        plsegoff1=(opseg-PlayerSeg)%NumSegs+1
+        OpptPosL[i] = LoopedTrackPos(OpptPos[i])
+        OpptSeg[i]=DepthToSegIndex(OpptPosL[i])
+        plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
 
         rbrange=20
         rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
@@ -344,7 +348,7 @@ function UpdateOpts()
         OpptV[i]=OpptV[i]*0.95
         OpptPos[i]=OpptPos[i]+OpptV[i]
 
-        if plsegoff1 < 20 then
+        if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 then
             OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
         end
         
@@ -357,15 +361,19 @@ end
 
 function UpdateCollide()
 
-   for i=1,#OpptPos do
+    -- opponents
+
+    carlen=5
+
+    for i=1,#OpptPos do
 
         opposl = LoopedTrackPos( OpptPos[i] )
 
         --DebugPrint( ROAD_WIDTH * abs( PlayerX - OpptX[i] ) )
         --DebugPrint( ( opposl + OpptV[i] ) - ( PositionL + PlayerVf ) )
 
-        if ( PositionL + PlayerVf ) > ( opposl + OpptV[i] ) and
-           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] + SEG_LEN ) and
+        if ( PositionL + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
+           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] ) and
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
             
             PlayerVl = OpptV[i] * 0.9
@@ -376,6 +384,16 @@ function UpdateCollide()
         end
     end
 
+    -- sprites
+    --[[
+    if sSprite[PlayerSeg] > 0 then
+        sdef1=SDEF[sSprite[PlayerSeg]
+        if ( PositionL + PlayerVf ) > ( opposl + OpptV[i] ) and
+           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] + SEG_LEN ) and
+            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
+        end
+    end
+--]]
 end
 
 function _update()
@@ -398,6 +416,8 @@ function _update()
     UpdateCollide()
     UpdateOpts()
     --constedits()
+
+    DebugPrint(OpptPos[1]-Position)
 
 end
 
@@ -558,10 +578,13 @@ function RenderPlayer()
 
 end
 
-function RenderSprite( x1, y1, w1, s, d, seg )
+function RenderOppts()
+
+end
+
+function RenderSprite( x1, y1, w1, s, d, sc )
     
-    srand( seg * 777 )
-    ssc=w1*0.3*(SDEF[s][5]+rnd(SDEF[s][6]-SDEF[s][5]))
+    ssc=w1*sc
     aspx = 1
     aspy = 1
     if SDEF[s][3] > SDEF[s][4] then
@@ -640,7 +663,6 @@ function RenderRoad()
 
     end
 
-    -- segments
     for i = DRAW_DIST - 1, 1, -1 do
 
         for j = 1, 2 do
@@ -650,52 +672,54 @@ function RenderRoad()
             psw[j] = flr(pscreenscale[j] * ROAD_WIDTH * 64);
         end
 
+        -- segments
         if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) then -- and ( psy[2] <= miny+1 )
             RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], PlayerSeg + i )
         end
 
+        -- sprites
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
         if sSprite[segidx] != 0 then
 
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d, segidx )
-        end     
+            RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d, sSpriteSc[segidx] )
+        end
+
+        -- opponents
+        for o = 1,#OpptPos do
+            if OpptSeg[o] == segidx then
+                
+                plsegoff1=(OpptSeg[o]-PlayerSeg)%NumSegs+1
+                opinseg=1-(OpptSeg[o]*SEG_LEN-OpptPosL[o])/SEG_LEN
+
+                nxtseg = (OpptSeg[o]) % NumSegs + 1
+            
+                plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
+                
+                ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
+                optx=OpptX[o]*ROAD_WIDTH
+                opcamx = lerp( sPointsX[OpptSeg[o]] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
+                opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
+                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - (PositionL);
+
+                
+                --print(tostr(opcamx),2,16 + o * 10,4)
+                --print(tostr(opcamx),2,22 + o * 10,4)
+                --print(tostr(opcamy),2,28 + o * 10,4)
+
+                opss = CAM_DEPTH/opcamz;
+                opsx = flr(64 + (opss * opcamx * 64));
+                opsy = flr(64 - (opss * opcamy * 64));
+                opsw = flr(opss * ROAD_WIDTH * 64);
+
+                RenderSprite( opsx, opsy, opsw, 7, 1, 0.18 )
+            end
+        end
     end
 
     -- opponents
-    for o = 1,#OpptPos do
-        opposl=LoopedTrackPos(OpptPos[o])
-        opseg=DepthToSegIndex(opposl)
-
-        plsegoff1=(opseg-PlayerSeg)%NumSegs+1
-        if plsegoff1 < ( DRAW_DIST - 2 ) then
-
-            opinseg=1-(opseg*SEG_LEN-opposl)/SEG_LEN
-
-            nxtseg = (opseg) % NumSegs + 1
-           
-            plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
-            
-            ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
-            optx=OpptX[o]*ROAD_WIDTH
-            opcamx = lerp( sPointsX[opseg] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
-            opcamy = lerp( sPointsY[opseg], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
-            opcamz = lerp( sPointsZ[opseg], sPointsZ[nxtseg], opinseg ) - (PositionL);
-
-            
-            --print(tostr(opcamx),2,16 + o * 10,4)
-            --print(tostr(opcamx),2,22 + o * 10,4)
-            --print(tostr(opcamy),2,28 + o * 10,4)
-
-            opss = CAM_DEPTH/opcamz;
-            opsx = flr(64 + (opss * opcamx * 64));
-            opsy = flr(64 - (opss * opcamy * 64));
-            opsw = flr(opss * ROAD_WIDTH * 64);
-
-            RenderSprite( opsx, opsy, opsw, 7, 1, segidx )
-        end
-    end
+    
     
 --[[
 for i = 1, DRAW_DIST - 1 do
