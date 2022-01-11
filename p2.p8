@@ -59,6 +59,7 @@ local PlayerXd = 0
 local PlayerY = 0
 local PlayerYd = 0
 local PlayerVl = 0
+local PlayerVf = 0
 local PlayerDrift = 0
 local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
@@ -66,10 +67,19 @@ local PlayerSeg = 0 -- current player segment
 local OpptPos = {}
 local OpptX = {}
 local OpptV = {}
+local RubberBand = 0
 
 local HznOffset = 0
 
 local sScreenShake = {0,0}
+
+local DEBUG_PRINT = {}
+local DEBUG_PRINT_I = 1
+
+function DebugPrint(n)
+    DEBUG_PRINT[DEBUG_PRINT_I] = n
+    DEBUG_PRINT_I += 1
+end
 
 function BayerRectT( x1, y1, x2, y2, c1, fact )
     
@@ -221,10 +231,10 @@ function _init()
     OpptPos[3] = SEG_LEN * 4
     OpptPos[4] = SEG_LEN * 4
 
-    OpptX[1] = -15
-    OpptX[2] = 15
-    OpptX[3] = -10
-    OpptX[4] = 10
+    OpptX[1] = -0.5
+    OpptX[2] = 0.5
+    OpptX[3] = -0.5
+    OpptX[4] = 0.5
 
     OpptV[1] = 0
     OpptV[2] = 0
@@ -276,9 +286,9 @@ function UpdatePlayer()
         PlayerVl=PlayerVl*0.99
 
         if btn(0) then -- left
-            PlayerXd-= (0.04 + -PlayerDrift*0.04) * PlayerVl*0.1
+            PlayerXd-= (0.04 + -PlayerDrift*0.02) * PlayerVl*0.1
         elseif btn(1) then -- right
-            PlayerXd+= (0.04 + PlayerDrift*0.04) * PlayerVl*0.1
+            PlayerXd+= (0.04 + PlayerDrift*0.02) * PlayerVl*0.1
         end
         PlayerXd=PlayerXd*0.9
     end
@@ -289,13 +299,13 @@ function UpdatePlayer()
         PlayerDrift=0
     end
 
-    finalvel = PlayerVl*0.6
-    Position=Position+finalvel
+    PlayerVf = PlayerVl*0.6
+    Position=Position+PlayerVf
     if Position > SEG_LEN*NumSegs then
         Position -= SEG_LEN*NumSegs
     end
 
-    HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.15 * finalvel
+    HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf+0.1)
 
      -- jumps / player y
 
@@ -305,7 +315,7 @@ function UpdatePlayer()
         if PlayerYd < -3 and PlayerAir > 4 then
             sScreenShake = {2,7}
         end
-        nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+finalvel ))/SEG_LEN
+        nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+PlayerVf ))/SEG_LEN
         nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
         PlayerYd = ( nground - ground ) - 0.4
         
@@ -317,8 +327,6 @@ function UpdatePlayer()
 
     -- Position=Position+0.5
 end
-
-local RubberBand = 0
 
 function UpdateOpts()
     
@@ -335,11 +343,47 @@ function UpdateOpts()
         OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i/16
         OpptV[i]=OpptV[i]*0.95
         OpptPos[i]=OpptPos[i]+OpptV[i]
+
+        if plsegoff1 < 20 then
+            OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
+        end
+        
+        if OpptPos[i] > SEG_LEN*NumSegs then
+            OpptPos[i] -= SEG_LEN*NumSegs
+        end
     end
     RubberBand = rbandnxt
 end
 
+function UpdateCollide()
+
+   for i=1,#OpptPos do
+
+        opposl = LoopedTrackPos( OpptPos[i] )
+
+        --DebugPrint( ROAD_WIDTH * abs( PlayerX - OpptX[i] ) )
+        --DebugPrint( ( opposl + OpptV[i] ) - ( PositionL + PlayerVf ) )
+
+        if ( PositionL + PlayerVf ) > ( opposl + OpptV[i] ) and
+           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] + SEG_LEN ) and
+            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
+            
+            PlayerVl = OpptV[i] * 0.9
+            PlayerXd = -sgn(PlayerX) * 0.2
+
+            sScreenShake[1] = 6
+            sScreenShake[2] = 2
+        end
+    end
+
+end
+
 function _update()
+
+    DEBUG_PRINT_I = 1
+    for i = 1,#DEBUG_PRINT do
+        DEBUG_PRINT[i] = "-"
+    end
 
     -- screenshake
 
@@ -351,6 +395,7 @@ function _update()
     camera(sScreenShake[1],sScreenShake[2])
 
     UpdatePlayer()
+    UpdateCollide()
     UpdateOpts()
     --constedits()
 
@@ -476,8 +521,8 @@ function _draw()
     RenderPlayer()
     RenderHUD()
 
-     print( flr(stat(1)*100).."%", 2,2,3 )
-     print(tostr( flr(stat(0)) ) .."/2048k", 2,10,3 )
+     print( flr(stat(1)*100).."%", 100,2,3 )
+     print(tostr( flr(stat(0)) ) .."/2048k", 100,10,3 )
     --print( flr(stat(0)), 30,2,3 )
     --print(flr(DRAW_DIST), 2,30,3 )
     --print(CAM_DEPTH, 2,30,3 )
@@ -485,7 +530,11 @@ function _draw()
     -- print(PlayerAir, 2,30,3 )
 
     --BayerRectV( 20,20, 100,100, 4, 7)
-    print(tostr(RubberBand),2,16,14)
+    -- print(tostr(RubberBand),2,16,14)
+
+    for i = 1,#DEBUG_PRINT do
+        print(tostr(DEBUG_PRINT[i]),2,2 + (i-1) * 6, 2)
+    end
 
 end
 
@@ -629,7 +678,8 @@ function RenderRoad()
             plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
             
             ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
-            opcamx = lerp( sPointsX[opseg] + OpptX[o], sPointsX[nxtseg] + OpptX[o], opinseg ) - camx - ocrv;
+            optx=OpptX[o]*ROAD_WIDTH
+            opcamx = lerp( sPointsX[opseg] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
             opcamy = lerp( sPointsY[opseg], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
             opcamz = lerp( sPointsZ[opseg], sPointsZ[nxtseg], opinseg ) - (PositionL);
 
