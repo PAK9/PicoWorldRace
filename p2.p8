@@ -64,6 +64,9 @@ local PlayerDrift = 0
 local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
 
+local RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
+local RecoverTimer = 0
+
 local OpptPos = {}
 local OpptPosL = {}
 local OpptSeg = {}
@@ -161,7 +164,7 @@ function AddSprites( n, p )
                     end
                     spindex=SPDEF[p][j][1]
                     add( sSprite, spindex )
-                    add( sSpriteX, ROAD_WIDTH * ( SPDEF[p][j][3] + rnd( SPDEF[p][j][4] - SPDEF[p][j][3] ) ) * xrand )
+                    add( sSpriteX, ( SPDEF[p][j][3] + rnd( SPDEF[p][j][4] - SPDEF[p][j][3] ) ) * xrand )
                     add( sSpriteSc, 0.3*(SDEF[spindex][5]+rnd(SDEF[spindex][6]-SDEF[spindex][5])) )
                     added = true
                     break
@@ -265,6 +268,30 @@ function constedits()
 
 end
 
+function UpdateInput()
+
+    if btn(2) then -- up
+        -- PlayerVl=PlayerVl+1
+    elseif btn(3) then -- down
+        if abs( PlayerXd ) > 0.1 then
+            PlayerDrift=sgn(PlayerXd)
+        else
+            PlayerVl=PlayerVl-0.08
+        end
+    end
+
+    if btn(4) then -- z / btn1
+        PlayerVl=PlayerVl+0.14
+    end
+
+    if btn(0) then -- left
+        PlayerXd-= (0.04 + -PlayerDrift*0.02)-- * PlayerVl*0.1
+    elseif btn(1) then -- right
+        PlayerXd+= (0.04 + PlayerDrift*0.02)-- * PlayerVl*0.1
+    end
+
+end
+
 function UpdatePlayer()
 
     PositionL=LoopedTrackPos(Position)
@@ -274,26 +301,10 @@ function UpdatePlayer()
     posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
 
     if PlayerAir == 0 then
-        if btn(2) then -- up
-            -- PlayerVl=PlayerVl+1
-        elseif btn(3) then -- down
-            if abs( PlayerXd ) > 0.1 then
-                PlayerDrift=sgn(PlayerXd)
-            else
-                PlayerVl=PlayerVl-0.08
-            end
+        if RecoverStage == 0 then
+            UpdateInput()
         end
-
-        if btn(4) then -- z / btn1
-            PlayerVl=PlayerVl+0.14
-        end
-        PlayerVl=PlayerVl*0.99
-
-        if btn(0) then -- left
-            PlayerXd-= (0.04 + -PlayerDrift*0.02) * PlayerVl*0.1
-        elseif btn(1) then -- right
-            PlayerXd+= (0.04 + PlayerDrift*0.02) * PlayerVl*0.1
-        end
+        PlayerVl=PlayerVl*0.99 
         PlayerXd=PlayerXd*0.9
     end
     PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
@@ -332,6 +343,37 @@ function UpdatePlayer()
     -- Position=Position+0.5
 end
 
+function UpdateRecover()
+    
+    if RecoverStage == 0 then
+        return
+    else
+        
+        t1=1.5
+        t2=2.5
+        t3=3.5
+        if RecoverStage == 1 then
+            if time() - RecoverTimer >= t1 then
+                RecoverStage = 2
+            end
+        elseif RecoverStage == 2 then
+            instage=(time()-RecoverTimer-t1)/(t2-t1)
+            PlayerVl=8
+            DebugPrint(instage)
+            PlayerX=lerp(PlayerX,0,instage)
+            if time() - RecoverTimer >= t2 then
+                RecoverStage = 3
+            end
+        elseif RecoverStage == 3 then
+            PlayerX = 0
+            if time() - RecoverTimer >= t3 then
+                RecoverStage = 0
+            end
+        end
+    end
+
+end
+
 function UpdateOpts()
     
     rbandnxt=0
@@ -348,7 +390,7 @@ function UpdateOpts()
         OpptV[i]=OpptV[i]*0.95
         OpptPos[i]=OpptPos[i]+OpptV[i]
 
-        if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 then
+        if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
             OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
         end
         
@@ -385,15 +427,33 @@ function UpdateCollide()
     end
 
     -- sprites
-    --[[
-    if sSprite[PlayerSeg] > 0 then
-        sdef1=SDEF[sSprite[PlayerSeg]
-        if ( PositionL + PlayerVf ) > ( opposl + OpptV[i] ) and
+
+    nxtseg=(PlayerSeg)%NumSegs + 1
+    if sSprite[nxtseg] > 0 then
+        DebugPrint(abs( PlayerX - sSpriteX[nxtseg] ))
+        DebugPrint( sSpriteSc[nxtseg] * 0.5 )
+        DebugPrint(PositionL + PlayerVf)
+        DebugPrint(nxtseg*SEG_LEN)
+        sdef1=SDEF[sSprite[nxtseg]]
+        if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
+            ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
+        then
+            sScreenShake[1] = 8
+            sScreenShake[2] = 3
+
+            PlayerXd = sgn(PlayerX) * 0.2
+            PlayerVl = 0.5
+            RecoverStage = 1
+            RecoverTimer = time()
+        --[[
+        if ( PositionL + PlayerVf ) > ( PlayerSeg*SEG_LEN + carlen ) and
            ( PositionL + PlayerVf ) < ( opposl + OpptV[i] + SEG_LEN ) and
-            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
+            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < sSpriteSc[PlayerSeg] then
+        end
+        --]]
         end
     end
---]]
+
 end
 
 function _update()
@@ -413,11 +473,12 @@ function _update()
     camera(sScreenShake[1],sScreenShake[2])
 
     UpdatePlayer()
-    UpdateCollide()
+    UpdateRecover()
+    if RecoverStage == 0 then
+        UpdateCollide()
+    end
     UpdateOpts()
     --constedits()
-
-    DebugPrint(OpptPos[1]-Position)
 
 end
 
@@ -568,6 +629,10 @@ end
 
 function RenderPlayer()
 
+    if RecoverStage == 2 or ( RecoverStage == 3 and time()%0.4>0.2 ) then
+        return
+    end
+
     if PlayerDrift != 0 then
         spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
     elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
@@ -681,7 +746,7 @@ function RenderRoad()
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
         if sSprite[segidx] != 0 then
 
-            psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] ) * 64));
+            psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d, sSpriteSc[segidx] )
         end
