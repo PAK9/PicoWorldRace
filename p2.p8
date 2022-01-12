@@ -52,9 +52,13 @@ local sSpriteSc = {} -- scale
 
 -- particle definitions
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.life 6.dx 7.dy 8.dsc 9. sc
-PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- drift left
-         { 67, 24, 5, 5, 0.5, 1, 0.5, -0.1, 1 }, -- drift right
-         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.5 }, -- offroad
+PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- 1. drift left
+         { 67, 24, 5, 5, 0.5, 1, 0.5, -0.1, 1 }, -- 2. drift right
+         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.5 }, -- 3. offroad
+         { 72, 24, 4, 4, 1, 1.2, -1, -0.05, 1 }, -- 4. shard 1
+         { 68, 30, 4, 4, 1, -1.2, -1, -0.05, 1 }, -- 5. shard 2
+         { 72, 28, 3, 3, 0.3, -4, -1, -0.01, 0.5 }, -- 6. spark up left
+         { 66, 33, 4, 4, 0.3, 4, -1, -0.01, 0.5 }, -- 7. spark up right
 }
 
 local sPartic = {}
@@ -288,6 +292,7 @@ function constedits()
 end
 
 function AddParticle( p, x, y )
+    srand( time() )
     sPartic[NextPartic] = p
     sParticT[NextPartic] = time()
     sParticSc[NextPartic] = 1
@@ -301,10 +306,11 @@ function UpdateParticles()
     for i=0, #sPartic do
         p = sPartic[i]
         if p != 0 then
-            --DebugPrint(p)
-            sParticSc[i] += ( PDEF[p][8] + rnd(0.1) * PDEF[p][8] )
-            sParticX[i] += ( PDEF[p][6] + rnd( 0.1 ) * PDEF[p][6] )
-            sParticY[i] += ( PDEF[p][7] + rnd( 0.1 ) * PDEF[p][7] )
+            DebugPrint(p)
+            srand(p)
+            sParticSc[i] += ( PDEF[p][8] + (rnd(0.5)-0.5) * PDEF[p][8] )
+            sParticX[i] += ( PDEF[p][6] + (rnd(0.5)-0.5) * PDEF[p][6] )
+            sParticY[i] += ( PDEF[p][7] + (rnd(0.5)-0.5) * PDEF[p][7] )
             if sParticSc[i] <= 0 or time() - sParticT[i] > PDEF[p][5] then
                 sPartic[i] = 0
             end
@@ -364,7 +370,7 @@ function UpdatePlayer()
         PlayerDrift=0
     end
 
-    DebugPrint( PlayerVf )
+    --DebugPrint( PlayerVf )
 
     PlayerVf = PlayerVl*0.6
     Position=Position+PlayerVf
@@ -486,12 +492,20 @@ function UpdateCollide()
         if ( PositionL + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
            ( PositionL + PlayerVf ) < ( opposl + OpptV[i] ) and
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
-            
+        
             PlayerVl = OpptV[i] * 0.9
             PlayerXd = -sgn(PlayerX) * 0.2
 
             sScreenShake[1] = 6
             sScreenShake[2] = 2
+
+            AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+            AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+            AddParticle( 6, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+            AddParticle( 7, 54 + rnd(32)-16, 102 + rnd( 8 ) )
+            AddParticle( 7, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+            AddParticle( 6, 74 + rnd(32)-16, 102 + rnd( 8 ) )
+
         end
     end
 
@@ -895,18 +909,18 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
-fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ff6636ffffff666fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66ff66666ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356fdff66ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353fdddddffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334ff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4fff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222ffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22fffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22fffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ff6636ffffff666ffe7fffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66ff66666feefffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356fdff66ffefffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353fdddddffefffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7fffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffafffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
