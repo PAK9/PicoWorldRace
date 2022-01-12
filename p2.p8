@@ -35,6 +35,8 @@ SDEF = {
     { 48, 32, 8, 8, 0.5, 0.8, 0, 0, 0 }, -- 5. shrub
     { 0, 40, 16, 11, 4, 4, 0, 0.1, 0.9 }, -- 6. bilboard
     { 0, 0, 32, 24, 1, 1, 0, 0, 0 }, -- 7. opponent car
+    { 36, 0, 36, 24, 1, 1, 0, 0, 0 }, -- 8. opponent car l
+    { 36, 0, 36, 24, 1, 1, 1, 0, 0 }, -- 9. opponent car r
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -87,6 +89,7 @@ local PlayerSeg = 0 -- current player segment
 
 local RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
 local RecoverTimer = 0
+local InvincibleTime = 0
 
 local OpptPos = {}
 local OpptPosL = {}
@@ -294,6 +297,12 @@ function AddParticle( p, x, y )
     NextPartic=(NextPartic+1)%#sPartic+1
 end
 
+function ClearParticles()
+    for i=1, #sPartic do
+        sPartic[i] = 0
+    end
+end
+
 function UpdateParticles()
 
     npart=0
@@ -337,6 +346,10 @@ function UpdateInput()
 end
 
 function UpdatePlayer()
+
+    if InvincibleTime-time() < 0 then
+        InvincibleTime = 0
+    end
 
     PositionL=LoopedTrackPos(Position)
     PlayerSeg=DepthToSegIndex(PositionL)
@@ -437,6 +450,7 @@ function UpdateRecover()
 
             if time() - RecoverTimer >= t1 then
                 RecoverStage = 2
+                ClearParticles()
             end
         elseif RecoverStage == 2 then
             instage=(time()-RecoverTimer-t1)/(t2-t1)
@@ -444,6 +458,7 @@ function UpdateRecover()
             PlayerX=lerp(PlayerX,0,instage)
             if time() - RecoverTimer >= t2 then
                 RecoverStage = 3
+                InvincibleTime=time()+1
             end
         elseif RecoverStage == 3 then
             PlayerX = 0
@@ -493,6 +508,10 @@ end
 
 function UpdateCollide()
 
+    if InvincibleTime > 0 or RecoverStage > 0 then
+        return
+    end
+
     -- opponents
 
     carlen=5
@@ -529,14 +548,26 @@ function UpdateCollide()
         if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
             ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
         then
-            sScreenShake[1] = 8
-            sScreenShake[2] = 3
 
-            PlayerXd = sgn(PlayerX) * 0.2
-            PlayerVl = 0.5
-            RecoverStage = 1
-            RecoverTimer = time()
-            AddCollisionParticles()
+            if PlayerVf < 2 then
+                sScreenShake[1] = 3
+                sScreenShake[2] = 1
+                PlayerVl = PlayerVl * 0.5
+                PlayerXd = -sgn(PlayerX) * 0.2
+                InvincibleTime=time()+1
+                AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+                AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+            else
+
+                sScreenShake[1] = 8
+                sScreenShake[2] = 3
+
+                PlayerXd = sgn(PlayerX) * 0.2
+                PlayerVl = 0.5
+                RecoverStage = 1
+                RecoverTimer = time()
+                AddCollisionParticles()
+            end
         end
     end
 
@@ -562,9 +593,7 @@ function _update()
 
     UpdatePlayer()
     UpdateRecover()
-    if RecoverStage == 0 then
-        UpdateCollide()
-    end
+    UpdateCollide()
     UpdateOpts()
     UpdateParticles()
     --constedits()
@@ -689,21 +718,11 @@ function _draw()
     RenderSky()
     RenderHorizon()
     RenderRoad()
-    RenderPlayer()
-    RenderParticles()
     RenderHUD()
 
      print( flr(stat(1)*100).."%", 100,2,3 )
      print(tostr( flr(stat(0)) ) .."/2048k", 100,10,3 )
-    --print( flr(stat(0)), 30,2,3 )
-    --print(flr(DRAW_DIST), 2,30,3 )
-    --print(CAM_DEPTH, 2,30,3 )
-    --print(CAM_HEIGHT, 2,50,3 )
-    -- print(PlayerAir, 2,30,3 )
-
-    --BayerRectV( 20,20, 100,100, 4, 7)
-    -- print(tostr(RubberBand),2,16,14)
-
+    
     for i = 1,#DEBUG_PRINT do
         print(tostr(DEBUG_PRINT[i]),2,2 + (i-1) * 6, 2)
     end
@@ -751,21 +770,6 @@ function RenderSprite( x1, y1, w1, s, d, sc )
             ssc * aspx,
             ssc * aspy }
     
-    --[[
-    sh=SDEF[s][4]
-    if ( yclip < rect[2] + rect[4] ) then
-        -- print( tostr( yclip ) .. " / " .. tostr( rect[2] + rect[4]) .. " - " .. tostr( yclip < rect[2] + rect[4]) )
-        frac = ( rect[4] - ( ( rect[2] + rect[4] ) - yclip ) ) / rect[4]
-        sh = sh * frac
-        rect[4] = ssc * SDEF[s][5] * aspy * frac
-        
-    end
-    if sh >= 1 then
-        sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], sh, rect[1], rect[2], rect[3], rect[4] )
-        rectfill( x1, y1, x1 + 1,y1+1, 8 )
-        rectfill( x1 + 2, yclip, x1 + 4, yclip, 9 )
-    end
-    --]]
     -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
     -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
     -- sspr seems to over-round the h/w down for some reason, so correct it
@@ -830,6 +834,11 @@ function RenderRoad()
             RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], PlayerSeg + i )
         end
 
+        if i==1 then
+            RenderPlayer()
+            RenderParticles()
+        end
+
         -- sprites
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
         if sSprite[segidx] != 0 then
@@ -856,11 +865,6 @@ function RenderRoad()
                 opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
                 opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - (PositionL);
 
-                
-                --print(tostr(opcamx),2,16 + o * 10,4)
-                --print(tostr(opcamx),2,22 + o * 10,4)
-                --print(tostr(opcamy),2,28 + o * 10,4)
-
                 opss = CAM_DEPTH/opcamz;
                 opsx = flr(64 + (opss * opcamx * 64));
                 opsy = flr(64 - (opss * opcamy * 64));
@@ -871,12 +875,19 @@ function RenderRoad()
                 pal( 14, opcols1[o%#opcols1+1] )
                 pal( 2, opcols2[o%#opcols2+1] )
 
-                RenderSprite( opsx, opsy, opsw, 7, 1, 0.18 )
+                if sPointsC[OpptSeg[o]] > 0.5 then
+                    RenderSprite( opsx, opsy, opsw, 8, 1, 0.18 )
+                elseif sPointsC[OpptSeg[o]] < -0.5 then
+                    RenderSprite( opsx, opsy, opsw, 9, 1, 0.18 )
+                else
+                    RenderSprite( opsx, opsy, opsw, 7, 1, 0.18 )
+                end
 
                 pal( 14, 14 )
                 pal( 2, 2 )
             end
         end
+
     end
 end -- RenderRoad
 
