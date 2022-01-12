@@ -59,6 +59,8 @@ PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- 1. drift left
          { 68, 30, 4, 4, 1, -1.2, -1, -0.05, 1 }, -- 5. shard 2
          { 72, 28, 3, 3, 0.3, -4, -1, -0.01, 0.5 }, -- 6. spark up left
          { 66, 33, 4, 4, 0.3, 4, -1, -0.01, 0.5 }, -- 7. spark up right
+         { 72, 32, 4, 4, 0.3, 0.5, -1, -0.05, 0.8 }, -- 8. fire
+         { 67, 24, 5, 5, 1, 0.5, -0.5, 0.2, 0.2 }, -- 9. fire smoke
 }
 
 local sPartic = {}
@@ -252,24 +254,15 @@ function _init()
 
     InitSegments()
 
-    for i=0,20 do
+    for i=1,40 do
         sPartic[i] = 0
     end
     
-    OpptPos[1] = SEG_LEN * 2
-    OpptPos[2] = SEG_LEN * 2
-    OpptPos[3] = SEG_LEN * 4
-    OpptPos[4] = SEG_LEN * 4
-
-    OpptX[1] = -0.5
-    OpptX[2] = 0.5
-    OpptX[3] = -0.5
-    OpptX[4] = 0.5
-
-    OpptV[1] = 0
-    OpptV[2] = 0
-    OpptV[3] = 0
-    OpptV[4] = 0
+    for i=1,8 do
+        OpptPos[i] = SEG_LEN *  i
+        OpptX[i]=(i%2)-0.5
+        OpptV[i]=0
+    end
 
 end
 
@@ -303,20 +296,20 @@ end
 
 function UpdateParticles()
 
-    for i=0, #sPartic do
+    npart=0
+    for i=1, #sPartic do
         p = sPartic[i]
         if p != 0 then
-            DebugPrint(p)
+            npart = npart + 1
             srand(p)
-            sParticSc[i] += ( PDEF[p][8] + (rnd(0.5)-0.5) * PDEF[p][8] )
-            sParticX[i] += ( PDEF[p][6] + (rnd(0.5)-0.5) * PDEF[p][6] )
-            sParticY[i] += ( PDEF[p][7] + (rnd(0.5)-0.5) * PDEF[p][7] )
+            sParticSc[i] += ( PDEF[p][8] + (rnd(0.5)) * PDEF[p][8] )
+            sParticX[i] += ( PDEF[p][6] + (rnd(0.5)) * PDEF[p][6] )
+            sParticY[i] += ( PDEF[p][7] + (rnd(0.5)) * PDEF[p][7] )
             if sParticSc[i] <= 0 or time() - sParticT[i] > PDEF[p][5] then
                 sPartic[i] = 0
             end
         end
     end
-
 end
 
 function UpdateInput()
@@ -401,10 +394,15 @@ function UpdatePlayer()
     -- particles
 
     if RecoverStage < 2 then
-        if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
+        if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
             dirtfq=flr(7-min( PlayerVf, 6 ))
             if Frame%dirtfq == 0 then
+                srand(Frame)
                 AddParticle( 3, 64 + rnd(32)-16, 122 + rnd( 2 ) )
+            end
+            if Frame%(dirtfq*4) == 0 then
+                sScreenShake[1] = 2 * PlayerVf * 0.1
+                sScreenShake[2] = 1 * PlayerVf * 0.1
             end
         else
             if Frame%4 == 0 then
@@ -428,6 +426,15 @@ function UpdateRecover()
         t2=2.5
         t3=3.5
         if RecoverStage == 1 then
+
+            srand( time() )
+            if Frame%2==0 then
+                AddParticle( 8, 64 + rnd(8)-4, 98 + rnd( 2 ) )
+            end
+            if Frame%4==0 then
+                AddParticle( 9, 64 + rnd(8)-4, 88 + rnd( 8 ) )
+            end
+
             if time() - RecoverTimer >= t1 then
                 RecoverStage = 2
             end
@@ -460,7 +467,7 @@ function UpdateOpts()
         rbrange=20
         rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
 
-        OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i/16
+        OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i*0.02
         OpptV[i]=OpptV[i]*0.95
         OpptPos[i]=OpptPos[i]+OpptV[i]
 
@@ -475,6 +482,15 @@ function UpdateOpts()
     RubberBand = rbandnxt
 end
 
+function AddCollisionParticles()
+    AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+    AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+    AddParticle( 6, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+    AddParticle( 7, 54 + rnd(32)-16, 102 + rnd( 8 ) )
+    AddParticle( 7, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+    AddParticle( 6, 74 + rnd(32)-16, 102 + rnd( 8 ) )
+end
+
 function UpdateCollide()
 
     -- opponents
@@ -485,10 +501,6 @@ function UpdateCollide()
 
         opposl = LoopedTrackPos( OpptPos[i] )
 
-        --DebugPrint( ROAD_WIDTH * abs( PlayerX - OpptX[i] ) )
-        --DebugPrint( ( opposl + OpptV[i] ) - ( PositionL + PlayerVf ) )
-
-        -- TODO: This condition is bad and wrong :[
         if ( PositionL + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
            ( PositionL + PlayerVf ) < ( opposl + OpptV[i] ) and
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
@@ -499,12 +511,7 @@ function UpdateCollide()
             sScreenShake[1] = 6
             sScreenShake[2] = 2
 
-            AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-            AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-            AddParticle( 6, 64 + rnd(16)-8, 102 - rnd( 8 ) )
-            AddParticle( 7, 54 + rnd(32)-16, 102 + rnd( 8 ) )
-            AddParticle( 7, 64 + rnd(16)-8, 102 - rnd( 8 ) )
-            AddParticle( 6, 74 + rnd(32)-16, 102 + rnd( 8 ) )
+            AddCollisionParticles()
 
         end
     end
@@ -518,6 +525,7 @@ function UpdateCollide()
         --DebugPrint(PositionL + PlayerVf)
         --DebugPrint(nxtseg*SEG_LEN)
         sdef1=SDEF[sSprite[nxtseg]]
+        -- TODO: This condition is bad and wrong :[
         if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
             ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
         then
@@ -528,6 +536,7 @@ function UpdateCollide()
             PlayerVl = 0.5
             RecoverStage = 1
             RecoverTimer = time()
+            AddCollisionParticles()
         end
     end
 
@@ -857,14 +866,22 @@ function RenderRoad()
                 opsy = flr(64 - (opss * opcamy * 64));
                 opsw = flr(opss * ROAD_WIDTH * 64);
 
+                opcols1 = { 12, 11, 10, 9, 8, 6 }
+                opcols2 = { 1, 3, 4, 4, 2, 5 }
+                pal( 14, opcols1[o%#opcols1+1] )
+                pal( 2, opcols2[o%#opcols2+1] )
+
                 RenderSprite( opsx, opsy, opsw, 7, 1, 0.18 )
+
+                pal( 14, 14 )
+                pal( 2, 2 )
             end
         end
     end
 end -- RenderRoad
 
 function RenderParticles()
- for i=0, #sPartic do
+ for i=1, #sPartic do
     p = sPartic[i]
     if p != 0 then
         ssc=sParticSc[i]*10*PDEF[p][9]
@@ -917,10 +934,10 @@ ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7fffffff
 ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffafffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9affffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffff98ffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
