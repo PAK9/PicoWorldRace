@@ -8,10 +8,12 @@ __lua__
 
 -- music(0)
 
+local Frame = 0
+
 local SEG_LEN = 10
 local DRAW_DIST = 40
 local CANVAS_SIZE = 128
-local ROAD_WIDTH = 40 -- half
+local ROAD_WIDTH = 46 -- half
 local CAM_HEIGHT = 17
 local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
@@ -22,10 +24,6 @@ local sPointsX = {}
 local sPointsY = {}
 local sPointsZ = {}
 local sPointsC = {}
-
-local sSprite = {}
-local sSpriteX = {}
-local sSpriteSc = {} -- scale
 
 -- sprite definitions (the bottom of the sprite should be on the ground)
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max
@@ -45,9 +43,26 @@ SPDEF = {
     { { 1, 3, -1.6, -1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  1. chevron r, trees, grass
     { { 2, 3, 1.6, 1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  2. chevron l, trees, grass
     { { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. trees, shrubs, grass
-    { { 6, 18, 2, 2, 0 }, { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. billboard, trees, shrubs, grass
-    
+    { { 6, 18, 2, 2, 0 }, { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. billboard, trees, shrubs, grass   
 }
+
+local sSprite = {}
+local sSpriteX = {}
+local sSpriteSc = {} -- scale
+
+-- particle definitions
+-- 1.sx, 2.sy, 3.sw, 4.sh, 5.life 6.dx 7.dy 8.dsc 9. sc
+PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- drift left
+         { 67, 24, 5, 5, 0.5, 1, 0.5, -0.1, 1 }, -- drift right
+         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.5 }, -- offroad
+}
+
+local sPartic = {}
+local sParticT = {}
+local sParticSc = {}
+local sParticX = {}
+local sParticY = {}
+local NextPartic = 1
 
 local LastY = 0 -- last y height when building a track
 
@@ -232,6 +247,10 @@ function _init()
     palt(15, true)
 
     InitSegments()
+
+    for i=0,20 do
+        sPartic[i] = 0
+    end
     
     OpptPos[1] = SEG_LEN * 2
     OpptPos[2] = SEG_LEN * 2
@@ -265,6 +284,32 @@ function constedits()
     end
 
     Position=Position+5
+
+end
+
+function AddParticle( p, x, y )
+    sPartic[NextPartic] = p
+    sParticT[NextPartic] = time()
+    sParticSc[NextPartic] = 1
+    sParticX[NextPartic] = x
+    sParticY[NextPartic] = y
+    NextPartic=(NextPartic+1)%#sPartic+1
+end
+
+function UpdateParticles()
+
+    for i=0, #sPartic do
+        p = sPartic[i]
+        if p != 0 then
+            --DebugPrint(p)
+            sParticSc[i] += ( PDEF[p][8] + rnd(0.1) * PDEF[p][8] )
+            sParticX[i] += ( PDEF[p][6] + rnd( 0.1 ) * PDEF[p][6] )
+            sParticY[i] += ( PDEF[p][7] + rnd( 0.1 ) * PDEF[p][7] )
+            if sParticSc[i] <= 0 or time() - sParticT[i] > PDEF[p][5] then
+                sPartic[i] = 0
+            end
+        end
+    end
 
 end
 
@@ -304,8 +349,13 @@ function UpdatePlayer()
         if RecoverStage == 0 then
             UpdateInput()
         end
-        PlayerVl=PlayerVl*0.99 
-        PlayerXd=PlayerXd*0.9
+        if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
+            PlayerVl=PlayerVl*0.96
+            PlayerXd=PlayerXd*0.85
+        else
+            PlayerVl=PlayerVl*0.99 
+            PlayerXd=PlayerXd*0.9
+        end
     end
     PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
     PlayerX+=PlayerXd*0.3
@@ -313,6 +363,8 @@ function UpdatePlayer()
     if abs( PlayerXd ) < 0.08 then
         PlayerDrift=0
     end
+
+    DebugPrint( PlayerVf )
 
     PlayerVf = PlayerVl*0.6
     Position=Position+PlayerVf
@@ -340,7 +392,24 @@ function UpdatePlayer()
         PlayerAir = PlayerAir + 1
     end
 
-    -- Position=Position+0.5
+    -- particles
+
+    if RecoverStage < 2 then
+        if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
+            dirtfq=flr(7-min( PlayerVf, 6 ))
+            if Frame%dirtfq == 0 then
+                AddParticle( 3, 64 + rnd(32)-16, 122 + rnd( 2 ) )
+            end
+        else
+            if Frame%4 == 0 then
+                if PlayerDrift < 0 then
+                    AddParticle( 1, 58 - rnd( 4 ), 120 + rnd( 2 ) )
+                elseif PlayerDrift > 0 then
+                    AddParticle( 2, 70 + rnd( 4 ), 120 + rnd( 2 ) )
+                end
+            end
+        end
+    end
 end
 
 function UpdateRecover()
@@ -359,7 +428,6 @@ function UpdateRecover()
         elseif RecoverStage == 2 then
             instage=(time()-RecoverTimer-t1)/(t2-t1)
             PlayerVl=8
-            DebugPrint(instage)
             PlayerX=lerp(PlayerX,0,instage)
             if time() - RecoverTimer >= t2 then
                 RecoverStage = 3
@@ -414,6 +482,7 @@ function UpdateCollide()
         --DebugPrint( ROAD_WIDTH * abs( PlayerX - OpptX[i] ) )
         --DebugPrint( ( opposl + OpptV[i] ) - ( PositionL + PlayerVf ) )
 
+        -- TODO: This condition is bad and wrong :[
         if ( PositionL + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
            ( PositionL + PlayerVf ) < ( opposl + OpptV[i] ) and
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
@@ -430,10 +499,10 @@ function UpdateCollide()
 
     nxtseg=(PlayerSeg)%NumSegs + 1
     if sSprite[nxtseg] > 0 then
-        DebugPrint(abs( PlayerX - sSpriteX[nxtseg] ))
-        DebugPrint( sSpriteSc[nxtseg] * 0.5 )
-        DebugPrint(PositionL + PlayerVf)
-        DebugPrint(nxtseg*SEG_LEN)
+        --DebugPrint(abs( PlayerX - sSpriteX[nxtseg] ))
+        --DebugPrint( sSpriteSc[nxtseg] * 0.5 )
+        --DebugPrint(PositionL + PlayerVf)
+        --DebugPrint(nxtseg*SEG_LEN)
         sdef1=SDEF[sSprite[nxtseg]]
         if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
             ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
@@ -445,12 +514,6 @@ function UpdateCollide()
             PlayerVl = 0.5
             RecoverStage = 1
             RecoverTimer = time()
-        --[[
-        if ( PositionL + PlayerVf ) > ( PlayerSeg*SEG_LEN + carlen ) and
-           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] + SEG_LEN ) and
-            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < sSpriteSc[PlayerSeg] then
-        end
-        --]]
         end
     end
 
@@ -462,6 +525,8 @@ function _update()
     for i = 1,#DEBUG_PRINT do
         DEBUG_PRINT[i] = "-"
     end
+
+    Frame=Frame+1
 
     -- screenshake
 
@@ -478,6 +543,7 @@ function _update()
         UpdateCollide()
     end
     UpdateOpts()
+    UpdateParticles()
     --constedits()
 
 end
@@ -533,11 +599,12 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         fillp(0x5A5A)
         col = 0x42
     end
-    edgew1=w1*1.2
-    edgew2=w2*1.2
+    edgew1=w1*0.86
+    edgew2=w2*0.86
     RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
     RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
+    -- Grass
     if idx % 8 > 3 then
         fillp(0)
         col = 3
@@ -545,9 +612,9 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         fillp(0x5A5A)
         col = 0x3B
     end
-    -- Grass
-    RenderPoly4( {-10,y2},{-10,y1},{x1-edgew1,y1},{x2-edgew2,y2}, col )
-    RenderPoly4( {138,y2},{138,y1},{x1+edgew1,y1},{x2+edgew2,y2}, col )
+    
+    RenderPoly4( {-10,y2},{-10,y1},{x1-w1,y1},{x2-w2,y2}, col )
+    RenderPoly4( {138,y2},{138,y1},{x1+w1,y1},{x2+w2,y2}, col )
 
     -- Road
     if idx % 3 == 0 then
@@ -557,7 +624,7 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         fillp(0)
         col = 5
     end
-    RenderPoly4( {x1-w1,y1},{x1+w1,y1},{x2+w2,y2},{x2-w2,y2}, col )
+    RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
 
     -- patches
     --[[
@@ -585,8 +652,8 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     if idx % 2 > 0 then
         fillp(0)
         col = 6
-        dst1=0.86
-        dst2=0.9
+        dst1=0.74
+        dst2=0.78
         RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
         RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
     end
@@ -600,6 +667,7 @@ function _draw()
     RenderHorizon()
     RenderRoad()
     RenderPlayer()
+    RenderParticles()
     RenderHUD()
 
      print( flr(stat(1)*100).."%", 100,2,3 )
@@ -634,16 +702,13 @@ function RenderPlayer()
     end
 
     if PlayerDrift != 0 then
-        spr( 9, 64 - 24 + PlayerDrift * 0, 100, 6, 3, PlayerDrift > 0 )
+        woby=rnd(1.8)
+        spr( 9, 64 - 24 + PlayerDrift * 0, 100 - woby, 6, 3, PlayerDrift > 0 )
     elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
         spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
     else
         spr( 0, 48, 100, 4, 3 )
     end
-
-end
-
-function RenderOppts()
 
 end
 
@@ -782,37 +847,18 @@ function RenderRoad()
             end
         end
     end
-
-    -- opponents
-    
-    
---[[
-for i = 1, DRAW_DIST - 1 do
-    rectfill( 3 * i, clipy[i], 3 * i + 1, clipy[i], 10 )
-    end
-
-    -- sprites
-    for i = DRAW_DIST - 1, 1, -1 do
-        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
-
-        if sSprite[segidx] != 0 then
-
-            pscreenscale = CAM_DEPTH/pcamz[i];
-            psx = flr(64 + (pscreenscale * ( pcamx[i] + sSpriteX[segidx] ) * 64));
-            psy = flr(64 - (pscreenscale * pcamy[i]  * 64));
-            psw = flr(pscreenscale * ROAD_WIDTH * 64);
-
-            RenderSprite( psx,psy,psw, sSprite[segidx], clipy[i] )
-
-    end
---]]
-
-    --print(tostr(psy[1]),2,40,4)
-    --print(tostr(psy[2]),20,40,4)
-
 end -- RenderRoad
 
-
+function RenderParticles()
+ for i=0, #sPartic do
+    p = sPartic[i]
+    if p != 0 then
+        ssc=sParticSc[i]*10*PDEF[p][9]
+        rect= { sParticX[i] - ssc * 0.5, sParticY[i] - ssc * 0.5, ssc, ssc }
+            sspr( PDEF[p][1], PDEF[p][2], PDEF[p][3], PDEF[p][4], rect[1], rect[2], rect[3], rect[4] )
+        end
+    end
+end
 
 
 
@@ -849,46 +895,46 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
-fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ff6636ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ff6636ffffff666fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66ff66666ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356fdff66ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353fdddddffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555fffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334ff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4fff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222ffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22fffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22fffff00000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-000000000000d0ddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-066666666611111dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1611d11ddd118110ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-0611d16d6d1a7e1dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1616d11ddd11c110ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1666666666111110ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1110100100000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+000000000000d0ddf44dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+066666666611111d44f44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1611d11ddd11811024fd4dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+0611d16d6d1a7e1d2244444fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1616d11ddd11c110f524f44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1666666666111110ff22222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1110100100000000fff555ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff41ff11ff14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff25222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff2255452222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffff55444522222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffff22445442222522ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffff22554445522222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffff222554454522222522222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffff225544454552252522222222ff2222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fff25554455555544522222222222222255552222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff2545555555544445222222222222222252222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+f25555255225455452222222222222222222222222222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+222222522255554522222222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
