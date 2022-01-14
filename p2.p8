@@ -26,7 +26,7 @@ local sPointsZ = {}
 local sPointsC = {}
 
 -- sprite definitions (the bottom of the sprite should be on the ground)
--- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max
+-- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max (0-1)
 SDEF = { 
     { 48, 24, 8, 8, 1.4, 1.4, 0, 0, 1 }, -- 1. chevron r
     { 48, 24, 8, 8, 1.4, 1.4, 1, 0, 1 }, -- 2. chevron l
@@ -37,6 +37,7 @@ SDEF = {
     { 0, 0, 32, 24, 1, 1, 0, 0, 0 }, -- 7. opponent car
     { 36, 0, 36, 24, 1, 1, 0, 0, 0 }, -- 8. opponent car l
     { 36, 0, 36, 24, 1, 1, 1, 0, 0 }, -- 9. opponent car r
+    { 23, 40, 7, 7, 1, 1, 0, 0, 0 }, -- 10. token
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -51,16 +52,20 @@ SPDEF = {
 local sSprite = {}
 local sSpriteX = {}
 local sSpriteSc = {} -- scale
+local SpriteCollideRect = {}
+
+local sTokensX = {}
+local sTokensExist = {}
 
 -- particle definitions
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.life 6.dx 7.dy 8.dsc 9. sc
 PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- 1. drift left
          { 67, 24, 5, 5, 0.5, 1, 0.5, -0.1, 1 }, -- 2. drift right
-         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.5 }, -- 3. offroad
+         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.3 }, -- 3. offroad
          { 72, 24, 4, 4, 1, 1.2, -1, -0.05, 1 }, -- 4. shard 1
          { 68, 30, 4, 4, 1, -1.2, -1, -0.05, 1 }, -- 5. shard 2
-         { 72, 28, 3, 3, 0.3, -4, -1, -0.01, 0.5 }, -- 6. spark up left
-         { 66, 33, 4, 4, 0.3, 4, -1, -0.01, 0.5 }, -- 7. spark up right
+         { 72, 28, 3, 3, 0.2, -4, -4, -0.01, 0.4 }, -- 6. spark up left
+         { 66, 33, 4, 4, 0.2, 4, -1, -0.01, 0.5 }, -- 7. spark up right
          { 72, 32, 4, 4, 0.3, 0.5, -1, -0.05, 0.8 }, -- 8. fire
          { 67, 24, 5, 5, 1, 0.5, -0.5, 0.2, 0.2 }, -- 9. fire smoke
 }
@@ -146,6 +151,8 @@ function AddSeg( c, y, s )
     add( sPointsX, 0 )
     add( sPointsY, y )
     add( sPointsZ, NumSegs * SEG_LEN + 1 )
+    add( sTokensX, 0 )
+    add( sTokensExist, 0 )
 end
 
 function lerp( a,b,f )
@@ -231,21 +238,39 @@ function AddStraight( n, y, sprp )
     LastY=y
 end
 
+function AddTokens( seg, x, n )
+    for i=1,n do
+        idx=seg + i*2-1
+        sTokensX[idx] = x
+        sTokensExist[idx]=1
+    end
+end
+
 function InitSegments()
 
     LastY = 0
     
     AddStraight( 40, 0, 3 )
-    --AddStraight( 40, 0, 4 )
-    --AddCurve( 8,10,8,-2, -50, 1 )
-    --AddStraight( 14, 30, 3 )
-    --AddStraight( 10, -10, 3 )
-    --AddStraight( 20, 0, 4 )
-    --AddCurve( 10,10,10, 0.6, -20, 4 )
+    AddStraight( 40, 0, 4 )
+    AddCurve( 8,10,8,-2, -50, 1 )
+    AddStraight( 14, 30, 3 )
+    AddStraight( 10, -10, 3 )
+    AddStraight( 20, 0, 4 )
+    AddCurve( 10,10,10, 0.6, -20, 4 )
     AddStraight( 10, -10, 3 )
     AddCurve( 10,10,10, -0.6, 0, 4 )
     AddCurve( 10,20,10, 1.6, 50, 2 )
     AddStraight( 40, 0, 3 )
+
+    AddTokens( 90, -0.6, 5 )
+end
+
+function InitOps()
+    for i=1,8 do
+        OpptPos[i] = SEG_LEN *  i
+        OpptX[i]=(i%2)-0.5
+        OpptV[i]=0
+    end
 end
 
 function _init()
@@ -256,17 +281,12 @@ function _init()
     palt(15, true)
 
     InitSegments()
+    --InitOps()
 
     for i=1,40 do
         sPartic[i] = 0
     end
     
-    for i=1,8 do
-        OpptPos[i] = SEG_LEN *  i
-        OpptX[i]=(i%2)-0.5
-        OpptV[i]=0
-    end
-
 end
 
 function constedits()
@@ -393,6 +413,10 @@ function UpdatePlayer()
     if( PlayerY == ground ) then
         if PlayerYd < -3 and PlayerAir > 4 then
             sScreenShake = {2,7}
+            AddParticle( 6, 52, 122 )
+            AddParticle( 7, 78, 126 )
+            AddParticle( 1, 52, 122 )
+            AddParticle( 2, 78, 122 )
         end
         nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+PlayerVf ))/SEG_LEN
         nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
@@ -411,7 +435,7 @@ function UpdatePlayer()
             dirtfq=flr(7-min( PlayerVf, 6 ))
             if Frame%dirtfq == 0 then
                 srand(Frame)
-                AddParticle( 3, 64 + rnd(32)-16, 122 + rnd( 2 ) )
+                AddParticle( 3, 64 + rnd(32)-16, 124 + rnd( 2 ) )
             end
             if Frame%(dirtfq*4) == 0 then
                 sScreenShake[1] = 2 * PlayerVf * 0.1
@@ -512,6 +536,8 @@ function UpdateCollide()
         return
     end
 
+    nxtseg=(PlayerSeg)%NumSegs + 1
+
     -- opponents
 
     carlen=5
@@ -535,9 +561,17 @@ function UpdateCollide()
         end
     end
 
+    -- tokens
+
+    if sTokensX[nxtseg] != 0 and sTokensExist[nxtseg] != 0 then   
+        if abs( PlayerX - sTokensX[nxtseg] ) < 0.2 and 
+            ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+            sTokensExist[nxtseg] = 0
+        end
+    end
+
     -- sprites
 
-    nxtseg=(PlayerSeg)%NumSegs + 1
     if sSprite[nxtseg] > 0 then
         --DebugPrint(abs( PlayerX - sSpriteX[nxtseg] ))
         --DebugPrint( sSpriteSc[nxtseg] * 0.5 )
@@ -545,6 +579,16 @@ function UpdateCollide()
         --DebugPrint(nxtseg*SEG_LEN)
         sdef1=SDEF[sSprite[nxtseg]]
         -- TODO: This condition is bad and wrong :[
+        --DebugPrint( PlayerX - sSpriteX[nxtseg] )
+        --DebugPrint(SpriteCollideRect[1] )
+        --DebugPrint(SpriteCollideRect[2] )
+        --DebugPrint(SpriteCollideRect[3] )
+        --DebugPrint(SpriteCollideRect[4] )
+
+        --colrect = SpriteCollideRect
+        --colrect[1] = SpriteCollideRect[3] + SpriteCollideRect[3] * sdef1[8]
+        --colrect[3] = SpriteCollideRect[3] * sdef1[8]
+
         if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
             ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
         then
@@ -754,8 +798,7 @@ function RenderPlayer()
 
 end
 
-function RenderSprite( x1, y1, w1, s, d, sc )
-    
+function GetSpriteSSRect( s, x1, y1, w1, sc )
     ssc=w1*sc
     aspx = 1
     aspy = 1
@@ -769,10 +812,17 @@ function RenderSprite( x1, y1, w1, s, d, sc )
             y1 - ssc * aspy,
             ssc * aspx,
             ssc * aspy }
+    return rect
+end
+
+function RenderSpriteWorld( s, rect, d )
     
     -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
     -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
     -- sspr seems to over-round the h/w down for some reason, so correct it
+    --fact=max(min(d,1),0)
+    --print(flr(1+fact*(#BAYER-1)))
+    --fillp(BAYER[flr(1+fact*(#BAYER-1))]|0b.011)
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], ceil(rect[3] + 1), ceil(rect[4] + 1), SDEF[s][7] == 1 )
     --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], rect[3], rect[4] )
     BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 13, d )
@@ -845,7 +895,19 @@ function RenderRoad()
 
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            RenderSprite( psx1,psy[1],psw[1], sSprite[segidx], d, sSpriteSc[segidx] )
+            rect = GetSpriteSSRect( sSprite[segidx], psx1, psy[1],psw[1], sSpriteSc[segidx] )
+            RenderSpriteWorld( sSprite[segidx], rect, d )
+            if i == 2 then
+                SpriteCollideRect = rect
+            end
+        end
+
+        -- tokens
+        if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
+            psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sTokensX[segidx] * ROAD_WIDTH ) * 64));
+            d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
+            rect = GetSpriteSSRect( 10, psx1, psy[1],psw[1], 0.2 )
+            RenderSpriteWorld( 10, rect, d )
         end
 
         -- opponents
@@ -876,11 +938,14 @@ function RenderRoad()
                 pal( 2, opcols2[o%#opcols2+1] )
 
                 if sPointsC[OpptSeg[o]] > 0.5 then
-                    RenderSprite( opsx, opsy, opsw, 8, 1, 0.18 )
+                    rect = GetSpriteSSRect( 8, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 8, rect, 1 )
                 elseif sPointsC[OpptSeg[o]] < -0.5 then
-                    RenderSprite( opsx, opsy, opsw, 9, 1, 0.18 )
+                    rect = GetSpriteSSRect( 9, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 9, rect, 1 )
                 else
-                    RenderSprite( opsx, opsy, opsw, 7, 1, 0.18 )
+                    rect = GetSpriteSSRect( 7, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 7, rect, 1 )
                 end
 
                 pal( 14, 14 )
@@ -953,13 +1018,13 @@ ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffff
 ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-000000000000d0ddf44dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-066666666611111d44f44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1611d11ddd11811024fd4dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-0611d16d6d1a7e1d2244444fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1616d11ddd11c110f524f44fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1666666666111110ff22222fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1110100100000000fff555ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+000000000000d0ddff999fffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+066666666611111df99f99f9aaaaa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1611d11ddd11811049f9f999aa8aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+0611d16d6d1a7e1d4f4f9f99a97ea7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1616d11ddd11c11054f4f449aacaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1666666666111110f55f44f9aaaaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1110100100000000ff555fff99999fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
