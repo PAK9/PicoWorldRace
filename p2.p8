@@ -48,6 +48,9 @@ local SDEF = {
     { 36, 0, 36, 24, 1, 1, 0, 0, 0 }, -- 8. opponent car l
     { 36, 0, 36, 24, 1, 1, 1, 0, 0 }, -- 9. opponent car r
     { 23, 40, 7, 7, 1, 1, 0, 0, 0 }, -- 10. token
+    { 122, 25, 6, 6, 1, 1, 0, 0, 0 }, -- 11. gantry section
+    { 103, 25, 18, 15, 1, 1, 0, 0, 0 }, -- 12. start/end banner left
+    { 103, 25, 18, 15, 1, 1, 1, 0, 0 }, -- 13. start/end banner right
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -102,7 +105,7 @@ NFDEF = {{ 111, 116, 12, 11 },  -- 0
 
 local LastY = 0 -- last y height when building a track
 
-local Position = 0 -- current position around the track
+local Position = NumSegs*SEG_LEN - 50 -- current position around the track
 local PositionL = 0 -- ..accounting for laps
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
@@ -394,7 +397,6 @@ function UpdateInput()
     elseif btn(1) then -- right
         PlayerXd+= (0.04 + PlayerDrift*0.02) * (1-PlayerVl*0.002)*min(PlayerVl*0.25,1)
     end
-    DebugPrint(1-PlayerVl*0.002)
 
 end
 
@@ -426,7 +428,7 @@ function UpdatePlayer()
         PlayerVl = 0
     end
     if abs( PlayerXd ) < 0.01 then
-        --PlayerXd = 0
+        PlayerXd = 0
     end
     PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
     PlayerX+=PlayerXd*0.3
@@ -784,12 +786,17 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     -- Road
     if thm[3] == 1 then
         -- stripes
-        if idx % 3 == 0 then
-            fillp(0x5A5A)
-            col = thm[2]
-        else
+        if idx == 1 then
             fillp(0)
-            col = thm[1]
+            col = 1
+        else
+            if idx % 3 == 0 then
+                fillp(0x5A5A)
+                col = thm[2]
+            else
+                fillp(0)
+                col = thm[1]
+            end
         end
         RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
     elseif thm[3] == 2 then
@@ -799,7 +806,11 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         -- TODO: dont overdraw
         RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
         fillp(0)
-        col = thm[1]
+        if idx == 1 then
+            col = 1
+        else
+            col = thm[1]
+        end
         srand( idx )
         pminx=rnd( 0.6 ) + 0.3
         pmaxx=rnd( 0.6 ) + 0.3
@@ -965,7 +976,7 @@ function RenderHUD()
     if spd > 99 then
         x1-= 4
     end
-    print( flr( PlayerVl * 15 ), x1, 114, 6 )
+    print( flr( PlayerVl * 10.2 ), x1, 114, 6 )
     print( "mph", 94, 114, 6 )
 end
 
@@ -1014,6 +1025,15 @@ function RenderSpriteWorld( s, rrect, d )
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], ceil(rrect[3] + 1), ceil(rrect[4] + 1), SDEF[s][7] == 1 )
     --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], rrect[3], rrect[4] )
     BayerRectT( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 13, d )
+end
+
+function RenderSpriteRepeat( s, rrect, d, dx, dy, n )
+    
+    for i=1,n do
+        RenderSpriteWorld( s, rrect, d )
+        rrect[1]=rrect[1]+rrect[3]*dx
+        rrect[2]=rrect[2]+rrect[4]*dy
+    end
 end
 
 function RenderRoad()
@@ -1067,9 +1087,10 @@ function RenderRoad()
             psw[j] = flr(pscreenscale[j] * ROAD_WIDTH * 64);
         end
 
+        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
         -- segments
         if ( psy[1] < 128 or psy[2] < 128 ) and ( psy[1] >= psy[2]  ) then -- and ( psy[2] <= miny+1 )
-            RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], PlayerSeg + i )
+            RenderSeg( psx[1], psy[1], psw[1], psx[2], psy[2], psw[2], segidx )
         end
 
         if i==1 then
@@ -1078,15 +1099,34 @@ function RenderRoad()
         end
 
         -- sprites
-        segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+        
         if sSprite[segidx] != 0 then
-
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             rrect = GetSpriteSSRect( sSprite[segidx], psx1, psy[1],psw[1], sSpriteSc[segidx] )
             RenderSpriteWorld( sSprite[segidx], rrect, d )
             if i == 2 then
                 SpriteCollideRect = rrect
+            end
+        end
+
+        -- Start gantry
+        if segidx == 1 or segidx == 2 then
+            psx1l = flr(64 + (pscreenscale[1] * ( pcamx[i] + ROAD_WIDTH * -1.2 ) * 64));
+            psx1r = flr(64 + (pscreenscale[1] * ( pcamx[i] + ROAD_WIDTH * 1.2 ) * 64));
+            d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
+            rrect = GetSpriteSSRect( 11, psx1l, psy[1],psw[1], 0.1 )
+            RenderSpriteRepeat( 11, rrect, d, 0, -1, 10 )
+            rrect = GetSpriteSSRect( 11, psx1r, psy[1],psw[1], 0.1 )
+            RenderSpriteRepeat( 11, rrect, d, 0, -1, 10 )
+            if segidx == 1 then
+                psx1l = flr(64 + (pscreenscale[1] * ( pcamx[i] + ROAD_WIDTH * -0.55 ) * 64));
+                psx1r = flr(64 + (pscreenscale[1] * ( pcamx[i] + ROAD_WIDTH * 0.55 ) * 64));
+                rrect = GetSpriteSSRect( 12, psx1l, psy[1],psw[1], 1 )
+                RenderSpriteWorld( 12, rrect, d )
+                
+                rrect = GetSpriteSSRect( 13, psx1r, psy[1],psw[1], 1 )
+                RenderSpriteWorld( 13, rrect, d )
             end
         end
 
@@ -1168,13 +1208,13 @@ end
 __gfx__
 fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffe1eeeeeeeeeeeeeeeeeeffffffffffffffffffffff
 ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dfffffffffffffffffffff1dddd1eeeeee55555555dddddffffffffffffffffffff
-ffff155ddd555555555555ddd551ffffffff8ddddd0dddddddddddddddddd66fffffffffffffffffdddddddde0eddddddddd666666666fffffffffffffffffff
+ffff155ddd555555555555ddd551ffffffffeddddd0dddddddddddddddddd66fffffffffffffffffdddddddde0eddddddddd666666666fffffffffffffffffff
 fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffff8e8e8e1d5ddddddd5ee6666666ddddddddddddffffffffffffffffff
 ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffe800e811155d5dd5eeeddddddddddddd66666666ffffffffffffffff
-ff0d8dddddddddddddddddddddd8d0ffffff2115ee666666666666666666666dddffffff8e108e8e11151de0eedddd66666666ddd5555555dfffffffffffffff
-ffd86666666666666666666666668dffffff22eeedddd55555dddddd5555555555ddffffe001e8e8e8111d5eee66dd5555d5dddd55556666660000ffffffffff
-ff8dddd55555dddddddd55555dddd8ffffff00eedd555555666666666666000000000fff80000e8e8e8e15eeeedd555556666666000000000000000fffffffff
-f866666666666666666666666666668fffff022e6ee000000000000000000000000000ff10000218e811e8eeee666666000000000000022222000000ffffffff
+ff0dedddddddddddddddddddddded0ffffff2115ee666666666666666666666dddffffff8e108e8e11151de0eedddd66666666ddd5555555dfffffffffffffff
+ffde666666666666666666666666edffffff22eeedddd55555dddddd5555555555ddffffe001e8e8e8111d5eee66dd5555d5dddd55556666660000ffffffffff
+ffedddd55555dddddddd55555ddddeffffff00eedd555555666666666666000000000fff80000e8e8e8e15eeeedd555556666666000000000000000fffffffff
+fe6666666666666666666666666666efffff022eeee000000000000000000000000000ff10000218e811e8eeee666666000000000000022222000000ffffffff
 fee00000000000000000000000000eefffff002eee00000022222222222222222000000f100001212e818e88eeeeeee00002222222222222222eeeeeffffffff
 fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeee005002121218e8e0e8eeee00002222222eeeeeeeeeeeeeeeffffffff
 e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef015012121212e00008e8000eeeeeeeeeeeeeed44877888effffffff
@@ -1191,12 +1231,12 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
 fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ff6636ffffff666ffe7fffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66ff66666feefffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356fdff66ffefffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353fdddddffefffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7fffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffafffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99f63bbbb66ff66666feeffffffffffffffffffffffffffffffff11661166116611f555555
+fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a96b7b37b356fdff66ffeffffffffffffffffffffffffffff555500770077007700f55ff65
+fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333733353fdddddffeffffffffffffffffffffffffffff555577007700770077f5f5f65
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7ffffffffffffffffffffffffffffff555577007700770077f5ff565
+ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffafffffffffffffffffffffffffffff555500770077007700f566655
+ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffaffffffffffffffffffffffffffffffff11661166116611f555555
 ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9affffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -1270,17 +1310,17 @@ ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aaa5aaafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aa585aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-a597e5afffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aa5c5aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aaa5aaafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-feeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-efffffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-efffefffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-feeffefeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aaa5aaafffff7777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aa585aaffff77777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+a597e5afff777777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aa5c5aafff777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aaa5aaafff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+feeeeeeeff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+efffffffef777ffffff777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+efffefffef777777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+feeffefefff77777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffefffffff7777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff7777f7777777777fff7777777777ffffff777ff777ff777777777777fff777777777ffff77777777fffff77777777fffff77777777fffff77777777fffffff
 ff7777f77777777777ff77777777777ffff7777ff777ff777777777777ff7777777777fff7777777777fff7777777777fff7777777777fff7777777777ffffff
