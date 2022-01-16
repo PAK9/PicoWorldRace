@@ -54,6 +54,7 @@ local sSpriteX = {}
 local sSpriteSc = {} -- scale
 local SpriteCollideRect = {}
 
+local TOKEN_LIMIT = 20
 local sTokensX = {}
 local sTokensExist = {}
 
@@ -77,6 +78,18 @@ local sParticX = {}
 local sParticY = {}
 local NextPartic = 1
 
+-- numeric font definitions
+NFDEF = {{ 111, 116, 12, 11 },  -- 0
+        { 2, 116, 4, 11 }, -- 1
+        { 7, 116, 12, 11 }, -- etc..
+        { 20, 116, 12, 11 },
+        { 33, 116, 12, 11 },
+        { 46, 116, 12, 11 },
+        { 59, 116, 12, 11 },
+        { 72, 116, 12, 11 },
+        { 85, 116, 12, 11 },
+        { 98, 116, 12, 11 }, } -- 9
+
 local LastY = 0 -- last y height when building a track
 
 local Position = 0 -- current position around the track
@@ -91,6 +104,7 @@ local PlayerVf = 0
 local PlayerDrift = 0
 local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
+local PlayerLap = 1
 
 local RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
 local RecoverTimer = 0
@@ -104,6 +118,8 @@ local OpptV = {}
 local RubberBand = 0
 
 local HznOffset = 0
+
+local HUD_HEIGHT = 16
 
 local sScreenShake = {0,0}
 
@@ -125,15 +141,23 @@ function BayerRectT( x1, y1, x2, y2, c1, fact )
 end
 
 function BayerRectV( x1, y1, x2, y2, c1, c2 )
-
     col = bor( c1 << 4, c2 );
     h=y2-y1
     for i = 1,#BAYER do
         fillp(BAYER[i])
-        rectfill( x1, flr(y1), x2, y1+flr(h/#BAYER), col )
+        rectfill( flr(x1), flr(y1), flr(x2), flr(y1)+flr(h/#BAYER), col )
         y1 = y1 + h/#BAYER;
     end
+end
 
+function BayerRectH( x1, y1, x2, y2, c1, c2 )
+    col = bor( c1 << 4, c2 );
+    w=x2-x1
+    for i = 1,#BAYER do
+        fillp(BAYER[i])
+        rectfill( flr(x1), flr(y1), flr(x1)+flr(w/#BAYER), flr(y2), col )
+        x1 = x1 + w/#BAYER;
+    end
 end
 
 function LoopedTrackPos(z)
@@ -343,9 +367,7 @@ end
 
 function UpdateInput()
 
-    if btn(2) then -- up
-        -- PlayerVl=PlayerVl+1
-    elseif btn(3) then -- down
+    if btn(3) then -- down
         if abs( PlayerXd ) > 0.1 then
             PlayerDrift=sgn(PlayerXd)
         else
@@ -358,10 +380,11 @@ function UpdateInput()
     end
 
     if btn(0) then -- left
-        PlayerXd-= (0.04 + -PlayerDrift*0.02)-- * PlayerVl*0.1
+        PlayerXd-= (0.04 + -PlayerDrift*0.02) * (1-PlayerVl*0.002)*min(PlayerVl*0.25,1)
     elseif btn(1) then -- right
-        PlayerXd+= (0.04 + PlayerDrift*0.02)-- * PlayerVl*0.1
+        PlayerXd+= (0.04 + PlayerDrift*0.02) * (1-PlayerVl*0.002)*min(PlayerVl*0.25,1)
     end
+    DebugPrint(1-PlayerVl*0.002)
 
 end
 
@@ -389,6 +412,12 @@ function UpdatePlayer()
             PlayerXd=PlayerXd*0.9
         end
     end
+    if PlayerVl < 0.02 then
+        PlayerVl = 0
+    end
+    if abs( PlayerXd ) < 0.01 then
+        --PlayerXd = 0
+    end
     PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
     PlayerX+=PlayerXd*0.3
 
@@ -398,10 +427,11 @@ function UpdatePlayer()
 
     --DebugPrint( PlayerVf )
 
-    PlayerVf = PlayerVl*0.6
+    PlayerVf = PlayerVl*0.6*(1-abs(PlayerDrift)*0.05)
     Position=Position+PlayerVf
     if Position > SEG_LEN*NumSegs then
         Position -= SEG_LEN*NumSegs
+        PlayerLap += 1
     end
 
     HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf+0.1)
@@ -563,8 +593,12 @@ function UpdateCollide()
 
     -- tokens
 
-    if sTokensX[nxtseg] != 0 and sTokensExist[nxtseg] != 0 then   
-        if abs( PlayerX - sTokensX[nxtseg] ) < 0.2 and 
+    if sTokensX[nxtseg] != 0 and sTokensExist[nxtseg] != 0 then
+        hitbox=0.2
+        if PlayerDrift != 0 then
+            hitbox=0.25
+        end
+        if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and 
             ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
             sTokensExist[nxtseg] = 0
         end
@@ -572,25 +606,47 @@ function UpdateCollide()
 
     -- sprites
 
-    if sSprite[nxtseg] > 0 then
-        --DebugPrint(abs( PlayerX - sSpriteX[nxtseg] ))
-        --DebugPrint( sSpriteSc[nxtseg] * 0.5 )
-        --DebugPrint(PositionL + PlayerVf)
-        --DebugPrint(nxtseg*SEG_LEN)
-        sdef1=SDEF[sSprite[nxtseg]]
-        -- TODO: This condition is bad and wrong :[
-        --DebugPrint( PlayerX - sSpriteX[nxtseg] )
+    if sSprite[nxtseg] > 0 and ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+
+        sdef1=SDEF[sSprite[nxtseg]]        
+        -- work out the range of pixels in the source sprite that we overlap
+
+        -- these are roughly where the player is in screenspace x normalised
+        plx1n=0.375
+        plx2n=0.625
+
         --DebugPrint(SpriteCollideRect[1] )
-        --DebugPrint(SpriteCollideRect[2] )
         --DebugPrint(SpriteCollideRect[3] )
-        --DebugPrint(SpriteCollideRect[4] )
+        --DebugPrint(SpriteCollideRect[3] - SpriteCollideRect[1] )
+
+        -- where is the player in the sprite screenspace rect
+        --inrect1n=lerp( SpriteCollideRect[1], SpriteCollideRect[1] + SpriteCollideRect[3], 48/SpriteCollideRect[3])
+        
+        --inrect1n=SpriteCollideRect[1]+(48-SpriteCollideRect[1])/SpriteCollideRect[3]
+        --inrect2n=SpriteCollideRect[1]+(80-SpriteCollideRect[1])/SpriteCollideRect[3]
+
+        --sx2ss=SpriteCollideRect[1]+SpriteCollideRect[3];
+        inrect1n=SpriteCollideRect[1]+(48-SpriteCollideRect[1])/SpriteCollideRect[3]
+
+        --DebugPrint(inrect1n)
+        --DebugPrint(inrect2n)
+
+        --it1=sdef1[3]*inrect1n
+        --it2=sdef1[3]*inrect2n
+
+        --sspr(it1,sdef1[2]+sdef1[4],it2-it1,1,1,1,it2-it1,1)
+
+        --for colit=flr(it1), flr(it2) do
+            --DebugPrint(sget(sdef1[1]+colit,sdef1[2]+sdef1[4]))
+        --end
 
         --colrect = SpriteCollideRect
         --colrect[1] = SpriteCollideRect[3] + SpriteCollideRect[3] * sdef1[8]
         --colrect[3] = SpriteCollideRect[3] * sdef1[8]
 
+        --[[
         if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
-            ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN
+            
         then
 
             if PlayerVf < 2 then
@@ -613,6 +669,7 @@ function UpdateCollide()
                 AddCollisionParticles()
             end
         end
+        --]]
     end
 
 end
@@ -633,7 +690,7 @@ function _update()
     if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
         sScreenShake = {0,0}
     end
-    camera(sScreenShake[1],sScreenShake[2])
+    -- camera(sScreenShake[1],sScreenShake[2])
 
     UpdatePlayer()
     UpdateRecover()
@@ -758,10 +815,11 @@ end -- RenderSeg
 
 function _draw()
 	cls()
-	
+	camera( 0 + sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
     RenderSky()
     RenderHorizon()
     RenderRoad()
+    camera( 0, 0 )
     RenderHUD()
 
      print( flr(stat(1)*100).."%", 100,2,3 )
@@ -773,12 +831,124 @@ function _draw()
 
 end
 
+function PrintBigDigit( n, x, y, nrend )
+    i=n+1
+    if nrend == 0 then
+        sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y )
+    end
+    return x + NFDEF[i][3] + 1
+end
+
+function PrintBigNum( n, x, y, nrend )
+
+    hnd=flr(n/100)
+    ten=flr(n%100/10)
+    unit=flr(n%10)
+
+    
+    --DebugPrint( ten )
+    --DebugPrint( unit )
+
+    xpos=x
+    if hnd != 0 then
+        x = PrintBigDigit( hnd, x, y, nrend )
+    end
+    if ten != 0 or hnd != 0 then
+        x = PrintBigDigit( ten, x, y, nrend )
+    end
+    return PrintBigDigit( unit, x, y, nrend )
+
+end
+
+function GetPlayerStanding()
+    return 3
+end
+
+function GetStandingSuffix(n)
+
+    if n == 1 then
+        return "st"
+    elseif n== 2 then
+        return "nd"
+    elseif n==3 then
+        return "rd"
+    else
+        return "th"
+    end
+
+    return ""
+
+end
+
+function GetTokenCount()
+    n=0
+    for i=1,#sTokensExist do
+        if sTokensExist[i] == 1 then
+            n+=1
+        end
+    end
+    return 20-n
+end
+
 function RenderHUD()
 
     -- print(tostr(PlayerVl),2,20,4)
     --print(tostr(LoopedTrackPos(Position)),2,20,4)
     --print(tostr(DRAW_DIST),2,20,4)
 
+    --BayerRectH( 0, 128-HUD_HEIGHT, 64, 128, 0, 1  )
+    --BayerRectH( 64, 128-HUD_HEIGHT, 128, 128, 2, 0  )
+
+    fillp(0)
+    rectfill( 0,111, 127, 127, 0 )
+    rect( 0, 111, 127, 127, 6 )
+    rect( 1, 112, 126, 126, 13 )
+    
+    stand=GetPlayerStanding()
+    strlen=PrintBigNum( GetPlayerStanding(), 3, 114, 0 )
+    print( GetStandingSuffix(stand), 16, 114, 7 )
+
+    tkns=TOKEN_LIMIT-GetTokenCount()
+
+    sspr( 0, 110, 9, 5, 37, 114 )
+    print( PlayerLap, 49, 114, 6 )
+    print( "/3", 57, 114, 5 )
+
+    sspr( 0, 104, 7, 5, 38, 120 )
+    print( tkns, 49, 120, 6 )
+    print( "/" ..tostr(TOKEN_LIMIT), 57, 120, 5 )
+
+    for i=80, 124, 2 do
+        y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
+        y1=max(min(y1,121),115)
+        -- top speed is ~14 m/s
+        norm=(i-80)/(128-80)
+        
+        col = 5
+        if norm < PlayerVl/14 then
+            if i < 104 then
+                col = 6
+            elseif i < 118 then
+                col = 7
+            elseif i < 122 then
+                col = 9
+            else
+                col = 8
+            end
+        end
+        line( i, y1, i, 124, col )
+    end
+
+    spd=flr( PlayerVl * 15 )
+    x1=88
+    if spd > 9 then
+        x1 -= 4
+    end
+    if spd > 99 then
+        x1-= 4
+    end
+    print( flr( PlayerVl * 15 ), x1, 114, 6 )
+    print( "mph", 94, 114, 6 )
 end
 
 function RenderPlayer()
@@ -808,24 +978,24 @@ function GetSpriteSSRect( s, x1, y1, w1, sc )
         aspy = SDEF[s][4]/SDEF[s][3]
     end
     
-    rect= { x1 - ssc * aspx * 0.5,
+    rrect= { x1 - ssc * aspx * 0.5,
             y1 - ssc * aspy,
             ssc * aspx,
             ssc * aspy }
-    return rect
+    return rrect
 end
 
-function RenderSpriteWorld( s, rect, d )
+function RenderSpriteWorld( s, rrect, d )
     
     -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
-    -- rectfill( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 8 )
+    -- rectfill( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 8 )
     -- sspr seems to over-round the h/w down for some reason, so correct it
     --fact=max(min(d,1),0)
     --print(flr(1+fact*(#BAYER-1)))
     --fillp(BAYER[flr(1+fact*(#BAYER-1))]|0b.011)
-    sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], ceil(rect[3] + 1), ceil(rect[4] + 1), SDEF[s][7] == 1 )
-    --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rect[1], rect[2], rect[3], rect[4] )
-    BayerRectT( rect[1], rect[2], rect[1] + rect[3], rect[2] + rect[4], 13, d )
+    sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], ceil(rrect[3] + 1), ceil(rrect[4] + 1), SDEF[s][7] == 1 )
+    --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], rrect[3], rrect[4] )
+    BayerRectT( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 13, d )
 end
 
 function RenderRoad()
@@ -895,10 +1065,10 @@ function RenderRoad()
 
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            rect = GetSpriteSSRect( sSprite[segidx], psx1, psy[1],psw[1], sSpriteSc[segidx] )
-            RenderSpriteWorld( sSprite[segidx], rect, d )
+            rrect = GetSpriteSSRect( sSprite[segidx], psx1, psy[1],psw[1], sSpriteSc[segidx] )
+            RenderSpriteWorld( sSprite[segidx], rrect, d )
             if i == 2 then
-                SpriteCollideRect = rect
+                SpriteCollideRect = rrect
             end
         end
 
@@ -906,8 +1076,8 @@ function RenderRoad()
         if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
             psx1 = flr(64 + (pscreenscale[1] * ( pcamx[i] + sTokensX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            rect = GetSpriteSSRect( 10, psx1, psy[1],psw[1], 0.2 )
-            RenderSpriteWorld( 10, rect, d )
+            rrect = GetSpriteSSRect( 10, psx1, psy[1],psw[1], 0.2 )
+            RenderSpriteWorld( 10, rrect, d )
         end
 
         -- opponents
@@ -938,14 +1108,14 @@ function RenderRoad()
                 pal( 2, opcols2[o%#opcols2+1] )
 
                 if sPointsC[OpptSeg[o]] > 0.5 then
-                    rect = GetSpriteSSRect( 8, opsx, opsy,opsw, 0.18 )
-                    RenderSpriteWorld( 8, rect, 1 )
+                    rrect = GetSpriteSSRect( 8, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 8, rrect, 1 )
                 elseif sPointsC[OpptSeg[o]] < -0.5 then
-                    rect = GetSpriteSSRect( 9, opsx, opsy,opsw, 0.18 )
-                    RenderSpriteWorld( 9, rect, 1 )
+                    rrect = GetSpriteSSRect( 9, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 9, rrect, 1 )
                 else
-                    rect = GetSpriteSSRect( 7, opsx, opsy,opsw, 0.18 )
-                    RenderSpriteWorld( 7, rect, 1 )
+                    rrect = GetSpriteSSRect( 7, opsx, opsy,opsw, 0.18 )
+                    RenderSpriteWorld( 7, rrect, 1 )
                 end
 
                 pal( 14, 14 )
@@ -961,8 +1131,8 @@ function RenderParticles()
     p = sPartic[i]
     if p != 0 then
         ssc=sParticSc[i]*10*PDEF[p][9]
-        rect= { sParticX[i] - ssc * 0.5, sParticY[i] - ssc * 0.5, ssc, ssc }
-            sspr( PDEF[p][1], PDEF[p][2], PDEF[p][3], PDEF[p][4], rect[1], rect[2], rect[3], rect[4] )
+        rrect= { sParticX[i] - ssc * 0.5, sParticY[i] - ssc * 0.5, ssc, ssc }
+            sspr( PDEF[p][1], PDEF[p][2], PDEF[p][3], PDEF[p][4], rrect[1], rrect[2], rrect[3], rrect[4] )
         end
     end
 end
@@ -1018,12 +1188,12 @@ ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffff
 ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-000000000000d0ddff999fffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-066666666611111df99f99f9aaaaa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1611d11ddd11811049f9f999aa8aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-0611d16d6d1a7e1d4f4f9f99a97ea7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1616d11ddd11c11054f4f449aacaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1666666666111110f55f44f9aaaaaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+000000000000d0ddffffffffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+066666666611111df4449ff9aa5aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1611d11ddd118110444449f9a585a7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+0611d16d6d1a7e1d444f4f99597e57ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1616d11ddd11c11054444449a5c5aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1666666666111110f55f44f9aa5aaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 1110100100000000ff555fff99999fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -1082,29 +1252,29 @@ ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aaa5aaafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aa585aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+a597e5afffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aa5c5aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aaa5aaafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+feeeeeeeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+efffffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+efffefffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+feeffefeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff7777f7777777777fff7777777777ffffff777ff777ff777777777777fff777777777ffff77777777fffff77777777fffff77777777fffff77777777fffffff
+ff7777f77777777777ff77777777777ffff7777ff777ff777777777777ff7777777777fff7777777777fff7777777777fff7777777777fff7777777777ffffff
+ff7777f777777777777f777777777777ff7777fff777ff777777777777f77777777777ff777777777777f777777777777f777777777777f777777777777fffff
+fff777ffffffffff777ffffffffff777f7777ffff777ff777ffffffffff777ffffffffff777ffffff777f777ffffff777f777ffffff777f777ffffff777fffff
+fff777fff7777777777f777777777777f777fffff777ff7777777777fff7777777777ffffffffffff777f777777777777f777777777777f777ffffff777fffff
+fff777ff7777777777ff777777777777f777fffff777ff77777777777ff77777777777fffffffffff777f777777777777f777777777777f777ffffff777fffff
+fff777f7777777777fff777777777777f777777777777f777777777777f777777777777fffffffff7777f777777777777ff77777777777f777ffffff777fffff
+fff777f777fffffffffffffffffff777ff77777777777ffffffffff777f777ffffff777ffffffff7777ff777ffffff777ffffffffff777f777ffffff777fffff
+fff777f777777777777f777777777777fffffffff777ff777777777777f777777777777fffffff7777fff777777777777ff77777777777f777777777777fffff
+fff777f777777777777f77777777777ffffffffff777ff77777777777fff7777777777fffffff7777fffff7777777777fff77777777777ff7777777777ffffff
+fff777f777777777777f7777777777fffffffffff777ff7777777777fffff77777777ffffffff777fffffff77777777ffff7777777777ffff77777777fffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 __label__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
