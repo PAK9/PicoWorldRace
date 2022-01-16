@@ -5,6 +5,10 @@ __lua__
 -- by PAK-9
 
 #include poly.lua
+#include utility.lua
+#include renderutils.lua
+#include debug.lua
+#include particle.lua
 
 -- music(0)
 
@@ -16,8 +20,6 @@ local CANVAS_SIZE = 128
 local ROAD_WIDTH = 46 -- half
 local CAM_HEIGHT = 17
 local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
-
-local BAYER={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
 
 -- 1. Road col1 2. Road col2 3. Road pat 4. Ground col1 5. Ground col2(x2) 6. Edge col1 7. Edge col2(x2) 8. Lane pat
 -- Road patterns: 1. alternating stripes 2. random patches
@@ -71,26 +73,6 @@ local TOKEN_LIMIT = 20
 local sTokensX = {}
 local sTokensExist = {}
 
--- particle definitions
--- 1.sx, 2.sy, 3.sw, 4.sh, 5.life 6.dx 7.dy 8.dsc 9. sc
-PDEF = { { 67, 24, 5, 5, 0.5, -1, 0.5, -0.1, 1 }, -- 1. drift left
-         { 67, 24, 5, 5, 0.5, 1, 0.5, -0.1, 1 }, -- 2. drift right
-         { 16, 40, 7, 7, 0.2, 0.2, 0.0, 0.2, 0.3 }, -- 3. offroad
-         { 72, 24, 4, 4, 1, 1.2, -1, -0.05, 1 }, -- 4. shard 1
-         { 68, 30, 4, 4, 1, -1.2, -1, -0.05, 1 }, -- 5. shard 2
-         { 72, 28, 3, 3, 0.2, -4, -4, -0.01, 0.4 }, -- 6. spark up left
-         { 66, 33, 4, 4, 0.2, 4, -1, -0.01, 0.5 }, -- 7. spark up right
-         { 72, 32, 4, 4, 0.3, 0.5, -1, -0.05, 0.8 }, -- 8. fire
-         { 67, 24, 5, 5, 1, 0.5, -0.5, 0.2, 0.2 }, -- 9. fire smoke
-}
-
-local sPartic = {}
-local sParticT = {}
-local sParticSc = {}
-local sParticX = {}
-local sParticY = {}
-local NextPartic = 1
-
 -- numeric font definitions
 NFDEF = {{ 111, 116, 12, 11 },  -- 0
         { 2, 116, 4, 11 }, -- 1
@@ -136,43 +118,6 @@ local HUD_HEIGHT = 16
 
 local sScreenShake = {0,0}
 
-local DEBUG_PRINT = {}
-local DEBUG_PRINT_I = 1
-
-function DebugPrint(n)
-    DEBUG_PRINT[DEBUG_PRINT_I] = n
-    DEBUG_PRINT_I += 1
-end
-
-function BayerRectT( x1, y1, x2, y2, c1, fact )
-    
-    if fact < 1 and fact >= 0 then
-        local BAYERT={ 0, 0x0208.8, 0x0A0A.8, 0x1A4A.8, 0x5A5A.8, 0xDA7A.8, 0xFAFA.8, 0xFBFE.8 }
-        fillp(BAYERT[flr(1+fact*#BAYERT)])
-        rectfill( x1,y1, x2, y2, c1 )
-    end
-end
-
-function BayerRectV( x1, y1, x2, y2, c1, c2 )
-    col = bor( c1 << 4, c2 );
-    h=y2-y1
-    for i = 1,#BAYER do
-        fillp(BAYER[i])
-        rectfill( flr(x1), flr(y1), flr(x2), flr(y1)+flr(h/#BAYER), col )
-        y1 = y1 + h/#BAYER;
-    end
-end
-
-function BayerRectH( x1, y1, x2, y2, c1, c2 )
-    col = bor( c1 << 4, c2 );
-    w=x2-x1
-    for i = 1,#BAYER do
-        fillp(BAYER[i])
-        rectfill( flr(x1), flr(y1), flr(x1)+flr(w/#BAYER), flr(y2), col )
-        x1 = x1 + w/#BAYER;
-    end
-end
-
 function LoopedTrackPos(z)
     lps=flr(z/(SEG_LEN*NumSegs))
     return z-SEG_LEN*NumSegs*lps
@@ -190,26 +135,6 @@ function AddSeg( c, y, s )
     add( sPointsZ, NumSegs * SEG_LEN + 1 )
     add( sTokensX, 0 )
     add( sTokensExist, 0 )
-end
-
-function lerp( a,b,f )
-return a+(b-a)*f
-end
-
-function easein( a, b, fact )
-return a + (b-a)*fact*fact
-end
-
-function easeout( a, b, fact )
-return a + (b-a)*(1-(1-fact)*(1-fact))
-end
-
-function easeinout( a, b, fact )
-    if fact <= 0.5 then
-        return easein(a,lerp(a,b,0.5),fact*2)
-    else
-        return easeout(lerp(a,b,0.5),b,(fact-0.5)*2)
-    end
 end
 
 function AddSprites( n, p )
@@ -320,10 +245,7 @@ function _init()
     InitSegments()
     --InitOps()
 
-    for i=1,40 do
-        sPartic[i] = 0
-    end
-    
+    InitParticles()    
 end
 
 function constedits()
@@ -342,40 +264,6 @@ function constedits()
 
     Position=Position+5
 
-end
-
-function AddParticle( p, x, y )
-    srand( time() )
-    sPartic[NextPartic] = p
-    sParticT[NextPartic] = time()
-    sParticSc[NextPartic] = 1
-    sParticX[NextPartic] = x
-    sParticY[NextPartic] = y
-    NextPartic=(NextPartic+1)%#sPartic+1
-end
-
-function ClearParticles()
-    for i=1, #sPartic do
-        sPartic[i] = 0
-    end
-end
-
-function UpdateParticles()
-
-    npart=0
-    for i=1, #sPartic do
-        p = sPartic[i]
-        if p != 0 then
-            npart = npart + 1
-            srand(p)
-            sParticSc[i] += ( PDEF[p][8] + (rnd(0.5)) * PDEF[p][8] )
-            sParticX[i] += ( PDEF[p][6] + (rnd(0.5)) * PDEF[p][6] )
-            sParticY[i] += ( PDEF[p][7] + (rnd(0.5)) * PDEF[p][7] )
-            if sParticSc[i] <= 0 or time() - sParticT[i] > PDEF[p][5] then
-                sPartic[i] = 0
-            end
-        end
-    end
 end
 
 function UpdateInput()
@@ -688,10 +576,7 @@ end
 
 function _update()
 
-    DEBUG_PRINT_I = 1
-    for i = 1,#DEBUG_PRINT do
-        DEBUG_PRINT[i] = "-"
-    end
+    DebugUpdate()
 
     Frame=Frame+1
 
@@ -851,12 +736,7 @@ function _draw()
     camera( 0, 0 )
     RenderHUD()
 
-     print( flr(stat(1)*100).."%", 100,2,3 )
-     print(tostr( flr(stat(0)) ) .."/2048k", 100,10,3 )
-    
-    for i = 1,#DEBUG_PRINT do
-        print(tostr(DEBUG_PRINT[i]),2,2 + (i-1) * 6, 2)
-    end
+    DebugRender()
 
 end
 
@@ -873,10 +753,6 @@ function PrintBigNum( n, x, y, nrend )
     hnd=flr(n/100)
     ten=flr(n%100/10)
     unit=flr(n%10)
-
-    
-    --DebugPrint( ten )
-    --DebugPrint( unit )
 
     xpos=x
     if hnd != 0 then
@@ -1183,18 +1059,6 @@ function RenderRoad()
 
     end
 end -- RenderRoad
-
-function RenderParticles()
- for i=1, #sPartic do
-    p = sPartic[i]
-    if p != 0 then
-        ssc=sParticSc[i]*10*PDEF[p][9]
-        rrect= { sParticX[i] - ssc * 0.5, sParticY[i] - ssc * 0.5, ssc, ssc }
-            sspr( PDEF[p][1], PDEF[p][2], PDEF[p][3], PDEF[p][4], rrect[1], rrect[2], rrect[3], rrect[4] )
-        end
-    end
-end
-
 
 
 
