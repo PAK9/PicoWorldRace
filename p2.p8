@@ -19,6 +19,16 @@ local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
 local BAYER={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
 
+-- 1. Road col1 2. Road col2 3. Road pat 4. Ground col1 5. Ground col2(x2) 6. Edge col1 7. Edge col2(x2) 8. Lane pat
+-- Road patterns: 1. alternating stripes 2. random patches
+-- Lane patterns: 1. edges 2. centre alternating
+local THEMEDEF = {
+    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1 }, -- Green raceway
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2 }, -- Snowy
+}
+
+local Theme = 2
+
 local NumSegs = 0
 local sPointsX = {}
 local sPointsY = {}
@@ -27,7 +37,7 @@ local sPointsC = {}
 
 -- sprite definitions (the bottom of the sprite should be on the ground)
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max (0-1)
-SDEF = { 
+local SDEF = { 
     { 48, 24, 8, 8, 1.4, 1.4, 0, 0, 1 }, -- 1. chevron r
     { 48, 24, 8, 8, 1.4, 1.4, 1, 0, 1 }, -- 2. chevron l
     { 57, 35, 7, 5, 0.4, 0.6, 0, 0, 0 }, -- 3. grass
@@ -42,7 +52,7 @@ SDEF = {
 -- sprite pattern definitions
 -- when conflict first is used
 -- index in SDEF, interval, minx (*roadw), maxx (*roadw), rand l/r
-SPDEF = {
+local SPDEF = {
     { { 1, 3, -1.6, -1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  1. chevron r, trees, grass
     { { 2, 3, 1.6, 1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  2. chevron l, trees, grass
     { { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. trees, shrubs, grass
@@ -744,72 +754,80 @@ end
 
 function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
+    thm=THEMEDEF[Theme]
+
     -- Edge
     if idx % 4 > 1 then
         fillp(0)
-        col = 6
+        col = thm[6]
     else
         fillp(0x5A5A)
-        col = 0x42
+        col = thm[7]
     end
     edgew1=w1*0.86
     edgew2=w2*0.86
     RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
     RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
-    -- Grass
+    -- Ground
     if idx % 8 > 3 then
         fillp(0)
-        col = 3
+        col = thm[4]
     else
         fillp(0x5A5A)
-        col = 0x3B
+        col = thm[5]
     end
     
     RenderPoly4( {-10,y2},{-10,y1},{x1-w1,y1},{x2-w2,y2}, col )
     RenderPoly4( {138,y2},{138,y1},{x1+w1,y1},{x2+w2,y2}, col )
 
     -- Road
-    if idx % 3 == 0 then
+    if thm[3] == 1 then
+        -- stripes
+        if idx % 3 == 0 then
+            fillp(0x5A5A)
+            col = thm[2]
+        else
+            fillp(0)
+            col = thm[1]
+        end
+        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+    elseif thm[3] == 2 then
+        -- patches
         fillp(0x5A5A)
-        col = 0x5D
-    else
+        col = thm[2]
+        -- TODO: dont overdraw
+        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
         fillp(0)
-        col = 5
+        col = thm[1]
+        srand( idx )
+        pminx=rnd( 0.6 ) + 0.3
+        pmaxx=rnd( 0.6 ) + 0.3
+        RenderPoly4( {x1-w1*pminx,y1},{x1+w1*pmaxx,y1},{x2+w2*pmaxx,y2},{x2-w2*pminx,y2}, col )
     end
-    RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
-
-    -- patches
-    --[[
-    fillp(0)
-    col = 5
-    srand( idx )
-    pminx=rnd( 0.6 ) + 0.3
-    pmaxx=rnd( 0.6 ) + 0.3
-    RenderPoly4( {x1-w1*pminx,y1},{x1+w1*pmaxx,y1},{x2+w2*pmaxx,y2},{x2-w2*pminx,y2}, col )
-    --]]
 
      -- Lanes
-     
-     -- centre
-     --[[
-     if idx % 4 > 2 then
-        fillp(0)
-        col = 9
-        lanew=0.02
-        RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, col )
+     if thm[8] == 1 then
+        -- edge lane
+        if idx % 2 > 0 then
+            fillp(0)
+            col = 6
+            dst1=0.74
+            dst2=0.78
+            RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
+            RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
+        end
+    elseif thm[8] == 2 then
+        -- centre alternating
+        if idx % 4 > 2 then
+            fillp(0)
+            col = 6
+            lanew=0.02
+            RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, col )
+        end
     end
-    --]]
 
-    -- edge
-    if idx % 2 > 0 then
-        fillp(0)
-        col = 6
-        dst1=0.74
-        dst2=0.78
-        RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
-        RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
-    end
+    
 
 end -- RenderSeg
 
