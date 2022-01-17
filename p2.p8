@@ -37,6 +37,9 @@ local sPointsY = {}
 local sPointsZ = {}
 local sPointsC = {}
 
+local NUM_LAPS = 3
+
+
 -- sprite definitions (the bottom of the sprite should be on the ground)
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.hitbox min, 9.hitbox max (0-1)
 local SDEF = { 
@@ -69,11 +72,11 @@ local sSpriteX = {}
 local sSpriteSc = {} -- scale
 local SpriteCollideRect = {}
 
-local TOKEN_LIMIT = 20
 local sTokensX = {}
 local sTokensExist = {}
+local NumTokens = 0
 
--- numeric font definitions
+-- numeric font definitions {sx,sy,sw,sh}
 NFDEF = {{ 111, 116, 12, 11 },  -- 0
         { 2, 116, 4, 11 }, -- 1
         { 7, 116, 12, 11 }, -- etc..
@@ -83,11 +86,12 @@ NFDEF = {{ 111, 116, 12, 11 },  -- 0
         { 59, 116, 12, 11 },
         { 72, 116, 12, 11 },
         { 85, 116, 12, 11 },
-        { 98, 116, 12, 11 }, } -- 9
+        { 98, 116, 12, 11 }, -- 9 
+        { 10, 104, 12, 11}} -- G (for the countdown)
 
 local LastY = 0 -- last y height when building a track
 
-local Position = NumSegs*SEG_LEN - 50 -- current position around the track
+local Position = 1 -- current position around the track
 local PositionL = 0 -- ..accounting for laps
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
@@ -117,6 +121,10 @@ local HznOffset = 0
 local HUD_HEIGHT = 16
 
 local sScreenShake = {0,0}
+
+-- 1. countdown 2. race 3. end slate
+local RaceState = 1
+local RaceStateTimer = 0
 
 function LoopedTrackPos(z)
     lps=flr(z/(SEG_LEN*NumSegs))
@@ -206,6 +214,7 @@ function AddTokens( seg, x, n )
         sTokensX[idx] = x
         sTokensExist[idx]=1
     end
+    NumTokens += n
 end
 
 function InitSegments()
@@ -230,9 +239,35 @@ end
 function InitOps()
     for i=1,8 do
         OpptPos[i] = SEG_LEN *  i
-        OpptX[i]=(i%2)-0.5
+        OpptX[i]=((i%2)*2-1)*0.2
         OpptV[i]=0
     end
+    RubberBand = 0
+end
+
+function InitRace()
+
+    NumTokens=0
+
+    InitSegments()
+    InitOps()
+    RaceStateTimer = time()
+    RaceState = 1
+    
+    PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
+    PlayerXd = 0
+    PlayerY = 0
+    PlayerYd = 0
+    PlayerVl = 0
+    PlayerVf = 0
+    PlayerDrift = 0
+    PlayerAir = 0
+    PlayerSeg = 0 -- current player segment
+    PlayerLap = 1
+
+    RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
+    RecoverTimer = 0
+    InvincibleTime = 0
 end
 
 function _init()
@@ -242,10 +277,10 @@ function _init()
     -- don't draw tan pixels
     palt(15, true)
 
-    InitSegments()
-    --InitOps()
+    InitParticles()
 
-    InitParticles()    
+    InitRace()
+
 end
 
 function constedits()
@@ -266,7 +301,9 @@ function constedits()
 
 end
 
-function UpdateInput()
+function UpdateRaceInput()
+
+    if RaceState != 2 then return end
 
     if btn(3) then -- down
         if abs( PlayerXd ) > 0.1 then
@@ -302,7 +339,7 @@ function UpdatePlayer()
 
     if PlayerAir == 0 then
         if RecoverStage == 0 then
-            UpdateInput()
+            UpdateRaceInput()
         end
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
             PlayerVl=PlayerVl*0.96
@@ -436,17 +473,20 @@ function UpdateOpts()
         rbrange=20
         rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
 
-        OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i*0.02
-        OpptV[i]=OpptV[i]*0.95
-        OpptPos[i]=OpptPos[i]+OpptV[i]
+        if RaceState > 1 then
+            OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i*0.02
+            OpptV[i]=OpptV[i]*0.95
 
-        if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
-            OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
+            if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
+                OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
+            end
         end
         
         if OpptPos[i] > SEG_LEN*NumSegs then
             OpptPos[i] -= SEG_LEN*NumSegs
         end
+
+        OpptPos[i]=OpptPos[i]+OpptV[i]
     end
     RubberBand = rbandnxt
 end
@@ -574,6 +614,14 @@ function UpdateCollide()
 
 end
 
+function UpdateRaceState()
+    DebugPrint( time() - RaceStateTimer )
+    if RaceState==1 and (time() - RaceStateTimer) > 3 then
+        RaceState=2
+        RaceStateTimer=time()
+    end
+end
+
 function _update()
 
     DebugUpdate()
@@ -594,6 +642,7 @@ function _update()
     UpdateCollide()
     UpdateOpts()
     UpdateParticles()
+    UpdateRaceState()
     --constedits()
 
 end
@@ -748,6 +797,17 @@ function PrintBigDigit( n, x, y, nrend )
     return x + NFDEF[i][3] + 1
 end
 
+function PrintBigDigitOutline( n, x, y, col )
+    i=n+1
+    pal( 7, col )
+    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x-1, y )
+    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x+1, y )
+    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y-1 )
+    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y+1 )
+    pal( 7, 7 )
+end
+
+
 function PrintBigNum( n, x, y, nrend )
 
     hnd=flr(n/100)
@@ -792,17 +852,51 @@ function GetTokenCount()
             n+=1
         end
     end
-    return 20-n
+    return NumTokens-n
+end
+
+function RenderCountdown()
+
+    if RaceState == 2 and time() - RaceStateTimer < 1 then
+        frac=( time() - RaceStateTimer )%1
+        PrintBigDigitOutline( 10,64-NFDEF[11][3]*0.5-8,30, 0 )
+        PrintBigDigitOutline( 0,64-NFDEF[1][3]*0.5+7,30, 0 )
+        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
+        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
+        clip( 0, 33, 128, 128 )
+        pal( 7, 10 )
+        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
+        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
+        clip( 0, 39, 128, 128 )
+        pal( 7, 9 )
+        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
+        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
+        pal( 7, 7 )
+        pal( 7, 7 )
+        clip()
+    elseif RaceState == 1 then
+        num= 3-flr( time() - RaceStateTimer )
+        frac=( time() - RaceStateTimer )%1
+        if num <= 0 then
+            return
+        elseif frac < 0.9 then
+            PrintBigDigitOutline( num,64-NFDEF[num+1][3]*0.5,30, 0 )
+            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
+            clip( 0, 33, 128, 128 )
+            pal( 7, 10 )
+            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
+            clip( 0, 39, 128, 128 )
+            pal( 7, 9 )
+            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
+            pal( 7, 7 )
+            clip()
+        end
+    end
 end
 
 function RenderHUD()
 
-    -- print(tostr(PlayerVl),2,20,4)
-    --print(tostr(LoopedTrackPos(Position)),2,20,4)
-    --print(tostr(DRAW_DIST),2,20,4)
-
-    --BayerRectH( 0, 128-HUD_HEIGHT, 64, 128, 0, 1  )
-    --BayerRectH( 64, 128-HUD_HEIGHT, 128, 128, 2, 0  )
+    RenderCountdown()
 
     fillp(0)
     rectfill( 0,111, 127, 127, 0 )
@@ -813,15 +907,15 @@ function RenderHUD()
     strlen=PrintBigNum( GetPlayerStanding(), 3, 114, 0 )
     print( GetStandingSuffix(stand), 16, 114, 7 )
 
-    tkns=TOKEN_LIMIT-GetTokenCount()
+    tkns=GetTokenCount()
 
     sspr( 0, 110, 9, 5, 37, 114 )
     print( PlayerLap, 49, 114, 6 )
-    print( "/3", 57, 114, 5 )
+    print( "/"..tostr(NUM_LAPS), 57, 114, 5 )
 
     sspr( 0, 104, 7, 5, 38, 120 )
     print( tkns, 49, 120, 6 )
-    print( "/" ..tostr(TOKEN_LIMIT), 57, 120, 5 )
+    print( "/" ..tostr(NumTokens), 57, 120, 5 )
 
     for i=80, 124, 2 do
         y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
@@ -1042,13 +1136,13 @@ function RenderRoad()
                 pal( 2, opcols2[o%#opcols2+1] )
 
                 if sPointsC[OpptSeg[o]] > 0.5 then
-                    rrect = GetSpriteSSRect( 8, opsx, opsy,opsw, 0.18 )
+                    rrect = GetSpriteSSRect( 8, opsx, opsy,opsw, 0.16 )
                     RenderSpriteWorld( 8, rrect, 1 )
                 elseif sPointsC[OpptSeg[o]] < -0.5 then
-                    rrect = GetSpriteSSRect( 9, opsx, opsy,opsw, 0.18 )
+                    rrect = GetSpriteSSRect( 9, opsx, opsy,opsw, 0.16 )
                     RenderSpriteWorld( 9, rrect, 1 )
                 else
-                    rrect = GetSpriteSSRect( 7, opsx, opsy,opsw, 0.18 )
+                    rrect = GetSpriteSSRect( 7, opsx, opsy,opsw, 0.16 )
                     RenderSpriteWorld( 7, rrect, 1 )
                 end
 
