@@ -1,4 +1,4 @@
-pico-8 cartridge // http://www.pico-8.com
+Plapico-8 cartridge // http://www.pico-8.com
 version 34
 __lua__
 -- P2
@@ -91,8 +91,7 @@ NFDEF = {{ 111, 116, 12, 11 },  -- 0
 
 local LastY = 0 -- last y height when building a track
 
-local Position = 1 -- current position around the track
-local PositionL = 0 -- ..accounting for laps
+local Position = 0 -- current position around the track
 
 local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
 local PlayerXd = 0
@@ -110,7 +109,7 @@ local RecoverTimer = 0
 local InvincibleTime = 0
 
 local OpptPos = {}
-local OpptPosL = {}
+local OpptLap = {}
 local OpptSeg = {}
 local OpptX = {}
 local OpptV = {}
@@ -241,6 +240,7 @@ function InitOps()
         OpptPos[i] = SEG_LEN *  i
         OpptX[i]=((i%2)*2-1)*0.2
         OpptV[i]=0
+        OpptLap[i]=1
     end
     RubberBand = 0
 end
@@ -331,12 +331,6 @@ function UpdatePlayer()
         InvincibleTime = 0
     end
 
-    PositionL=LoopedTrackPos(Position)
-    PlayerSeg=DepthToSegIndex(PositionL)
-
-    nxtseg=(PlayerSeg)%NumSegs + 1
-    posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
-
     if PlayerAir == 0 then
         if RecoverStage == 0 then
             UpdateRaceInput()
@@ -352,6 +346,19 @@ function UpdatePlayer()
     if PlayerVl < 0.02 then
         PlayerVl = 0
     end
+
+    PlayerVf = PlayerVl*0.6*(1-abs(PlayerDrift)*0.05)
+    Position=Position+PlayerVf
+    if Position > SEG_LEN*NumSegs then
+        Position -= SEG_LEN*NumSegs
+        PlayerLap += 1
+    end
+
+    PlayerSeg=DepthToSegIndex(Position)
+
+    nxtseg=(PlayerSeg)%NumSegs + 1
+    posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
+
     if abs( PlayerXd ) < 0.01 then
         PlayerXd = 0
     end
@@ -360,15 +367,6 @@ function UpdatePlayer()
 
     if abs( PlayerXd ) < 0.08 then
         PlayerDrift=0
-    end
-
-    --DebugPrint( PlayerVf )
-
-    PlayerVf = PlayerVl*0.6*(1-abs(PlayerDrift)*0.05)
-    Position=Position+PlayerVf
-    if Position > SEG_LEN*NumSegs then
-        Position -= SEG_LEN*NumSegs
-        PlayerLap += 1
     end
 
     HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf+0.1)
@@ -385,7 +383,7 @@ function UpdatePlayer()
             AddParticle( 1, 52, 122 )
             AddParticle( 2, 78, 122 )
         end
-        nposinseg=1-(PlayerSeg*SEG_LEN-(PositionL+PlayerVf ))/SEG_LEN
+        nposinseg=1-(PlayerSeg*SEG_LEN-(Position+PlayerVf ))/SEG_LEN
         nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
         PlayerYd = ( nground - ground ) - 0.4
         
@@ -466,8 +464,12 @@ function UpdateOpts()
     rbandnxt=0
     for i=1,#OpptPos do
 
-        OpptPosL[i] = LoopedTrackPos(OpptPos[i])
-        OpptSeg[i]=DepthToSegIndex(OpptPosL[i])
+        OpptPos[i]=OpptPos[i]+OpptV[i]
+        if OpptPos[i] > SEG_LEN*NumSegs then
+            OpptPos[i] -= SEG_LEN*NumSegs
+            OpptLap[i] += 1
+        end
+        OpptSeg[i]=DepthToSegIndex(OpptPos[i])
         plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
 
         rbrange=20
@@ -482,11 +484,9 @@ function UpdateOpts()
             end
         end
         
-        if OpptPos[i] > SEG_LEN*NumSegs then
-            OpptPos[i] -= SEG_LEN*NumSegs
-        end
+        
 
-        OpptPos[i]=OpptPos[i]+OpptV[i]
+        
     end
     RubberBand = rbandnxt
 end
@@ -510,15 +510,18 @@ function UpdateCollide()
 
     -- opponents
 
-    carlen=5
+    carlen=3
 
+    ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
+    DebugPrint( PlayerY-ground)
     for i=1,#OpptPos do
 
         opposl = LoopedTrackPos( OpptPos[i] )
 
-        if ( PositionL + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
-           ( PositionL + PlayerVf ) < ( opposl + OpptV[i] ) and
-            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 then
+        if ( Position + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
+           ( Position + PlayerVf ) < ( opposl + OpptV[i] ) and
+            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 and
+            ( PlayerY-ground ) < 2 then
         
             PlayerVl = OpptV[i] * 0.9
             PlayerXd = -sgn(PlayerX) * 0.2
@@ -539,14 +542,14 @@ function UpdateCollide()
             hitbox=0.25
         end
         if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and 
-            ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+            ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
             sTokensExist[nxtseg] = 0
         end
     end
 
     -- sprites
 
-    if sSprite[nxtseg] > 0 and ( PositionL + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+    if sSprite[nxtseg] > 0 and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
 
         sdef1=SDEF[sSprite[nxtseg]]        
         -- work out the range of pixels in the source sprite that we overlap
@@ -615,7 +618,7 @@ function UpdateCollide()
 end
 
 function UpdateRaceState()
-    DebugPrint( time() - RaceStateTimer )
+--    DebugPrint( time() - RaceStateTimer )
     if RaceState==1 and (time() - RaceStateTimer) > 3 then
         RaceState=2
         RaceStateTimer=time()
@@ -826,7 +829,15 @@ function PrintBigNum( n, x, y, nrend )
 end
 
 function GetPlayerStanding()
-    return 3
+    s=#OpptPos+1
+    for i=1,#OpptPos do
+        if OpptLap[i] < PlayerLap then
+            s-=1
+        elseif OpptLap[i] == PlayerLap and OpptPos[i]<Position then
+            s-=1
+        end
+    end
+    return s
 end
 
 function GetStandingSuffix(n)
@@ -1024,7 +1035,7 @@ function RenderRoad()
 
     camx = PlayerX * ROAD_WIDTH
     xoff = 0
-    posinseg=1-(PlayerSeg*SEG_LEN-PositionL)/SEG_LEN
+    posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
     miny=1000
    
@@ -1037,7 +1048,7 @@ function RenderRoad()
         pcrv[i] = xoff - dxoff
         pcamx[i] = sPointsX[segidx] - camx - pcrv[i];
         pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
-        pcamz[i] = sPointsZ[segidx] - (PositionL - loopoff);
+        pcamz[i] = sPointsZ[segidx] - (Position - loopoff);
 
         if segidx == NumSegs then
             loopoff+=NumSegs*SEG_LEN
@@ -1113,7 +1124,7 @@ function RenderRoad()
             if OpptSeg[o] == segidx then
                 
                 plsegoff1=(OpptSeg[o]-PlayerSeg)%NumSegs+1
-                opinseg=1-(OpptSeg[o]*SEG_LEN-OpptPosL[o])/SEG_LEN
+                opinseg=1-(OpptSeg[o]*SEG_LEN-OpptPos[o])/SEG_LEN
 
                 nxtseg = (OpptSeg[o]) % NumSegs + 1
             
@@ -1123,7 +1134,7 @@ function RenderRoad()
                 optx=OpptX[o]*ROAD_WIDTH
                 opcamx = lerp( sPointsX[OpptSeg[o]] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
                 opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
-                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - (PositionL);
+                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - (Position);
 
                 opss = CAM_DEPTH/opcamz;
                 opsx = flr(64 + (opss * opcamx * 64));
