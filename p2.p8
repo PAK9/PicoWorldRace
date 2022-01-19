@@ -1,4 +1,4 @@
-Plapico-8 cartridge // http://www.pico-8.com
+pico-8 cartridge // http://www.pico-8.com
 version 34
 __lua__
 -- P2
@@ -30,7 +30,7 @@ local THEMEDEF = {
     { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2 }, -- Snowy
 }
 
-local Theme = 2
+local Theme = 1
 
 local NumSegs = 0
 local sPointsX = {}
@@ -103,7 +103,8 @@ local PlayerVf = 0
 local PlayerDrift = 0
 local PlayerAir = 0
 local PlayerSeg = 0 -- current player segment
-local PlayerLap = 1
+local PlayerLap = 0
+local PlayerStandF = 0 -- final standing
 
 local RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
 local RecoverTimer = 0
@@ -122,9 +123,11 @@ local HUD_HEIGHT = 16
 
 local sScreenShake = {0,0}
 
--- 1. countdown 2. race 3. end slate
+-- 1. countdown 2. race 3. end standing 4. Summary UI
 local RaceState = 1
 local RaceStateTimer = 0
+local RaceCompleteTime = 0
+local RaceCompletePos = 0 -- player standing
 
 function LoopedTrackPos(z)
     lps=flr(z/(SEG_LEN*NumSegs))
@@ -280,7 +283,7 @@ function InitRace()
     PlayerDrift = 0
     PlayerAir = 0
     PlayerSeg = 0 -- current player segment
-    PlayerLap = 1
+    PlayerLap = 3
 
     RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
     RecoverTimer = 0
@@ -349,8 +352,10 @@ function UpdatePlayer()
     end
 
     if PlayerAir == 0 then
-        if RecoverStage == 0 then
+        if RecoverStage == 0 and RaceState < 3 then
             UpdateRaceInput()
+        elseif RaceState >= 3 then
+             PlayerVl=PlayerVl+0.01
         end
         drftslw=(1-abs(PlayerDrift)*0.005)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
@@ -494,9 +499,13 @@ function UpdateOpts()
         rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
 
         if RaceState > 1 then
-            OpptV[i]=OpptV[i]+0.1+RubberBand*PlayerVl*0.01+i*0.02
+            opspd=0.1
+            if RaceState >= 3 then
+                opspd=0.01
+            end
+            OpptV[i]=OpptV[i]+opspd+RubberBand*PlayerVl*0.01+i*0.02
             OpptV[i]=OpptV[i]*0.95
-
+                        
             if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
                 OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
             end
@@ -528,7 +537,7 @@ function UpdateCollide()
 
     -- opponents
 
-    carlen=3
+    carlen=5
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     for i=1,#OpptPos do
@@ -639,6 +648,11 @@ function UpdateRaceState()
     if RaceState==1 and (time() - RaceStateTimer) > 3 then
         RaceState=2
         RaceStateTimer=time()
+    elseif RaceState==2 and PlayerLap == NUM_LAPS+1 then
+        RaceState=3
+        RaceCompleteTime=RaceStateTimer
+        RaceCompletePos=GetPlayerStanding()
+        RaceStateTimer=time()
     end
 end
 
@@ -646,8 +660,6 @@ function _update()
 
     DebugUpdate()
     Frame=Frame+1
-
-    DebugPrint( time() - RaceStateTimer )
 
     -- screenshake
 
@@ -804,7 +816,7 @@ function _draw()
     RenderHorizon()
     RenderRoad()
     camera( 0, 0 )
-    RenderHUD()
+    RenderUI()
 
     DebugRender()
 
@@ -923,9 +935,41 @@ function RenderCountdown()
     end
 end
 
-function RenderHUD()
+function RenderRaceEndStanding()
+    if RaceState != 3 then return end
+    assert( (time()>=RaceStateTimer))
+    
+    if time()-RaceStateTimer < 1 then
+        clip( 0, 0, ((time()-RaceStateTimer)*8)*128, 128 )
+    elseif time()-RaceStateTimer > 3 then
+        clip( ((time()-(RaceStateTimer+3))*8)*128, 0, 128, 128 )
+    end
+    rectfill( 0, 25, 128, 49, 1 )
+    tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
+    PrintBigDigit( RaceCompletePos, 64-(tw*0.5+4), 32, 0 )
+    print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-3, 32, 7 )
 
-    RenderCountdown()
+    sspr( 121, 32, 7, 19, 64-(tw+8+7), 27, 7, 19, true )
+    sspr( 121, 32, 7, 19, 64+(tw+8), 27, 7, 19 )
+
+    clip()
+
+    if time()-RaceStateTimer > 3.6 then
+        fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
+        BayerRectT( 0, 0, 128, 128, 0xE0, fade )    
+    elseif time()-RaceStateTimer > 4.2 then
+        RaceState = 4
+    end
+end
+
+function RenderSummaryUI()
+
+    rectfill( 0, 0, 128, 128, 0 )
+    print( "lol", 20, 20 )
+
+end
+
+function RenderUI()
 
     fillp(0)
     rectfill( 0,111, 127, 127, 0 )
@@ -977,6 +1021,10 @@ function RenderHUD()
     end
     print( flr( PlayerVl * 10.2 ), x1, 114, 6 )
     print( "mph", 94, 114, 6 )
+
+    RenderCountdown()
+    RenderRaceEndStanding()
+
 end
 
 function RenderPlayer()
@@ -1225,25 +1273,25 @@ ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7fffffff
 ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffafffffffffffffffffffffffffffff555500770077007700f566655
 ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffaffffffffffffffffffffffffffffffff11661166116611f555555
 ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffaffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9affffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffafffffffffffffffffffffffffffffffffffffffffffffffff7ffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9afffffffffffffffffffffffffffffffffffffffffffffffff7ffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fffffffffffffffffffffffffffffffffffffffffffffff7fffff
 fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffff98ffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ff
+ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff777ff
+dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77fff
 5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-000000000000d0ddffffffffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-066666666611111df4449ff9aa5aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1611d11ddd118110444449f9a585a7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+000000000000d0ddffffffffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77
+066666666611111df4449ff9aa5aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777
+1611d11ddd118110444449f9a585a7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77ff
 0611d16d6d1a7e1d444f4f99597e57ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1616d11ddd11c11054444449a5c5aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1666666666111110f55f44f9aa5aaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1110100100000000ff555fff99999fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1616d11ddd11c11054444449a5c5aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77
+1666666666111110f55f44f9aa5aaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777
+1110100100000000ff555fff99999ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777f
 fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fff41ff11ff14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77ffff
+fffd5ffddff5dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77777ff
+fff41ff11ff14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77777f
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fffffffffffffff25222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

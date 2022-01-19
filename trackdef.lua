@@ -13,6 +13,12 @@
 
 -- 1. SPDEF 2. NumSegs 3. End Y 4. 1Straight/2Curve [5. C InSegs 6. C OutSegs 7. C]
 local TRACKSEGDEF = {
+    --  Debug track
+        {
+    --    s  n   y  s/c in out c
+        { 3, 40, 00, 1 },
+        { 3, 10, 00, 1 },
+        },
     --  Track 1
         {
     --    s  n   y  s/c in out c
