@@ -9,6 +9,7 @@ __lua__
 #include renderutils.lua
 #include debug.lua
 #include particle.lua
+#include trackdef.lua
 
 -- music(0)
 
@@ -134,7 +135,7 @@ function DepthToSegIndex(z)
   return flr(z/SEG_LEN) % NumSegs + 1;
 end
 
-function AddSeg( c, y, s )
+function AddSeg( c, y )
     NumSegs+=1
     add( sPointsC, c )
     add( sPointsX, 0 )
@@ -186,13 +187,13 @@ function AddCurve( enter, hold, exit, c, y, sprp )
     AddSprites( tot, sprp )
 
     for i=1,enter do
-    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ), 0 )
+    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
     end
     for i=1,hold do
-    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ), 0 )
+    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
     end
     for i=1,exit do
-    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ), 0 )
+    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
     end
     LastY=y
 
@@ -216,13 +217,27 @@ function AddTokens( seg, x, n )
     NumTokens += n
 end
 
-function InitSegments()
+function InitSegments( tsdef )
+
+    for i=1,#TRACKSEGDEF[tsdef] do
+        tsegdef=TRACKSEGDEF[tsdef][i]
+        if tsegdef[4] == 1 then
+            AddStraight( tsegdef[2], tsegdef[3], tsegdef[1] )
+        elseif tsegdef[4] == 2 then
+            AddCurve( tsegdef[5], tsegdef[2], tsegdef[6], tsegdef[7], tsegdef[3], tsegdef[1] )
+        end
+    end
+
+end
+
+function DEBUG_INITSEG()
 
     LastY = 0
     
     AddStraight( 40, 0, 3 )
-    AddStraight( 40, 0, 4 )
-    AddCurve( 8,10,8,-2, -50, 1 )
+    --AddStraight( 40, 0, 4 )
+    AddCurve( 40,40,40,-2.5, 0, 1 )
+    --[[
     AddStraight( 14, 30, 3 )
     AddStraight( 10, -10, 3 )
     AddStraight( 20, 0, 4 )
@@ -231,13 +246,13 @@ function InitSegments()
     AddCurve( 10,10,10, -0.6, 0, 4 )
     AddCurve( 10,20,10, 1.6, 50, 2 )
     AddStraight( 40, 0, 3 )
-
+    --]]
     AddTokens( 90, -0.6, 5 )
 end
 
 function InitOps()
     for i=1,8 do
-        OpptPos[i] = SEG_LEN *  i
+        OpptPos[i] = SEG_LEN+SEG_LEN *  i
         OpptX[i]=((i%2)*2-1)*0.2
         OpptV[i]=0
         OpptLap[i]=1
@@ -249,11 +264,13 @@ function InitRace()
 
     NumTokens=0
 
-    InitSegments()
+    InitSegments(1)
+    assert( #sPointsC > 1 )
     InitOps()
     RaceStateTimer = time()
-    RaceState = 1
+    RaceState = 2
     
+    Position = SEG_LEN
     PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
     PlayerXd = 0
     PlayerY = 0
@@ -335,11 +352,12 @@ function UpdatePlayer()
         if RecoverStage == 0 then
             UpdateRaceInput()
         end
+        drftslw=(1-abs(PlayerDrift)*0.005)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
-            PlayerVl=PlayerVl*0.96
+            PlayerVl=PlayerVl*0.96*drftslw
             PlayerXd=PlayerXd*0.85
         else
-            PlayerVl=PlayerVl*0.99 
+            PlayerVl=PlayerVl*0.99*drftslw
             PlayerXd=PlayerXd*0.9
         end
     end
@@ -347,7 +365,7 @@ function UpdatePlayer()
         PlayerVl = 0
     end
 
-    PlayerVf = PlayerVl*0.6*(1-abs(PlayerDrift)*0.05)
+    PlayerVf = PlayerVl*0.6
     Position=Position+PlayerVf
     if Position > SEG_LEN*NumSegs then
         Position -= SEG_LEN*NumSegs
@@ -513,7 +531,6 @@ function UpdateCollide()
     carlen=3
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
-    DebugPrint( PlayerY-ground)
     for i=1,#OpptPos do
 
         opposl = LoopedTrackPos( OpptPos[i] )
@@ -628,8 +645,9 @@ end
 function _update()
 
     DebugUpdate()
-
     Frame=Frame+1
+
+    DebugPrint( time() - RaceStateTimer )
 
     -- screenshake
 
@@ -647,7 +665,6 @@ function _update()
     UpdateParticles()
     UpdateRaceState()
     --constedits()
-
 end
 
 function HrzSprite( x, sx, sy, f )
@@ -781,6 +798,7 @@ end -- RenderSeg
 
 function _draw()
 	cls()
+    
 	camera( 0 + sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
     RenderSky()
     RenderHorizon()
