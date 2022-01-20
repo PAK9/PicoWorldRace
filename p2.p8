@@ -22,15 +22,16 @@ local ROAD_WIDTH = 46 -- half
 local CAM_HEIGHT = 17
 local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
--- 1. Road col1 2. Road col2 3. Road pat 4. Ground col1 5. Ground col2(x2) 6. Edge col1 7. Edge col2(x2) 8. Lane pat
+-- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2
 -- Road patterns: 1. alternating stripes 2. random patches
 -- Lane patterns: 1. edges 2. centre alternating
 local THEMEDEF = {
-    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1 }, -- Green raceway
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2 }, -- Snowy
+    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12 }, -- Green raceway
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12 }, -- Snowy
+    { 5, 0x65, 2, 3, 0x5E, 6, 0x15, 2, 12, 7 }, -- Japan
 }
 
-local Theme = 1
+local Theme = 3
 
 local NumSegs = 0
 local sPointsX = {}
@@ -62,10 +63,10 @@ local SDEF = {
 -- when conflict first is used
 -- index in SDEF, interval, minx (*roadw), maxx (*roadw), rand l/r
 local SPDEF = {
-    { { 1, 3, -1.6, -1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  1. chevron r, trees, grass
-    { { 2, 3, 1.6, 1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  2. chevron l, trees, grass
-    { { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. trees, shrubs, grass
-    { { 6, 18, 2, 2, 0 }, { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. billboard, trees, shrubs, grass   
+    { { 1, 3, -1.6, -1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  1. <green> chevron r, trees, grass
+    { { 2, 3, 1.6, 1.6, 0 }, { 4, 2, 2, 8, 1 }, { 3, 1, 1.5, 2, 1 }  }, --  2. <green> chevron l, trees, grass
+    { { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 3. <green> trees, shrubs, grass
+    { { 6, 18, 2, 2, 0 }, { 4, 2, 1.5, 8, 1 }, { 5, 3, 2, 4, 1 }, { 3, 1, 1.4, 3, 1 } }, -- 4. <green> billboard, trees, shrubs, grass   
 }
 
 local sSprite = {}
@@ -263,11 +264,11 @@ function InitOps()
     RubberBand = 0
 end
 
-function InitRace()
+function InitRace(track)
 
     NumTokens=0
 
-    InitSegments(1)
+    InitSegments(track)
     assert( #sPointsC > 1 )
     InitOps()
     RaceStateTimer = time()
@@ -299,7 +300,7 @@ function _init()
 
     InitParticles()
 
-    InitRace()
+    InitRace(2)
 
 end
 
@@ -319,6 +320,10 @@ function constedits()
 
     Position=Position+5
 
+end
+
+function RaceStateTime()
+    return time()-RaceStateTimer
 end
 
 function UpdateRaceInput()
@@ -644,13 +649,12 @@ function UpdateCollide()
 end
 
 function UpdateRaceState()
---    DebugPrint( time() - RaceStateTimer )
-    if RaceState==1 and (time() - RaceStateTimer) > 3 then
+    if RaceState==1 and RaceStateTime() > 3 then
         RaceState=2
         RaceStateTimer=time()
     elseif RaceState==2 and PlayerLap == NUM_LAPS+1 then
         RaceState=3
-        RaceCompleteTime=RaceStateTimer
+        RaceCompleteTime=RaceStateTime()
         RaceCompletePos=GetPlayerStanding()
         RaceStateTimer=time()
     end
@@ -661,22 +665,24 @@ function _update()
     DebugUpdate()
     Frame=Frame+1
 
-    -- screenshake
+    if RaceState < 4 then
+        -- screenshake
+        sScreenShake[1] = -sScreenShake[1]*0.8
+        sScreenShake[2] = -sScreenShake[2]*0.8
+        if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
+            sScreenShake = {0,0}
+        end
+        -- camera(sScreenShake[1],sScreenShake[2])
 
-    sScreenShake[1] = -sScreenShake[1]*0.8
-    sScreenShake[2] = -sScreenShake[2]*0.8
-    if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
-        sScreenShake = {0,0}
+        UpdatePlayer()
+        UpdateRecover()
+        UpdateCollide()
+        UpdateOpts()
+        UpdateParticles()
+        UpdateRaceState()
     end
-    -- camera(sScreenShake[1],sScreenShake[2])
-
-    UpdatePlayer()
-    UpdateRecover()
-    UpdateCollide()
-    UpdateOpts()
-    UpdateParticles()
-    UpdateRaceState()
     --constedits()
+
 end
 
 function HrzSprite( x, sx, sy, f )
@@ -686,8 +692,8 @@ end
 function RenderHorizon()
 
     fillp(0)
-    rectfill( -10, 74, 138, 128, 3 ) -- block out
-    BayerRectV( -10, 64, 138, 74, 3, 13 )
+    rectfill( 0, 74, 138, 128, 3 ) -- block out
+    BayerRectV( 0, 64, 138, 74, 3, 13 )
     HrzSprite(10, 1.0, 0.7, true)
     HrzSprite(64, 0.3, 1.5, false)
     HrzSprite(60, 2.3, 0.3, false)
@@ -709,8 +715,10 @@ end
 
 function RenderSky()
     fillp(0)
-    rectfill( -10, 0, 128, 44, 12 ) -- block out
-    BayerRectV( -10, 40, 138, 64, 6, 12 )
+    rectfill( 0, 0, 128, 20, THEMEDEF[Theme][10] ) -- block out
+    BayerRectV( 0, 20, 138, 50, THEMEDEF[Theme][9], THEMEDEF[Theme][10] )
+    fillp(0)
+    rectfill( 0, 50, 128, 64, THEMEDEF[Theme][9] ) -- block out
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
@@ -811,12 +819,16 @@ end -- RenderSeg
 function _draw()
 	cls()
     
-	camera( 0 + sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
-    RenderSky()
-    RenderHorizon()
-    RenderRoad()
-    camera( 0, 0 )
-    RenderUI()
+    if RaceState < 4 then
+        camera( 0 + sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
+        RenderSky()
+        RenderHorizon()
+        RenderRoad()
+        camera( 0, 0 )
+        RenderRaceUI()
+    else
+        RenderSummaryUI()
+    end
 
     DebugRender()
 
@@ -898,7 +910,7 @@ end
 
 function RenderCountdown()
 
-    if RaceState == 2 and time() - RaceStateTimer < 1 then
+    if RaceState == 2 and RaceStateTime() < 1 then
         frac=( time() - RaceStateTimer )%1
         PrintBigDigitOutline( 10,64-NFDEF[11][3]*0.5-8,30, 0 )
         PrintBigDigitOutline( 0,64-NFDEF[1][3]*0.5+7,30, 0 )
@@ -916,8 +928,8 @@ function RenderCountdown()
         pal( 7, 7 )
         clip()
     elseif RaceState == 1 then
-        num= 3-flr( time() - RaceStateTimer )
-        frac=( time() - RaceStateTimer )%1
+        num= 3-flr( RaceStateTime() )
+        frac=( RaceStateTime() )%1
         if num <= 0 then
             return
         elseif frac < 0.9 then
@@ -937,12 +949,11 @@ end
 
 function RenderRaceEndStanding()
     if RaceState != 3 then return end
-    assert( (time()>=RaceStateTimer))
     
-    if time()-RaceStateTimer < 1 then
-        clip( 0, 0, ((time()-RaceStateTimer)*8)*128, 128 )
-    elseif time()-RaceStateTimer > 3 then
-        clip( ((time()-(RaceStateTimer+3))*8)*128, 0, 128, 128 )
+    if RaceStateTime() < 1 then
+        clip( 0, 0, (RaceStateTime()*8)*128, 128 )
+    elseif RaceStateTime() > 3 then
+        clip( ((RaceStateTime()+3)*8)*128, 0, 128, 128 )
     end
     rectfill( 0, 25, 128, 49, 1 )
     tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
@@ -954,22 +965,78 @@ function RenderRaceEndStanding()
 
     clip()
 
-    if time()-RaceStateTimer > 3.6 then
+    if RaceStateTime() > 3.6 then
         fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
         BayerRectT( 0, 0, 128, 128, 0xE0, fade )    
-    elseif time()-RaceStateTimer > 4.2 then
-        RaceState = 4
+        if RaceStateTime() > 4.2 then
+            RaceState = 4
+        end
     end
 end
 
 function RenderSummaryUI()
 
     rectfill( 0, 0, 128, 128, 0 )
-    print( "lol", 20, 20 )
+    
+    fillp(0x33CC)
+    col = bor( 6 << 4, 0 );
+    rectfill(0,12,33,21, col)
+    rectfill(94,12,128,21, col)
+    print( "race complete", 38, 15, 7 )
+    print( "[COUNTRY]", 38, 24, 6 )
+    fillp()
+
+    -- position
+    rectfill(0,44,64,56, 1)
+    print( "position", 19, 48, 6 )
+    sspr( 103, 40, 8, 9, 54, 46 ) -- trophy
+
+    -- tokens
+    rectfill(0,61,64,73, 2)
+    print( "tokens", 27, 65, 6 )
+    sspr( 23, 40, 7, 7, 55, 64 ) -- token
+
+    -- time
+    rectfill(0,78,64,90, 3)
+    print( "time", 35, 82, 6 )
+    sspr( 112, 41, 7, 7, 55, 81 ) -- clock
+    
+    -- position text
+    col=7
+    if RaceCompletePos == 1 then
+        col = 9
+    end
+    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 47, 7 )
+
+    -- tokens text
+    tkns=GetTokenCount()
+    col=7
+    if tkns == NumTokens then
+        col = 9
+    end
+    print( tostr( tkns ).."/".. tostr( NumTokens ), 69, 65, 7 )
+
+    -- time text
+    mins=flr(RaceCompleteTime/60)
+    secs=flr(RaceCompleteTime%60)
+    if secs > 9 then
+        secstr=tostr(secs)
+    else
+        secstr="0"..tostr(secs)
+    end
+    hnd=flr(RaceCompleteTime%1*100)
+    if hnd > 9 then
+        hndstr=tostr(hnd)
+    else
+        hndstr="0"..tostr(hnd)
+    end
+    print( tostr( mins )..":".. secstr.."."..hndstr , 69, 82, 7 )
+
+    DebugPrint(RaceCompleteTime)
 
 end
 
-function RenderUI()
+function RenderRaceUI()
 
     fillp(0)
     rectfill( 0,111, 127, 127, 0 )
@@ -983,7 +1050,7 @@ function RenderUI()
     tkns=GetTokenCount()
 
     sspr( 0, 110, 9, 5, 37, 114 )
-    print( PlayerLap, 49, 114, 6 )
+    print( min(PlayerLap, NUM_LAPS), 49, 114, 6 )
     print( "/"..tostr(NUM_LAPS), 57, 114, 5 )
 
     sspr( 0, 104, 7, 5, 38, 120 )
@@ -1273,22 +1340,22 @@ ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a000995533333536ff555f7fffffff
 ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffafffffffffffffffffffffffffffff555500770077007700f566655
 ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffff4f334fffffe7ffaffffffffffffffffffffffffffffffff11661166116611f555555
 ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffff2ff4ffffeeefffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffafffffffffffffffffffffffffffffffffffffffffffffffff7ffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9afffffffffffffffffffffffffffffffffffffffffffffffff7ffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fffffffffffffffffffffffffffffffffffffffffffffff7fffff
-fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffff98ffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ff
-ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff777ff
-dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77fff
-5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-000000000000d0ddffffffffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77
-066666666611111df4449ff9aa5aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777
-1611d11ddd118110444449f9a585a7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77ff
-0611d16d6d1a7e1d444f4f99597e57ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-1616d11ddd11c11054444449a5c5aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77
-1666666666111110f55f44f9aa5aaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777
-1110100100000000ff555fff99999ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7777f
-fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffafffffffffffffffffffffffffffffffffffffff9999a9ffff7ffff
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9affffffffffffffffffffffffffffffffffffff9f999af9fff7ffff
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fffffffffffffffffffffffffffffffffffff9f999af9ff7fffff
+fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffff98fffffffffffffffffffffffffffffffffffffff9999a9fffffffff
+ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffffffffffffffffffffffffffffffffffffffff999afffffff7ff
+ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffffffffffffffffffffffffffffffffffffffffff9affffff777ff
+dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4ffffffffffffffffffffffffffffffffffffffffffffffffffff55ffffff77fff
+5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5ffffffffffffffffffffffffffffffffffffffffffffffffffff44fffffffffff
+000000000000d0ddffffffffaa777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff4444ffffffff77
+066666666611111df4449ff9aa5aa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff666fffffff7777
+1611d11ddd118110444449f9a585a7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff67576ffffff77ff
+0611d16d6d1a7e1d444f4f99597e57ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6775776fffffffff
+1616d11ddd11c11054444449a5c5aaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6775776fffffff77
+1666666666111110f55f44f9aa5aaaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6777576fffff7777
+1110100100000000ff555fff99999ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff67776fffff7777f
+fff11ff11ff11fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff666fffffffffff
 fffd5ffddff5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77ffff
 fffd5ffddff5dffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77777ff
 fff41ff11ff14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff77777f
