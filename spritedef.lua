@@ -22,6 +22,8 @@ SDEF = {
     { 57, 40, 8, 23, 1, 1, 0, 0, 0 }, -- 19. jap flag l
     { 57, 40, 8, 23, 1, 1, 1, 0, 0 }, -- 20. jap flag r
     { 65, 40, 10, 13, 1.8, 3, 0, 0, 0 }, -- 21. sakura tree
+    { 75, 40, 9, 12, 8, 8, 0, 0, 0 }, -- 22. distant building
+    { 75, 40, 9, 5, 6, 6, 0, 0, 0 }, -- 23. distant building (small)
 }
 -- sprite pattern definitions
 -- when conflict first is used
@@ -39,4 +41,5 @@ SPDEF = {
     { { 14, 2, 0, 1.1, 1.1, 0 }  }, --  10. warning sign r
     { { 15, 2, 0,-1.1,-1.1, 0 }, { 16, 2, 1, 1.1, 1.1, 0 }  }, --  11. diamond sign l
     { { 16, 2, 0, 1.1, 1.1, 0 }, { 15, 2, 1, -1.1, -1.1, 0 }  }, --  12. diamond sign r
+    { { 22, 8, 4, 12, 14, 1 }, { 23, 8, 0, 12, 14, 1 }, { 21, 3, 0, 1.5, 6, 1 } }, -- 13. <jap> buildings (x2), trees
 }
