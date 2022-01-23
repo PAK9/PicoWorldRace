@@ -362,7 +362,7 @@ function UpdatePlayer()
     nxtseg=(PlayerSeg)%NumSegs + 1
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
 
-    if abs( PlayerXd ) < 0.01 then
+    if abs( PlayerXd ) < 0.005 then
         PlayerXd = 0
     end
     PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
@@ -476,15 +476,14 @@ function UpdateOpts()
         plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
 
         if RaceState > 1 then
-            opspd=0.06
-            if RaceState >= 3 then
-                opspd=0.01
-            end
             plv=PlayerVl*0.02
             oiv=i*0.01
             opv=(NUM_LAPS-OpptLap[i])*0.03
-            OpptV[i]=OpptV[i]+opspd+plv+oiv+opv
-            --DebugPrint(tostr(OpptV[i]).." ("..tostr(plv) .. "/" .. tostr(oiv).."/"..tostr(opv)..")" )
+            opspd=(0.06+plv+oiv+opv)
+            if RaceState >= 3 then
+                opspd=0.01
+            end
+            OpptV[i]=OpptV[i]+opspd
             OpptV[i]=OpptV[i]*0.95
                         
             if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
@@ -513,7 +512,8 @@ function UpdateCollide()
 
     -- opponents
 
-    carlen=5
+    carlen=2+PlayerVl*0.1
+    DebugPrint(carlen)
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     for i=1,#OpptPos do
@@ -522,7 +522,7 @@ function UpdateCollide()
 
         if ( Position + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
            ( Position + PlayerVf ) < ( opposl + OpptV[i] ) and
-            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 8 and
+            ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 6 and
             ( PlayerY-ground ) < 2 then
         
             PlayerVl = OpptV[i] * 0.9
@@ -550,73 +550,64 @@ function UpdateCollide()
     end
 
     -- sprites
-
+    
     if sSprite[nxtseg] > 0 and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
 
-        sdef1=SDEF[sSprite[nxtseg]]        
-        -- work out the range of pixels in the source sprite that we overlap
+        sdef1=SDEF[sSprite[nxtseg]]      
+        if sdef1[8]==1 then
+            -- these are roughly where the player is in screenspace
+            plx1n=48
+            plx2n=80
 
-        -- these are roughly where the player is in screenspace x normalised
-        plx1n=0.375
-        plx2n=0.625
+            -- work out the range of pixels in the source sprite that we overlap
+            insprx1=(plx1n-SpriteCollideRect[1])/SpriteCollideRect[3];
+            insprx2=(plx2n-SpriteCollideRect[1])/SpriteCollideRect[3];
 
-        --DebugPrint(SpriteCollideRect[1] )
-        --DebugPrint(SpriteCollideRect[3] )
-        --DebugPrint(SpriteCollideRect[3] - SpriteCollideRect[1] )
+            it1=flr(max(sdef1[3]*insprx1,0))
+            it2=flr(min(sdef1[3]*insprx2,sdef1[3]))
 
-        -- where is the player in the sprite screenspace rect
-        --inrect1n=lerp( SpriteCollideRect[1], SpriteCollideRect[1] + SpriteCollideRect[3], 48/SpriteCollideRect[3])
-        
-        --inrect1n=SpriteCollideRect[1]+(48-SpriteCollideRect[1])/SpriteCollideRect[3]
-        --inrect2n=SpriteCollideRect[1]+(80-SpriteCollideRect[1])/SpriteCollideRect[3]
-
-        --sx2ss=SpriteCollideRect[1]+SpriteCollideRect[3];
-        inrect1n=SpriteCollideRect[1]+(48-SpriteCollideRect[1])/SpriteCollideRect[3]
-
-        --DebugPrint(inrect1n)
-        --DebugPrint(inrect2n)
-
-        --it1=sdef1[3]*inrect1n
-        --it2=sdef1[3]*inrect2n
-
-        --sspr(it1,sdef1[2]+sdef1[4],it2-it1,1,1,1,it2-it1,1)
-
-        --for colit=flr(it1), flr(it2) do
-            --DebugPrint(sget(sdef1[1]+colit,sdef1[2]+sdef1[4]))
-        --end
-
-        --colrect = SpriteCollideRect
-        --colrect[1] = SpriteCollideRect[3] + SpriteCollideRect[3] * sdef1[8]
-        --colrect[3] = SpriteCollideRect[3] * sdef1[8]
-
-        --[[
-        if abs( PlayerX - sSpriteX[nxtseg] ) < sSpriteSc[nxtseg] * 0.5 and
-            
-        then
-
-            if PlayerVf < 2 then
-                sScreenShake[1] = 3
-                sScreenShake[2] = 1
-                PlayerVl = PlayerVl * 0.5
-                PlayerXd = -sgn(PlayerX) * 0.2
-                InvincibleTime=time()+1
-                AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-                AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+            collided=0
+            if sdef1[7]==0 then
+                for colit=flr(it1), flr(it2)-1 do
+                    if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
+                        collided=1
+                        break
+                    end
+                end
             else
+                --flipped
+                for colit=sdef1[3]-flr(it2), (sdef1[3]-flr(it1))-1 do
+                    if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
+                        collided=1
+                        break
+                    end
+                end
+            end
 
-                sScreenShake[1] = 8
-                sScreenShake[2] = 3
+            if collided == 1 then
 
-                PlayerXd = sgn(PlayerX) * 0.2
-                PlayerVl = 0.5
-                RecoverStage = 1
-                RecoverTimer = time()
-                AddCollisionParticles()
+                if PlayerVf < 4 then
+                    sScreenShake[1] = 3
+                    sScreenShake[2] = 1
+                    PlayerVl = PlayerVl * 0.2
+                    PlayerXd = -sgn(PlayerX) * 0.2
+                    InvincibleTime=time()+1
+                    AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+                    AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+                else
+
+                    sScreenShake[1] = 8
+                    sScreenShake[2] = 3
+
+                    PlayerXd = sgn(PlayerX) * 0.2
+                    PlayerVl = PlayerVl * 0.2
+                    RecoverStage = 1
+                    RecoverTimer = time()
+                    AddCollisionParticles()
+                end
             end
         end
-        --]]
     end
-
 end
 
 function UpdateRaceState()
@@ -1067,7 +1058,7 @@ end
 
 function RenderPlayer()
 
-    if RecoverStage == 2 or ( RecoverStage == 3 and time()%0.4>0.2 ) then
+    if RecoverStage == 2 or ( InvincibleTime-time() > 0 and time()%0.4>0.2 ) then
         return
     end
 
@@ -1349,8 +1340,8 @@ fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc55555ddddddddddd
 ffffff222554454522222522222fffffffffffffffffffffffffffffffffffff55dd5ddddddddddddddddfffffffffffffffffffffffffffffffffffffffffff
 fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 fff25554455555544522222222222222255552222fffffffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff2545555555544445222222222222222252222222ffffffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff2545555555544445222222222222222252222222fffffffffffffaafffffff5aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+f25555255225455452222222222222222222222222222ffffffffffaafffffff5aafffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 222222522255554522222222222222222222222222222222ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

@@ -15,7 +15,7 @@ end
 
 function DebugRender()
     for i = 1,#DEBUG_PRINT do
-        print(tostr(DEBUG_PRINT[i]),2,2 + (i-1) * 6, 2)
+        print(tostr(DEBUG_PRINT[i]),2,2 + (i-1) * 6, 0)
     end
     print( flr(stat(1)*100).."%", 98,2,3 )
     -- print(tostr( flr(stat(0)) ) .."/2048k", 98,10,3 )
