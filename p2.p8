@@ -14,44 +14,44 @@ __lua__
 
 -- music(0)
 
-local Frame = 0
+Frame = 0
 
-local SEG_LEN = 10
-local DRAW_DIST = 180
-local SEG_DRAW_DIST = 40
-local CANVAS_SIZE = 128
-local ROAD_WIDTH = 46 -- half
-local CAM_HEIGHT = 17
-local CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
+SEG_LEN = 10
+DRAW_DIST = 180
+SEG_DRAW_DIST = 40
+CANVAS_SIZE = 128
+ROAD_WIDTH = 46 -- half
+CAM_HEIGHT = 17
+CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2
 -- Road patterns: 1. alternating stripes 2. random patches
 -- Lane patterns: 1. edges 2. centre alternating
-local THEMEDEF = {
+THEMEDEF = {
 --    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2
     { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12 }, -- Green raceway
     { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12 }, -- Snowy
     { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12, 7 }, -- Japan
 }
 
-local Theme = 3
+Theme = 3
 
-local NumSegs = 0
-local sPointsX = {}
-local sPointsY = {}
-local sPointsZ = {}
-local sPointsC = {}
+NumSegs = 0
+sPointsX = {}
+sPointsY = {}
+sPointsZ = {}
+sPointsC = {}
 
-local NUM_LAPS = 3
+NUM_LAPS = 3
 
-local sSprite = {}
-local sSpriteX = {}
-local sSpriteSc = {} -- scale
-local SpriteCollideRect = {}
+sSprite = {}
+sSpriteX = {}
+sSpriteSc = {} -- scale
+SpriteCollideRect = {}
 
-local sTokensX = {}
-local sTokensExist = {}
-local NumTokens = 0
+sTokensX = {}
+sTokensExist = {}
+NumTokens = 0
 
 -- numeric font definitions {sx,sy,sw,sh}
 NFDEF = {{ 111, 116, 12, 11 },  -- 0
@@ -66,44 +66,48 @@ NFDEF = {{ 111, 116, 12, 11 },  -- 0
         { 98, 116, 12, 11 }, -- 9 
         { 10, 104, 12, 11}} -- G (for the countdown)
 
-local LastY = 0 -- last y height when building a track
+LastY = 0 -- last y height when building a track
 
-local Position = 0 -- current position around the track
+Position = 0 -- current position around the track
 
-local PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
-local PlayerXd = 0
-local PlayerY = 0
-local PlayerYd = 0
-local PlayerVl = 0
-local PlayerVf = 0
-local PlayerDrift = 0
-local PlayerAir = 0
-local PlayerSeg = 0 -- current player segment
-local PlayerLap = 0
-local PlayerStandF = 0 -- final standing
+PlayerX = 0 -- -1 to 1 TODO: maybe don't make relative to road width
+PlayerXd = 0
+PlayerY = 0
+PlayerYd = 0
+PlayerVl = 0
+PlayerVf = 0
+PlayerDrift = 0
+PlayerAir = 0
+PlayerSeg = 0 -- current player segment
+PlayerLap = 0
+PlayerStandF = 0 -- final standing
 
-local RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
-local RecoverTimer = 0
-local InvincibleTime = 0
+RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
+RecoverTimer = 0
+InvincibleTime = 0
 
-local OpptPos = {}
-local OpptBoost = {}
-local OpptLap = {}
-local OpptSeg = {}
-local OpptX = {}
-local OpptV = {}
+OpptPos = {}
+OpptBoost = {}
+OpptLap = {}
+OpptSeg = {}
+OpptX = {}
+OpptV = {}
 
-local HznOffset = 0
+HznOffset = 0
 
-local HUD_HEIGHT = 16
+HUD_HEIGHT = 16
 
-local sScreenShake = {0,0}
+sScreenShake = {0,0}
 
 -- 1. countdown 2. race 3. end standing 4. Summary UI
-local RaceState = 1
-local RaceStateTimer = 0
-local RaceCompleteTime = 0
-local RaceCompletePos = 0 -- player standing
+RaceState = -1
+RaceStateTimer = 0
+RaceCompleteTime = 0
+RaceCompletePos = 0 -- player standing
+
+-- Global dependent includes
+#include sound.lua
+----------------------------
 
 function LoopedTrackPos(z)
     lps=flr(z/(SEG_LEN*NumSegs))
@@ -513,7 +517,7 @@ function UpdateCollide()
     -- opponents
 
     carlen=2+PlayerVl*0.1
-    DebugPrint(carlen)
+    --DebugPrint(carlen)
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     for i=1,#OpptPos do
@@ -525,6 +529,8 @@ function UpdateCollide()
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 6 and
             ( PlayerY-ground ) < 2 then
         
+            sfx( 7, 2 )
+
             PlayerVl = OpptV[i] * 0.9
             PlayerXd = -sgn(PlayerX) * 0.2
 
@@ -587,6 +593,8 @@ function UpdateCollide()
             if collided == 1 then
 
                 if PlayerVf < 4 then
+                    -- small hit
+                    sfx( 7, 2 )
                     sScreenShake[1] = 3
                     sScreenShake[2] = 1
                     PlayerVl = PlayerVl * 0.2
@@ -595,7 +603,8 @@ function UpdateCollide()
                     AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
                     AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
                 else
-
+                    -- big hit
+                    sfx( 6, 2 )
                     sScreenShake[1] = 8
                     sScreenShake[2] = 3
 
@@ -627,6 +636,7 @@ function _update()
     DebugUpdate()
     Frame=Frame+1
 
+    UpdateSound()
     if RaceState < 4 then
         -- screenshake
         sScreenShake[1] = -sScreenShake[1]*0.8
@@ -1538,15 +1548,15 @@ __label__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 __sfx__
-0110000000472004620c3400c34318470004311842500415003700c30500375183750c3000c3751f4730c375053720536211540114330c37524555247120c3730a470163521d07522375164120a211220252e315
-01100000183732440518433394033c65539403185432b543184733940318433394033c655306053940339403184733940318423394033c655394031845321433184733940318473394033c655394033940339403
-01100000247552775729755277552475527755297512775524755277552b755277552475527757297552775720755247572775524757207552475227755247522275526757297552675722752267522975526751
-01100000001750c055003550c055001750c055003550c05500175180650c06518065001750c065003650c065051751106505365110650c17518075003650c0650a145160750a34516075111451d075113451d075
-011000001b5771f55722537265171b5361f52622515265121b7771f76722757267471b7461f7362271522712185771b5571d53722517187361b7261d735227122454527537295252e5171d73514745227452e745
-01100000275422754227542275422e5412e5452b7412b5422b5452b54224544245422754229541295422954224742277422e7422b7422b5422b5472954227542295422b742307422e5422e7472b547305462e742
-0110000030555307652e5752b755295622e7722b752277622707227561297522b072295472774224042275421b4421b5451b5421b4421d542295471d442295422444624546245472444727546275462944729547
-0110000000200002000020000200002000020000200002000020000200002000020000200002000020000200110171d117110171d227131211f227130371f2370f0411b1470f2471b35716051221571626722367
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e775000002e1752e075000002e1752e77500000
+020500190111001120011200112001110011200112001120011200112001110011200112001120011200111001120011200112001110011200111001120011200112000000000000000000000000000000000000
+0401000f1272012710117201172011710117101172012710117001071010710127001271010710117102813028120281202812028120281202812028120281301a0401a050000000000000000000000000000000
+4c0100201971019722197201871019722197201971219720197201872018712187201872018722197101971019710197221972019712197221972019712197101871019720197201971018720187101871018720
+ab0100202712228122291302a1202a12028132271322712028121281312713029122291222a1222b1202b1202a1202b1202a1312a131291212a1212a121291202a1302a122291322812227122271222813228120
+4c01000f137201372014730120301203012020147201372013720137201102012720127201372012030150501f050200502105022050220502305025050260502705027050280502905029050290502905029050
+c60200090b0200a020084100a0200b1100a010074100a0200a0201000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+4804000034660356503564034640336402f6401a6401764014630106200f6200d6200c6200b6200b6100a6100c6100e6100f6100e6100d6100b61009610076100661004610036100261002610016100161000610
+00020000286302863027620246201762015610136101361013610126100e6100b6000861007610056100461003610016100060001600006000060000000000000000000000000000000000000000000000000000
+011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e775000002e1752e075000002e1752e77500000
 __music__
 00 00044208
 00 00044108
