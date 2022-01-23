@@ -87,11 +87,11 @@ local RecoverTimer = 0
 local InvincibleTime = 0
 
 local OpptPos = {}
+local OpptBoost = {}
 local OpptLap = {}
 local OpptSeg = {}
 local OpptX = {}
 local OpptV = {}
-local RubberBand = 0
 
 local HznOffset = 0
 
@@ -237,7 +237,6 @@ function InitOps()
         OpptV[i]=0
         OpptLap[i]=1
     end
-    RubberBand = 0
 end
 
 function InitRace(track)
@@ -246,7 +245,7 @@ function InitRace(track)
 
     InitSegments(track)
     assert( #sPointsC > 1 )
-    --InitOps()
+    InitOps()
     RaceStateTimer = time()
     RaceState = 2
     
@@ -476,27 +475,23 @@ function UpdateOpts()
         OpptSeg[i]=DepthToSegIndex(OpptPos[i])
         plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
 
-        rbrange=20
-        rbandnxt=max(rbandnxt, max(rbrange - plsegoff1,0)/rbrange )
-
         if RaceState > 1 then
-            opspd=0.1
+            opspd=0.06
             if RaceState >= 3 then
                 opspd=0.01
             end
-            OpptV[i]=OpptV[i]+opspd+RubberBand*PlayerVl*0.01+i*0.02
+            plv=PlayerVl*0.02
+            oiv=i*0.01
+            opv=(NUM_LAPS-OpptLap[i])*0.03
+            OpptV[i]=OpptV[i]+opspd+plv+oiv+opv
+            --DebugPrint(tostr(OpptV[i]).." ("..tostr(plv) .. "/" .. tostr(oiv).."/"..tostr(opv)..")" )
             OpptV[i]=OpptV[i]*0.95
                         
             if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
-                OpptX[i] = min( max( OpptX[i] + 0.01 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
+                OpptX[i] = min( max( OpptX[i] + 0.005 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
             end
         end
-        
-        
-
-        
     end
-    RubberBand = rbandnxt
 end
 
 function AddCollisionParticles()
