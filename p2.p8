@@ -17,7 +17,7 @@ __lua__
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 60
+DRAW_DIST = 120
 CANVAS_SIZE = 128
 ROAD_WIDTH = 46 -- half
 CAM_HEIGHT = 17
@@ -237,7 +237,7 @@ function InitRace(track)
     NumTokens=0
 
     -- InitSegments(track)
-    BuildCustomTrack( Theme, 1, 1, 1.8 )
+    BuildCustomTrack( Theme, 1, 1, 2 )
     assert( #sPointsC > 1 )
     InitOps()
     RaceStateTimer = time()
