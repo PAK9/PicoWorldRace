@@ -12,61 +12,51 @@
 -- 40  E| M | D | X 
 
 -- 1. SPDEF 2. NumSegs 3. End Y 4. 1Straight/2Curve [5. C InSegs 6. C OutSegs 7. C]
-local TRACKSEGDEF = {
-    --  Debug track
-        {
-    --    s  n   y  s/c in out c
-        { 3, 1, 00, 1 },
-        { 11, 10, 00, 1 },
-        },
-    --  Track 1
-        {
-    --    s  n   y  s/c in out c
-        { 3, 40, 00, 1 },
-        { 3, 10, 20, 2,  20, 20, 0.5 },
-        { 3, 10, 17, 1 },
-        { 3, 20, 22, 1 },
-        { 3, 10, 16, 1 },
-        { 1, 20, 52, 2,  10, 20, -1 },
-        { 3, 10, 38, 1 },
-        { 2, 10, 70, 2,  10, 10, 1.5 },
-        { 3, 40, 23, 1 },
-        { 3, 10, 100, 2,  30, 30, 0.2 },
-        { 3, 10, 150, 2,  20, 30, -0.7 },
-        { 3, 20, 90, 1 },
-        { 1, 20, 60, 2,  20, 20, -1.6 },
-        { 3, 20, 30, 1 },
-        { 3, 30, 0, 2,  20, 30, -1.2 },
-        { 3, 80, -50, 2,  40, 40, -0.7 },
-        { 3, 40, -30, 1 },
-        { 3, 40, 00, 1 },
-    --  Track 2
-        },{
-    --    s  n   y  s/c  in  out c
-        { 6, 4, 00, 1 },
-        { 5, 20, 00, 1 },
-        { 6, 40,-30, 2,  10, 40, 0.6 },
-        { 11, 2,-30, 1 }, -- diamond sign
-        { 13, 20,-70, 2,  10, 10, -0.8 },
-        { 6, 30, 20, 2,  20, 20, 0.6 },
-        { 13, 20, 22, 1 },
-        { 9, 2, 22, 1 }, -- warning sign
-        { 6, 10, -10, 2,  20, 20, 1.2 },
-        { 8, 10, 10, 2,  20, 20, 1.3 },
-        { 6, 4, 12, 1 },
-        { 9, 2, 12, 1 }, -- warning sign
-        { 13, 12, 16, 1 },
-        { 7, 16, 40, 2,  10, 40, -1.8 },
-        { 6, 10, 34, 1 },
-        { 14, 16, 40, 2,  3, 6, 1.2 },
-        { 7, 26, 50, 2,  4, 4, -1.6 },
-        { 13, 20, 50, 1 },
-        { 11, 2, 50, 1 }, -- diamond sign
-        { 14, 10, 45, 1 },
-        { 6, 10, 40, 2,  30, 30, 0.8 },
-        { 6, 20, 70, 1 },
-        { 8, 20, 20, 2,  20, 20, 1.6 },
-        { 6, 80, 20, 2,  80, 80, 0.6 },
-        { 6, 20, 00, 1 },
-        }
-    }
+
+function WeightSegLen()
+    w=rnd(1)
+    return ((w*1.4)*(w*1.4))*0.5
+end
+
+-- ysc 
+function BuildCustomTrack( theme, ysc, cmax, seed )
+    
+    sptd=SPTHMDEF[theme]
+    len=30
+    srand(seed)
+    yn=0
+    ydelt=0
+    for n=1,len do
+        slen=WeightSegLen()
+        ydelt=ydelt+(rnd(80)-40)*ysc*max(slen-0.2,1)
+        yn=(yn+ydelt)
+        --yn=yn+(-yn)*(1-(n-1)/(len-1))
+        yn=lerp( yn, 0, 1-(1-(n-1)/(len-1))  )
+        --y=yn*min(abs(sin((n-1)/(len-1)*0.5))*1.4,1)
+        --y=yn*(1-(n-1)/(len-1))
+        y=yn
+        if rnd(4)<2 or n==1 or n==len then
+            --straight
+            sptn=sptd[flr(rnd(#sptd-2))+3]
+            cnt=slen*40+10
+            AddStraight( cnt, y, sptn )
+        else
+            --curve
+            c=(rnd(cmax-0.6)+0.6)
+            if rnd(1)>0.5 then
+                c=-c
+            end
+            if c > 0.8 then
+                sptn=sptd[1]
+            elseif c < -0.8 then
+                sptn=sptd[2]
+            else
+                sptn=sptd[flr(rnd(#sptd-2))+3]
+            end
+            cnt=slen*20+4
+            cntin=WeightSegLen()*30+4
+            cntout=WeightSegLen()*30+4
+            AddCurve(cntin,cnt,cntout,c,y,sptn)
+        end
+    end
+end

@@ -13,7 +13,7 @@ function UpdateRaceSound()
     -- channel 0
     -- player
     tgtsnd=-1
-    if RecoverStage == 0 then
+    if RecoverStage == 0 and RaceState < 3 then
         if PlayerDrift != 0 then
             tgtsnd=3
         elseif PlayerVl < 0.8 then
@@ -26,8 +26,6 @@ function UpdateRaceSound()
             tgtsnd=1
         end
     end
-    DebugPrint(tgtsnd)
-    DebugPrint(Chan0)
     if Chan0 != tgtsnd then
         if Chan0 != -1 then
             sfx(-1,0)
@@ -41,7 +39,7 @@ function UpdateRaceSound()
     -- channel 1
     -- offroad
     tgtsnd=-1
-    if RecoverStage == 0 then
+    if RecoverStage == 0 and RaceState < 3 then
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerVl > 0.5 then
             tgtsnd=5
         end

@@ -17,21 +17,28 @@ __lua__
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 180
-SEG_DRAW_DIST = 40
+DRAW_DIST = 60
 CANVAS_SIZE = 128
 ROAD_WIDTH = 46 -- half
 CAM_HEIGHT = 17
 CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
--- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2
+-- horizon sprite def
+-- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
+HORZSDEF = {
+{0, 24, 48, 16, 1, 1 },
+{0, 52, 48, 11, 1.2, 0.8 },
+}
+
+-- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
 -- Road patterns: 1. alternating stripes 2. random patches
--- Lane patterns: 1. edges 2. centre alternating
+-- Lane patterns: 1. edges 2. centre alternating 3. 3 lane yellow
 THEMEDEF = {
---    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2
-    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12 }, -- Green raceway
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12 }, -- Snowy
-    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12, 7 }, -- Japan
+--    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
+    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. Green raceway
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 1 }, -- 2. Snowy
+    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
+    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2 }, -- 4. Red desert
 }
 
 Theme = 3
@@ -201,6 +208,7 @@ function AddTokens( seg, x, n )
     NumTokens += n
 end
 
+--[[
 function InitSegments( tsdef )
 
     for i=1,#TRACKSEGDEF[tsdef] do
@@ -213,26 +221,7 @@ function InitSegments( tsdef )
     end
 
 end
-
-function DEBUG_INITSEG()
-
-    LastY = 0
-    
-    AddStraight( 40, 0, 3 )
-    --AddStraight( 40, 0, 4 )
-    AddCurve( 40,40,40,-2.5, 0, 1 )
-    --[[
-    AddStraight( 14, 30, 3 )
-    AddStraight( 10, -10, 3 )
-    AddStraight( 20, 0, 4 )
-    AddCurve( 10,10,10, 0.6, -20, 4 )
-    AddStraight( 10, -10, 3 )
-    AddCurve( 10,10,10, -0.6, 0, 4 )
-    AddCurve( 10,20,10, 1.6, 50, 2 )
-    AddStraight( 40, 0, 3 )
-    --]]
-    AddTokens( 90, -0.6, 5 )
-end
+--]]
 
 function InitOps()
     for i=1,8 do
@@ -247,7 +236,8 @@ function InitRace(track)
 
     NumTokens=0
 
-    InitSegments(track)
+    -- InitSegments(track)
+    BuildCustomTrack( Theme, 1, 1, 1.8 )
     assert( #sPointsC > 1 )
     InitOps()
     RaceStateTimer = time()
@@ -279,7 +269,7 @@ function _init()
 
     InitParticles()
 
-    InitRace(3)
+    InitRace(4)
 
 end
 
@@ -376,7 +366,7 @@ function UpdatePlayer()
         PlayerDrift=0
     end
 
-    HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf+0.1)
+    HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf)
 
      -- jumps / player y
 
@@ -559,7 +549,8 @@ function UpdateCollide()
     
     if sSprite[nxtseg] > 0 and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
 
-        sdef1=SDEF[sSprite[nxtseg]]      
+        sdef1=SDEF[sSprite[nxtseg]]
+
         if sdef1[8]==1 then
             -- these are roughly where the player is in screenspace
             plx1n=48
@@ -636,6 +627,23 @@ function _update()
     DebugUpdate()
     Frame=Frame+1
 
+    len=30
+    n=1
+    --DebugPrint( sin((n-1)/((len-1)*2)) )
+    n=30
+    --DebugPrint( sin((n-1)/((len-1)*2)) )
+    --DebugPrint( sin(0.5) )
+    sptd=SPTHMDEF[Theme]
+    srand(3)
+    --DebugPrint(WeightSegLen())
+    len=10
+    for n=1,len do
+        ff=(n-1)/(len-1)
+        --DebugPrint(ff)
+        --DebugPrint(1-ff)
+    end
+
+
     UpdateSound()
     if RaceState < 4 then
         -- screenshake
@@ -657,31 +665,28 @@ function _update()
 
 end
 
-function HrzSprite( x, sx, sy, f )
- sspr( 0,24,48,16, (HznOffset + x) % 256 - 128, 64 - flr( sy * 16 ), sx * 48, sy * 16, f )
+function HrzSprite( x, ssx, ssy, f )
+    hsprdef=HORZSDEF[THEMEDEF[Theme][11]]
+    ssx=ssx*hsprdef[5]
+    ssy=ssy*hsprdef[6]
+    sx=hsprdef[1]
+    sy=hsprdef[2]
+    sw=hsprdef[3]
+    sh=hsprdef[4]
+    sspr( sx,sy,sw,sh, (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx * 48, ssy * 16, f )
 end
 
 function RenderHorizon()
 
     fillp(0)
-    rectfill( 0, 74, 138, 128, 3 ) -- block out
-    BayerRectV( 0, 64, 138, 74, 3, 13 )
+    --rectfill( 0, 74, 138, 128, 3 ) -- block out
+    --BayerRectV( 0, 64, 138, 74, THEMEDEF[Theme][4], THEMEDEF[Theme][9] )
+    rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out
     HrzSprite(10, 1.0, 0.7, true)
     HrzSprite(64, 0.3, 1.5, false)
     HrzSprite(60, 2.3, 0.3, false)
     HrzSprite(128, 1, 1, false)
     HrzSprite(178, 1.5, 0.5, true)
-    --[[
-    hznoff =  HznOffset % 256 - 128
-    BayerRectV( -10, 64, 138, 74, 3, 13 )
-    sspr( 0,24,48,16, hznoff, 48, 48, 16 )
-    sspr( 0,24,48,16, hznoff + 40, 56, 24, 8 )
-    sspr( 0,24,48,16, hznoff + 90, 56, 24, 8 )
-    sspr( 0,24,48,16, hznoff + 128, 56, 24, 8 )
-    sspr( 0,24,48,16, hznoff + 160, 56, 24, 8 )
-    sspr( 0,24,48,16, hznoff + 196, 48, 48, 16 )
-    --]]
- --   sspr( 0,24,48,16, HznOffset + 20, 48, )
 
 end
 
@@ -782,10 +787,18 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
             lanew=0.02
             RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, col )
         end
+    elseif thm[8] == 3 then
+       -- 3 lane yellow
+        if idx % 4 == 0 then
+            fillp(0)
+            col = 9
+            dst1=0.3
+            dst2=0.34
+            RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
+            RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
+        end
     end
-
     
-
 end -- RenderSeg
 
 function _draw()
@@ -1004,7 +1017,7 @@ function RenderSummaryUI()
     end
     print( tostr( mins )..":".. secstr.."."..hndstr , 69, 82, 7 )
 
-    DebugPrint(RaceCompleteTime)
+    --DebugPrint(RaceCompleteTime)
 
 end
 
@@ -1551,12 +1564,12 @@ __sfx__
 020500190111001120011200112001110011200112001120011200112001110011200112001120011200111001120011200112001110011200111001120011200112000000000000000000000000000000000000
 0401000f1272012710117201172011710117101172012710117001071010710127001271010710117102813028120281202812028120281202812028120281301a0401a050000000000000000000000000000000
 4c0100201971019722197201871019722197201971219720197201872018712187201872018722197101971019710197221972019712197221972019712197101871019720197201971018720187101871018720
-ab0100202712228122291302a1202a12028132271322712028121281312713029122291222a1222b1202b1202a1202b1202a1312a131291212a1212a121291202a1302a122291322812227122271222813228120
+aa0100202712228122291302a1202a12028132271322712028121281312713029122291222a1222b1202b1202a1202b1202a1312a131291212a1212a121291202a1302a122291322812227122271222813228120
 4c01000f137201372014730120301203012020147201372013720137201102012720127201372012030150501f050200502105022050220502305025050260502705027050280502905029050290502905029050
 c60200090b0200a020084100a0200b1100a010074100a0200a0201000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 4804000034660356503564034640336402f6401a6401764014630106200f6200d6200c6200b6200b6100a6100c6100e6100f6100e6100d6100b61009610076100661004610036100261002610016100161000610
 00020000286302863027620246201762015610136101361013610126100e6100b6000861007610056100461003610016100060001600006000060000000000000000000000000000000000000000000000000000
-011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e775000002e1752e075000002e1752e77500000
+140200001a5441a5441a5441a53016030160301604016030160431753517535175251751516700000000000000000000000000000000000000000000000000002e705000002e1052e005000002e1052e70500000
 __music__
 00 00044208
 00 00044108
