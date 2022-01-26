@@ -19,7 +19,7 @@ Frame = 0
 SEG_LEN = 10
 DRAW_DIST = 60
 CANVAS_SIZE = 128
-ROAD_WIDTH = 46 -- half
+ROAD_WIDTH = 52 -- half
 CAM_HEIGHT = 17
 CAM_DEPTH = 0.75; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
@@ -237,7 +237,7 @@ function InitRace(track)
     NumTokens=0
 
     -- InitSegments(track)
-    BuildCustomTrack( Theme, 1, 1, 1.8 )
+    BuildCustomTrack( Theme, 1, 1, 2 )
     assert( #sPointsC > 1 )
     InitOps()
     RaceStateTimer = time()
@@ -308,13 +308,13 @@ function UpdateRaceInput()
     end
 
     if btn(4) then -- z / btn1
-        PlayerVl=PlayerVl+0.18
+        PlayerVl=PlayerVl+0.09
     end
 
     if btn(0) then -- left
-        PlayerXd-= (0.04 + -PlayerDrift*0.02) * (1-PlayerVl*0.002)*min(PlayerVl*0.25,1)
+        PlayerXd-= (0.025 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
     elseif btn(1) then -- right
-        PlayerXd+= (0.04 + PlayerDrift*0.02) * (1-PlayerVl*0.002)*min(PlayerVl*0.25,1)
+        PlayerXd+= (0.025 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
     end
 
 end
@@ -329,22 +329,22 @@ function UpdatePlayer()
         if RecoverStage == 0 and RaceState < 3 then
             UpdateRaceInput()
         elseif RaceState >= 3 then
-             PlayerVl=PlayerVl+0.01
+             PlayerVl=PlayerVl+0.005
         end
-        drftslw=(1-abs(PlayerDrift)*0.006)
+        drftslw=(1-abs(PlayerDrift)*0.004)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
-            PlayerVl=PlayerVl*0.98*drftslw
-            PlayerXd=PlayerXd*0.85
-        else
             PlayerVl=PlayerVl*0.99*drftslw
             PlayerXd=PlayerXd*0.9
+        else
+            PlayerVl=PlayerVl*0.995*drftslw
+            PlayerXd=PlayerXd*0.95
         end
     end
     if PlayerVl < 0.02 then
         --PlayerVl = 0
     end
 
-    PlayerVf = PlayerVl*0.6
+    PlayerVf = PlayerVl*0.35
     Position=Position+PlayerVf
     if Position > SEG_LEN*NumSegs then
         Position -= SEG_LEN*NumSegs
@@ -359,8 +359,8 @@ function UpdatePlayer()
     if abs( PlayerXd ) < 0.005 then
         PlayerXd = 0
     end
-    PlayerX+=sPointsC[PlayerSeg]*0.6*PlayerVl*0.01
-    PlayerX+=PlayerXd*0.3
+    PlayerX+=sPointsC[PlayerSeg]*0.55*PlayerVl*0.01
+    PlayerX+=PlayerXd*0.15
 
     if abs( PlayerXd ) < 0.08 then
         PlayerDrift=0
@@ -473,12 +473,12 @@ function UpdateOpts()
             plv=PlayerVl*0.02
             oiv=i*0.01
             opv=(NUM_LAPS-OpptLap[i])*0.03
-            opspd=(0.06+plv+oiv+opv)
+            opspd=(0.03+plv+oiv+opv)
             if RaceState >= 3 then
                 opspd=0.01
             end
             OpptV[i]=OpptV[i]+opspd
-            OpptV[i]=OpptV[i]*0.95
+            OpptV[i]=OpptV[i]*0.92
                         
             if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
                 OpptX[i] = min( max( OpptX[i] + 0.005 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
@@ -622,7 +622,7 @@ function UpdateRaceState()
     end
 end
 
-function _update()
+function _update60()
 
     DebugUpdate()
     Frame=Frame+1

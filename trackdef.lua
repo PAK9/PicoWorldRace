@@ -38,24 +38,24 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
         if rnd(4)<2 or n==1 or n==len then
             --straight
             sptn=sptd[flr(rnd(#sptd-2))+3]
-            cnt=slen*40+10
+            cnt=slen*40+6
             AddStraight( cnt, y, sptn )
         else
             --curve
-            c=(rnd(cmax-0.6)+0.6)
+            c=(rnd(cmax-0.3)+0.3)
             if rnd(1)>0.5 then
                 c=-c
             end
-            if c > 0.8 then
+            if c > 0.7 then
                 sptn=sptd[1]
-            elseif c < -0.8 then
+            elseif c < -0.7 then
                 sptn=sptd[2]
             else
                 sptn=sptd[flr(rnd(#sptd-2))+3]
             end
-            cnt=slen*20+4
-            cntin=WeightSegLen()*30+4
-            cntout=WeightSegLen()*30+4
+            cnt=slen*50+6
+            cntin=WeightSegLen()*50+6
+            cntout=WeightSegLen()*50+6
             AddCurve(cntin,cnt,cntout,c,y,sptn)
         end
     end
