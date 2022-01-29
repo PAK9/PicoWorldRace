@@ -19,7 +19,7 @@ Frame = 0
 SEG_LEN = 10
 DRAW_DIST = 80
 CANVAS_SIZE = 128
-ROAD_WIDTH = 56 -- half
+ROAD_WIDTH = 60 -- half
 CAM_HEIGHT = 21
 CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
@@ -41,7 +41,7 @@ THEMEDEF = {
     { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2 }, -- 4. Red desert
 }
 
-Theme = 3
+Theme = 1
 
 NumSegs = 0
 sPointsX = {}
@@ -240,7 +240,7 @@ function InitRace(track)
 
     -- InitSegments(track)
     -- 3.4 rep bug
-    BuildCustomTrack( Theme, 1, 1, 5.4 ) 
+    BuildCustomTrack( Theme, 1, 1, 5.5 ) 
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -336,7 +336,7 @@ function UpdatePlayer()
         if RecoverStage == 0 and RaceState < 3 then
             UpdateRaceInput()
         elseif RaceState >= 3 then
-             PlayerVl=PlayerVl+0.005
+             PlayerVl=PlayerVl+0.08
         end
         drftslw=(1-abs(PlayerDrift)*0.001)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
@@ -456,6 +456,7 @@ function UpdateRecover()
             end
         elseif RecoverStage == 3 then
             PlayerX = 0
+            PlayerVl=8
             if time() - RecoverTimer >= t3 then
                 RecoverStage = 0
             end
@@ -479,11 +480,11 @@ function UpdateOpts()
 
         if RaceState > 1 then
             plv=PlayerVl*0.022
-            oiv=i*0.01
+            oiv=i*0.008
             opv=(NUM_LAPS-OpptLap[i])*0.017
-            opspd=(0.05+plv+oiv+opv)
+            opspd=(0.04+plv+oiv+opv)
             if RaceState >= 3 then
-                opspd=0.01
+                opspd=0.08
             end
             OpptV[i]=OpptV[i]+opspd
             OpptV[i]=OpptV[i]*0.92
@@ -529,7 +530,7 @@ function UpdateCollide()
         
             sfx( 7, 2 )
 
-            PlayerVl = OpptV[i] * 0.98
+            PlayerVl = OpptV[i]
             PlayerXd = -sgn(PlayerX) * 0.2
 
             sScreenShake[1] = 6
