@@ -17,7 +17,7 @@ __lua__
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 60
+DRAW_DIST = 80
 CANVAS_SIZE = 128
 ROAD_WIDTH = 56 -- half
 CAM_HEIGHT = 21
@@ -26,8 +26,8 @@ CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 -- horizon sprite def
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
 HORZSDEF = {
-{0, 24, 48, 16, 1, 1 },
-{0, 52, 48, 11, 1.2, 0.8 },
+{0, 24, 48, 16, 1, 1 }, -- 1. City
+{0, 52, 48, 11, 1.2, 0.8 }, -- 1. Mountain
 }
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
@@ -138,7 +138,7 @@ function AddSeg( c, y )
 end
 
 function AddSprites( n, p )
-    sd=SPDEF[p]
+    sd=SPDEF[Theme][p]
     for i = 1, n do
 
         if p == 0 then
@@ -240,7 +240,7 @@ function InitRace(track)
 
     -- InitSegments(track)
     -- 3.4 rep bug
-    BuildCustomTrack( Theme, 1, 1.8, 4 ) 
+    BuildCustomTrack( Theme, 1, 1, 5.4 ) 
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -551,6 +551,11 @@ function UpdateCollide()
             ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
             sTokensExist[nxtseg] = 0
             TokenCollected+=1
+            if TokenCollected == NumTokens then
+                sfx( 10, 3 )
+            else
+                sfx( 9, 3 )
+            end
         end
     end
 
@@ -636,24 +641,7 @@ function _update60()
     DebugUpdate()
     Frame=Frame+1
 
-   
-    
-
-    len=30
-    n=1
-    --DebugPrint( sin((n-1)/((len-1)*2)) )
-    n=30
-    --DebugPrint( sin((n-1)/((len-1)*2)) )
-    --DebugPrint( sin(0.5) )
-    sptd=SPTHMDEF[Theme]
-    srand(3)
-    --DebugPrint(WeightSegLen())
-    len=10
-    for n=1,len do
-        ff=(n-1)/(len-1)
-        --DebugPrint(ff)
-        --DebugPrint(1-ff)
-    end
+    DebugPrint( PlayerY )
 
     UpdateSound()
     if RaceState < 4 then
@@ -696,7 +684,7 @@ function RenderHorizon()
     fillp(0)
     --rectfill( 0, 74, 138, 128, 3 ) -- block out
     --BayerRectV( 0, 64, 138, 74, THEMEDEF[Theme][4], THEMEDEF[Theme][9] )
-    rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out
+    --rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out
     HrzSprite(10, 1.0, 0.7, true)
     HrzSprite(64, 0.3, 1.5, false)
     HrzSprite(60, 2.3, 0.3, false)
@@ -738,16 +726,19 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
     -- Ground
-    if idx % 8 > 3 then
-        fillp(0)
-        col = thm[4]
-    else
+    -- We only render intermittent strips, most of the ground has been
+    -- blocked out in the road render before this
+    if idx % 8 <= 3 then
         fillp(0x5A5A)
         col = thm[5]
+        RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
+        RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
     end
     
-    RenderPoly4( {-10,y2},{-10,y1},{x1-w1,y1},{x2-w2,y2}, col )
-    RenderPoly4( {138,y2},{138,y1},{x1+w1,y1},{x2+w2,y2}, col )
+    --if idx % 4 == 0 then
+    --RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
+    --RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
+    --end
 
     -- Road
     if thm[3] == 1 then
@@ -1000,14 +991,14 @@ function RenderSummaryUI()
     if RaceCompletePos == 1 then
         col = 9
     end
-    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 47, 7 )
+    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 47, col )
 
     -- tokens text
     col=7
     if TokenCollected == NumTokens then
         col = 9
     end
-    print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 65, 7 )
+    print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 65, col )
 
     -- time text
     mins=flr(RaceCompleteTime/60)
@@ -1164,10 +1155,9 @@ function RenderRoad()
     xoff = 0
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
-    miny=1000
    
     -- calculate projections
-    
+    hrzny=128
     ProfileStart(1)
     for i = 1, DRAW_DIST do
 
@@ -1192,8 +1182,13 @@ function RenderRoad()
         psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64));
         psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64);
 
+        hrzny=min(hrzny,psy[i])
+
     end
     ProfileEnd(1)
+    
+    -- block out the ground. This is an optimsation (see renderseg)
+    rectfill( 0, min(hrzny,64), 128, 128, THEMEDEF[Theme][4] )
     
     for i = DRAW_DIST - 1, 1, -1 do
 
@@ -1582,6 +1577,8 @@ c60200090b0200a020084100a0200b1100a010074100a0200a020100001100000000000000000000
 4804000034660356503564034640336402f6401a6401764014630106200f6200d6200c6200b6200b6100a6100c6100e6100f6100e6100d6100b61009610076100661004610036100261002610016100161000610
 00020000286302863027620246201762015610136101361013610126100e6100b6000861007610056100461003610016100060001600006000060000000000000000000000000000000000000000000000000000
 140200001a5441a5441a5441a53016030160301604016030160431753517535175251751516700000000000000000000000000000000000000000000000000002e705000002e1052e005000002e1052e70500000
+150400003435036050382403902000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01050000322302f240312403225034240332303622039040390503905000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __music__
 00 00044208
 00 00044108
