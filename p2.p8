@@ -319,9 +319,9 @@ function UpdateRaceInput()
     end
 
     if btn(0) then -- left
-        PlayerXd-= (0.022 + -PlayerDrift*0.012) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+        PlayerXd-= (0.022 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
     elseif btn(1) then -- right
-        PlayerXd+= (0.022 + PlayerDrift*0.012) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+        PlayerXd+= (0.022 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
     end
 
 end
@@ -338,10 +338,10 @@ function UpdatePlayer()
         elseif RaceState >= 3 then
              PlayerVl=PlayerVl+0.005
         end
-        drftslw=(1-abs(PlayerDrift)*0.002)
+        drftslw=(1-abs(PlayerDrift)*0.001)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
             PlayerVl=PlayerVl*0.989*drftslw
-            PlayerXd=PlayerXd*0.95
+            PlayerXd=PlayerXd*0.96
         else
             PlayerVl=PlayerVl*0.995*drftslw
             PlayerXd=PlayerXd*0.95
@@ -640,8 +640,6 @@ function _update60()
 
     DebugUpdate()
     Frame=Frame+1
-
-    DebugPrint( PlayerY )
 
     UpdateSound()
     if RaceState < 4 then
@@ -1042,11 +1040,11 @@ function RenderRaceUI()
     for i=80, 124, 2 do
         y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
         y1=max(min(y1,121),115)
-        -- top speed is ~14 m/s
+        -- top speed is ~17.5 m/s
         norm=(i-80)/(128-80)
         
         col = 5
-        if norm < PlayerVl/14 then
+        if norm < PlayerVl/19 then
             if i < 104 then
                 col = 6
             elseif i < 118 then
@@ -1068,9 +1066,9 @@ function RenderRaceUI()
     if spd > 99 then
         x1-= 4
     end
-    print( flr( PlayerVl * 10.2 ), x1, 114, 6 )
+    print( flr( PlayerVl * 8.5 ), x1, 114, 6 )
     print( "mph", 94, 114, 6 )
-
+    DebugPrint( PlayerVl )
     RenderCountdown()
     RenderRaceEndStanding()
 
