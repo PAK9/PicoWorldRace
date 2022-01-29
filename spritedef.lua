@@ -33,7 +33,7 @@ SPDEF = {
     { { 2, 4,0, 1.6, 1.6, 0 }, { 4, 2,0, 2, 8, 1 }, { 3, 1,0, 1.5, 2, 1 }  }, --  2. <green> chevron l, trees, grass
     { { 4, 2,0, 1.5, 8, 1 }, { 5, 3,0, 2, 4, 1 }, { 3, 1,0, 1.4, 3, 1 } }, -- 3. <green> trees, shrubs, grass
     { { 6, 18,0, 2, 2, 0 }, { 4, 2,0,  1.5, 8, 1 }, { 5, 3,0, 2, 4, 1 }, { 3, 1,0, 1.4, 3, 1 } }, -- 4. <green> billboard, trees, shrubs, grass
-    { { 19, 3, 0, 1.02, 1.02, 0 }, { 20, 3, 1, -1.02, -1.02, 0 } }, -- 5. <jap> flag
+    { { 19, 6, 0, 1.05, 1.1, 0 }, { 20, 6, 1, -1.08, -1.15, 0 } }, -- 5. <jap> flag
     { { 21, 5, 0, 1.5, 6, 1 },  { 5, 5, 0, 2, 4, 1 }, { 3, 1,0, 1.4, 3, 1 } }, -- 6. <jap> trees, shrubs, grass
     { { 17, 6, 0, -1.6, -1.6, 0 }, { 21, 2, 0, 1.2, 8, 1 }, { 3, 1,0, 1.5, 2, 1 }  }, --  7. <jap> chevron r, trees, grass
     { { 18, 6, 0, 1.6, 1.6, 0 }, { 21, 2, 0, 1.2, 8, 1 }, { 3, 1,0, 1.5, 2, 1 }  }, --  8. <jap> chevron l, trees, grass
@@ -48,7 +48,7 @@ SPDEF = {
 }
 
 -- Sprite pattern theme def
--- 1. Left turn chevron SDEF 2. Right turn chevron SDEF 3...n SPDEF  
+-- 1. Left turn SPDEF 2. Right turn SPDEF 3...n SPDEF  
 SPTHMDEF = {
     { 2, 1, 3 }, -- Green raceway
     { 2, 1, 3 }, -- Snowy

@@ -15,6 +15,7 @@
 
 function WeightSegLen()
     w=rnd(1)
+    -- tend towards shorter
     return ((w*1.4)*(w*1.4))*0.5
 end
 
@@ -22,13 +23,13 @@ end
 function BuildCustomTrack( theme, ysc, cmax, seed )
     
     sptd=SPTHMDEF[theme]
-    len=30
+    len=50
     srand(seed)
     yn=0
     ydelt=0
     for n=1,len do
         slen=WeightSegLen()
-        ydelt=ydelt+(rnd(80)-40)*ysc*max(slen-0.2,1)
+        ydelt=ydelt+(rnd(400)-200)*ysc*max(slen-0.6,0)
         yn=(yn+ydelt)
         --yn=yn+(-yn)*(1-(n-1)/(len-1))
         yn=lerp( yn, 0, 1-(1-(n-1)/(len-1))  )
@@ -38,25 +39,38 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
         if rnd(4)<2 or n==1 or n==len then
             --straight
             sptn=sptd[flr(rnd(#sptd-2))+3]
-            cnt=slen*40+6
+            cnt=slen*30+5
             AddStraight( cnt, y, sptn )
         else
             --curve
-            c=(rnd(cmax-0.3)+0.3)
+            c=(rnd(cmax)-cmax*0.5)
             if rnd(1)>0.5 then
                 c=-c
             end
-            if c > 0.7 then
+            if c > 0.85 then
                 sptn=sptd[1]
-            elseif c < -0.7 then
+            elseif c < -0.85 then
                 sptn=sptd[2]
             else
                 sptn=sptd[flr(rnd(#sptd-2))+3]
             end
-            cnt=slen*50+6
-            cntin=WeightSegLen()*50+6
-            cntout=WeightSegLen()*50+6
+            --clen=flr((2-rnd(cmax))*20)+4
+            cnt=flr((2-rnd(cmax))*(slen+rnd(1))*18)+4
+            cntin=flr((2-rnd(cmax))*(slen+rnd(1))*18)+4
+            cntout=flr((2-rnd(cmax))*(slen+rnd(1))*18)+4
             AddCurve(cntin,cnt,cntout,c,y,sptn)
         end
     end
+
+    -- tokens
+    -- its always 4 groups of 5
+
+    --AddTokens( 10, -0.8, 5 )
+
+    for i=1,4 do
+        sttkn=(NumSegs-200)/4*i
+        xx=rnd(0.7)-0.35
+        AddTokens( flr(sttkn), xx, 5 )
+    end
+
 end
