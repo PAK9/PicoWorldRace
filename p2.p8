@@ -42,7 +42,7 @@ THEMEDEF = {
     { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2 }, -- 4. Red desert
 }
 
-Theme = 2
+Theme = 4
 
 NumSegs = 0
 sPointsX = {}
@@ -241,7 +241,7 @@ function InitRace(track)
 
     -- InitSegments(track)
     -- 3.4 rep bug
-    BuildCustomTrack( Theme, 1.5, 1, 6 ) 
+    BuildCustomTrack( Theme, 1, 1, 6.2 ) 
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -642,6 +642,8 @@ function _update60()
 
     DebugUpdate()
     Frame=Frame+1
+
+    DebugPrint( PlayerY )
 
     UpdateSound()
     if RaceState < 4 then
@@ -1073,7 +1075,6 @@ function RenderRaceUI()
     end
     print( flr( PlayerVl * 8.5 ), x1, 114, 6 )
     print( "mph", 94, 114, 6 )
-    DebugPrint( PlayerVl )
     RenderCountdown()
     RenderRaceEndStanding()
 
