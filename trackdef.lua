@@ -10,7 +10,6 @@ function CalcYdelt( ysc, len )
     return 100*ysc*((len)/100)
 end
 
--- ysc 
 function BuildCustomTrack( theme, ysc, cmax, seed )
 
     len=28
@@ -68,4 +67,11 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
         AddTokens( flr(sttkn), xx, 5 )
     end
 
+end
+
+function BuildPreviewTrack( theme )
+
+    AddCurve(10,10,10,2,0,1)
+    AddCurve(10,10,10,2,0,1)
+    AddCurve(10,10,10,2,0,1)
 end
