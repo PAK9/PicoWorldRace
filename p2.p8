@@ -4,13 +4,15 @@ __lua__
 -- P2
 -- by PAK-9
 
-#include poly.lua
-#include utility.lua
-#include renderutils.lua
 #include debug.lua
+#include menus.lua
 #include particle.lua
-#include trackdef.lua
+#include poly.lua
+#include renderutils.lua
+#include sound.lua
 #include spritedef.lua
+#include trackdef.lua
+#include utility.lua
 
 -- music(0)
 
@@ -109,15 +111,17 @@ HUD_HEIGHT = 16
 sScreenShake = {0,0}
 sScreenShakeR = {0,0}
 
+-- 1. Menus 2. Racing
+TitleState=2
+
+-- 1. Title 2. Race select
+MenuState=2
+
 -- 1. countdown 2. race 3. end standing 4. Summary UI
 RaceState = -1
 RaceStateTimer = 0
 RaceCompleteTime = 0
 RaceCompletePos = 0 -- player standing
-
--- Global dependent includes
-#include sound.lua
-----------------------------
 
 function LoopedTrackPos(z)
     lps=flr(z/(SEG_LEN*NumSegs))
@@ -234,7 +238,7 @@ function InitOps()
     end
 end
 
-function InitRace(track)
+function InitRace()
 
     NumTokens=0
     TokenCollected=0
@@ -242,6 +246,7 @@ function InitRace(track)
     -- InitSegments(track)
     -- 3.4 rep bug
     BuildCustomTrack( Theme, 1, 1, 6.2 ) 
+    --BuildPreviewTrack(Theme)
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -272,7 +277,7 @@ function _init()
 
     InitParticles()
 
-    InitRace(4)
+    InitRace()
 
 end
 
@@ -638,14 +643,7 @@ function UpdateRaceState()
     end
 end
 
-function _update60()
-
-    DebugUpdate()
-    Frame=Frame+1
-
-    DebugPrint( PlayerY )
-
-    UpdateSound()
+function UpdateRace()
     if RaceState < 4 then
         -- screenshake
         sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
@@ -667,6 +665,17 @@ function _update60()
         UpdateRaceState()
     end
     --constedits()
+end
+
+function _update60()
+
+    DebugUpdate()
+    Frame=Frame+1
+
+    UpdateSound()
+    if TitleState == 2 then
+        UpdateRace()
+    end
 
 end
 

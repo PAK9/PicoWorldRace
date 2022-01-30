@@ -3,8 +3,11 @@ Chan0=-1
 Chan1=-1
 
 function UpdateSound()
-    if RaceState > 0 then
-        UpdateRaceSound()
+
+    if TitleState == 2 then
+        if RaceState > 0 then
+            UpdateRaceSound()
+        end
     end
 end
 
