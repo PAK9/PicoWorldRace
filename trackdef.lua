@@ -53,7 +53,7 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
         ydelt2=ydelt2*0.9
 
         ydelt1=ydelt1+ydelt2
-        ydelt1=ydelt1*0.8
+        ydelt1=ydelt1*0.9
 
         y=y+ydelt1
         sPointsY[i]=y*sin(i/NumSegs*0.5)*ysc
