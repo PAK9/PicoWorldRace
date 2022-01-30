@@ -6,7 +6,8 @@ function WeightSegLen()
 end
 
 function CalcYdelt( ysc, len )
-    return (rnd(300)-100)*ysc*(len/100)
+    return (rnd(200)-100)*ysc*((len-10)/100)
+    --return 100*ysc*((len)/100)
 end
 
 -- ysc 

@@ -17,7 +17,7 @@ __lua__
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 80
+DRAW_DIST = 60
 CANVAS_SIZE = 128
 ROAD_WIDTH = 60 -- half
 CAM_HEIGHT = 21
@@ -27,7 +27,8 @@ CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
 HORZSDEF = {
 {0, 24, 48, 16, 1, 1 }, -- 1. City
-{0, 52, 48, 11, 1.2, 0.8 }, -- 1. Mountain
+{0, 52, 48, 11, 1.2, 0.8 }, -- 2. Mountain
+{0, 64, 45, 10, 1.2, 0.8 }, -- 3. Glacier
 }
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
@@ -36,12 +37,12 @@ HORZSDEF = {
 THEMEDEF = {
 --    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
     { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. Green raceway
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 1 }, -- 2. Snowy
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 2. Snowy
     { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
     { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2 }, -- 4. Red desert
 }
 
-Theme = 4
+Theme = 2
 
 NumSegs = 0
 sPointsX = {}
@@ -240,7 +241,7 @@ function InitRace(track)
 
     -- InitSegments(track)
     -- 3.4 rep bug
-    BuildCustomTrack( Theme, 1.5, 1, 5.7 ) 
+    BuildCustomTrack( Theme, 1.5, 1, 6 ) 
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -683,7 +684,7 @@ function RenderHorizon()
     fillp(0)
     --rectfill( 0, 74, 138, 128, 3 ) -- block out
     --BayerRectV( 0, 64, 138, 74, THEMEDEF[Theme][4], THEMEDEF[Theme][9] )
-    --rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out
+    rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
     HrzSprite(10, 1.0, 0.7, true)
     HrzSprite(64, 0.3, 1.5, false)
     HrzSprite(60, 2.3, 0.3, false)
@@ -730,9 +731,12 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     if idx % 8 <= 3 then
         fillp(0x5A5A)
         col = thm[5]
-        RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
-        RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
+    else
+        fillp(0)
+        col = thm[4]
     end
+    RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
+    RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
     
     --if idx % 4 == 0 then
     --RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
@@ -1186,9 +1190,6 @@ function RenderRoad()
     end
     ProfileEnd(1)
     
-    -- block out the ground. This is an optimsation (see renderseg)
-    rectfill( 0, min(hrzny,64), 128, 128, THEMEDEF[Theme][4] )
-    
     for i = DRAW_DIST - 1, 1, -1 do
 
         ProfileStart(2)
@@ -1352,36 +1353,36 @@ dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffff2ddd
 066666666611111df4449ff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffff7777
 1611d11ddd118110444449f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffff77ff
 0611d16d6d1a7e1d444f4f99597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776fffffffff
-1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffffffffffffffffffffff999afff6775776fffffff77
-1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22fffffffffffffffffffffffffffffff9affff6777576fffff7777
-1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28ffffffffffffffffffffffffffff55fffff67776fffff7777f
-fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558fffffffffffffffffffffffffff44ffffff666fffffffffff
-fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffffffffffffffffffffffff4444fffffffffffff77ffff
-fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76fffffffffffffffffffffffffffffffffffffffffff77777ff
-fff41ff11ff14fffffffffffffffffff6ffff6ffff6ffffffffffffffc77777d5ffff44fffff22ffffffffffffffffffffffffffffffffffffffffffff77777f
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffccd7ddd5fff449fffff22ffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffff25222fffffffffffffffffffffffffffffffffffffcc7d7dd5ff44494fff2288fffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff2255452222fffffffffffffffffffffffffffffffffffc7c7d7d55dd55555555555555555fffffffffffffffffffffffffffffffffffffffffff
-ffffffffffff55444522222ffffffffffffffffffffffffffffffffffcc777dd55555ddddddddddddddddfffffffffffffffffffffffffffffffffffffffffff
-ffffffffff22445442222522fffffffffffffffffffffffffffffffffccc7ccd555d5d65d65dd65d65dfffffffffffffffffffffffffffffffffffffffffffff
-fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc555d5d65d65dd65d65dfffffffffffffffffffffffffffffffffffffffffffff
-ffffff222554454522222522222ffffffffffffffffffffffffffffffccccccc55555ddddddddddddddddfffffffffffffffffffffffffffffffffffffffffff
-fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff55dd5ddddddddddddddddfffffffffffffffffffffffffffffffffffffffffff
-fff25554455555544522222222222222255552222fffffffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff2545555555544445222222222222222252222222ffffffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-222222522255554522222222222222222222222222222222ffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd3d373fff990ffffffff999afff6775776fffffff77
+1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3d33373ff909fffffffff9affff6777576fffff7777
+1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd3333373f099fffffffff55fffff67776fffff7777f
+fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff3333d73ff990fffffffff44ffffff666fffffffffff
+fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffff333d73fff909ffffffff4444fffffffffffff77ffff
+fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76ffffffff5ff5ffff099fffffffff21fffffffffffff77777ff
+fff41ff11ff14fffffffffffffffffff6ffff6ffff6ffffffffffffffc77777d5ffff44fffff22ffffffff6ff6ffff999ffff446664266666666ffffff77777f
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffccd7ddd5fff449fffff22ffffffff6ff6fffff5ffff41446642666666666fffffffffff
+fffffffffffffff25222fffffffffffffffffffffffffffffffffffffcc7d7dd5ff44494fff2288ffffffffffffffff6fff4144446666666666666ffffffffff
+ffffffffffff2255452222fffffffffffffffffffffffffffffffffffc7c7d7d55dd55555555555555555ffff5fffff6ff414444446666666666666fffffffff
+ffffffffffff55444522222ffffffffffffffffffffffffffffffffffcc777dd55555ddddddddddddddddfff33fffff6f41444444442222222222222ffffffff
+ffffffffff22445442222522fffffffffffffffffffffffffffffffffccc7ccd555d5d65d65dd65d65dffffff536fff6fff2222222111111111114ffffffffff
+fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc555d5d65d65dd65d65dffff333fffffffff2222222122222222224ffffffffff
+ffffff222554454522222522222ffffffffffffffffffffffffffffffccccccc55555ddddddddddddddddfff3563fffffff4444444124442444224ffffffffff
+fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff55dd5ddddddddddddddddff3533ffffffff2222222129992444224ffffffffff
+fff25554455555544522222222222222255552222fffffffffffffffffffffff5ffffffffffffffffffffffff5fffffffff4444444129992445224ffffffffff
+ff2545555555544445222222222222222252222222ffffffffffffffffffffff5ffffffffffffffffffffff33663fffffff2222222121112444224ffffffffff
+f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffff35533ffffffff4444444122222444224ffffffffff
+222222522255554522222222222222222222222222222222ffffffffffffffff5ffffffffffffffffffffffff5ffffffffffffffffffffffffffffffffffffff
+ffffffffffffffffffffffff6fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff544fffffffffffffffffffffffffffffffffffff
+ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffff6ddddddddddddcddd7676ddd67dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffff7556dddddddddc6c7d77d5d6666cdddddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffc766666d6ddddd76c667cddd7d666dd5d5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ff777cdddd6dd6ddddc777757c656dd66c6dd55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fd76dddd666ddddddd67c77677d666dd6cc66d55dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+7777cdddddddd677c6c77c7777cdd666666d6dd1dddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
