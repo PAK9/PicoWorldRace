@@ -1,15 +1,5 @@
 
 Chan0=-1
-Chan1=-1
-
-function UpdateSound()
-
-    if TitleState == 2 then
-        if RaceState > 0 then
-            UpdateRaceSound()
-        end
-    end
-end
 
 function UpdateRaceSound()
     
@@ -41,19 +31,9 @@ function UpdateRaceSound()
 
     -- channel 1
     -- offroad
-    tgtsnd=-1
-    if RecoverStage == 0 and RaceState < 3 then
-        if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerVl > 0.5 then
-            tgtsnd=5
-        end
+    if RecoverStage == 0 and RaceState < 3 and abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerVl > 0.5 then
+        sfx(5,1)
+    else
+        sfx(-1,1)
     end
-    if Chan1 != tgtsnd then
-        if Chan1 != -1 then
-            sfx(-1,1)
-        end
-        if tgtsnd != -1 then
-            sfx(tgtsnd,1)
-        end
-    end
-    Chan1=tgtsnd
 end

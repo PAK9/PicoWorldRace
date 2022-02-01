@@ -1,21 +1,12 @@
 
-function WeightSegLen()
-    w=rnd(1)
-    -- tend towards shorter
-    return ((w*1.4)*(w*1.4))*0.5
-end
-
-function CalcYdelt( ysc, len )
-    --return (rnd(200)-100)*ysc*((len-10)/100)
-    return 100*ysc*((len)/100)
-end
-
 function BuildCustomTrack( theme, ysc, cmax, seed )
 
-    len=28
+    --len=28
+    len=10
     srand(seed)
     for n=1,len do
-        slen=WeightSegLen()
+        w=rnd(1)
+        slen=((w*1.4)*(w*1.4))*0.5 -- tend towards shorter
         if rnd(4)<2 or n==1 or n==len then
             --straight
             sptn=flr(rnd(#SPDEF[theme]-2))+3
@@ -35,7 +26,6 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
                 -- random pick of all other spdefs
                 sptn=flr(rnd(#SPDEF[theme]-2))+3
             end
-            --clen=flr((2-rnd(cmax))*20)+4
             cnt=flr((2-rnd(cmax))*(slen+rnd(1))*18)+6
             cntin=flr((2-rnd(cmax))*(slen+rnd(1))*18)+6
             cntout=flr((2-rnd(cmax))*(slen+rnd(1))*18)+6
@@ -48,12 +38,8 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
     ydelt2=0 -- second derivative
     y=0
     for i=1,NumSegs do
-        ydelt2=ydelt2+rnd(1)-0.5
-        ydelt2=ydelt2*0.9
-
-        ydelt1=ydelt1+ydelt2
-        ydelt1=ydelt1*0.9
-
+        ydelt2=(ydelt2+rnd(1)-0.5)*0.9
+        ydelt1=(ydelt1+ydelt2)*0.9
         y=y+ydelt1
         sPointsY[i]=y*sin(i/NumSegs*0.5)*ysc
     end

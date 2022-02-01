@@ -4,7 +4,6 @@ __lua__
 -- P2
 -- by PAK-9
 
-#include debug.lua
 #include menus.lua
 #include particle.lua
 #include poly.lua
@@ -13,6 +12,7 @@ __lua__
 #include spritedef.lua
 #include trackdef.lua
 #include utility.lua
+#include profile.lua
 
 -- music(0)
 
@@ -33,15 +33,15 @@ HORZSDEF = {
 {0, 64, 45, 10, 1.2, 0.8 }, -- 3. Glacier
 }
 
--- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
+-- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr 12. Name
 -- Road patterns: 1. alternating stripes 2. random patches
 -- Lane patterns: 1. edges 2. centre alternating 3. 3 lane yellow
 THEMEDEF = {
---    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
-    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. Green raceway
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 2. Snowy
-    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
-    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2 }, -- 4. Red desert
+--    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz name
+    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1, "usa"}, -- 1. USA
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3, "alaska" }, -- 2. Alaska
+    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1, "japan" }, -- 3. Japan
+    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2, "australia" }, -- 4. Oz
 }
 
 Theme = 4
@@ -52,7 +52,7 @@ sPointsY = {}
 sPointsZ = {}
 sPointsC = {}
 
-NUM_LAPS = 3
+NUM_LAPS = 1
 
 sSprite = {}
 sSpriteX = {}
@@ -112,10 +112,7 @@ sScreenShake = {0,0}
 sScreenShakeR = {0,0}
 
 -- 1. Menus 2. Racing
-TitleState=2
-
--- 1. Title 2. Race select
-MenuState=2
+TitleState=1
 
 -- 1. countdown 2. race 3. end standing 4. Summary UI
 RaceState = -1
@@ -214,21 +211,6 @@ function AddTokens( seg, x, n )
     NumTokens += n
 end
 
---[[
-function InitSegments( tsdef )
-
-    for i=1,#TRACKSEGDEF[tsdef] do
-        tsegdef=TRACKSEGDEF[tsdef][i]
-        if tsegdef[4] == 1 then
-            AddStraight( tsegdef[2], tsegdef[3], tsegdef[1] )
-        elseif tsegdef[4] == 2 then
-            AddCurve( tsegdef[5], tsegdef[2], tsegdef[6], tsegdef[7], tsegdef[3], tsegdef[1] )
-        end
-    end
-
-end
---]]
-
 function InitOps()
     for i=1,8 do
         OpptPos[i] = SEG_LEN+SEG_LEN *  i
@@ -243,10 +225,8 @@ function InitRace()
     NumTokens=0
     TokenCollected=0
 
-    -- InitSegments(track)
     -- 3.4 rep bug
     BuildCustomTrack( Theme, 1, 1, 6.2 ) 
-    --BuildPreviewTrack(Theme)
     InitOps()
     RaceStateTimer = time()
     RaceState = 2
@@ -270,6 +250,8 @@ end
 
 function _init()
 
+
+    LoadProfile()
     -- draw black pixels
     palt(0, false)
     -- don't draw tan pixels
@@ -277,28 +259,9 @@ function _init()
 
     InitParticles()
 
-    InitRace()
+    OpenMenu(2)
 
-end
-
-function constedits()
-
-    if btn(2) then -- up
-        CAM_HEIGHT=CAM_HEIGHT+1
-    elseif btn(3) then -- down
-        CAM_HEIGHT=CAM_HEIGHT-1
-    end
-    
-    if btn(0) then -- left
-        CAM_DEPTH=CAM_DEPTH+0.05
-    elseif btn(1) then -- right
-        CAM_DEPTH=CAM_DEPTH-0.05
-    end
-
-
-    DebugPrint( CAM_HEIGHT )
-    DebugPrint( CAM_DEPTH )
-    --Position=Position+5
+    --InitRace()
 
 end
 
@@ -473,7 +436,6 @@ end
 
 function UpdateOpts()
     
-    rbandnxt=0
     for i=1,#OpptPos do
 
         OpptPos[i]=OpptPos[i]+OpptV[i]
@@ -485,10 +447,8 @@ function UpdateOpts()
         plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
 
         if RaceState > 1 then
-            plv=PlayerVl*0.022
-            oiv=i*0.008
             opv=(NUM_LAPS-OpptLap[i])*0.017
-            opspd=(0.04+plv+oiv+opv)
+            opspd=(0.04+PlayerVl*0.022+i*0.008+opv)
             if RaceState >= 3 then
                 opspd=0.08
             end
@@ -522,7 +482,6 @@ function UpdateCollide()
     -- opponents
 
     carlen=2+PlayerVl*0.1
-    --DebugPrint(carlen)
 
     ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
     for i=1,#OpptPos do
@@ -648,10 +607,6 @@ function UpdateRace()
         -- screenshake
         sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
         sScreenShake[2]=lerp(sScreenShake[1],0, 0.1)
-        --sScreenShakeR[1]=sScreenShakeR[1]+sScreenShake[1]
-        --sScreenShakeR[2]=sScreenShakeR[2]+sScreenShake[2]
-        --sScreenShake[1] = sScreenShake[1]*0.9
-        --sScreenShake[2] = sScreenShake[2]*0.9
         if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
             sScreenShake = {0,0}
         end
@@ -669,11 +624,12 @@ end
 
 function _update60()
 
-    DebugUpdate()
     Frame=Frame+1
-
-    UpdateSound()
-    if TitleState == 2 then
+    if TitleState == 1 then
+        UpdateMenus()
+    elseif TitleState == 2 then
+        --if RaceState > 0 then
+        UpdateRaceSound()
         UpdateRace()
     end
 
@@ -681,13 +637,9 @@ end
 
 function HrzSprite( x, ssx, ssy, f )
     hsprdef=HORZSDEF[THEMEDEF[Theme][11]]
-    ssx=ssx*hsprdef[5]
     ssy=ssy*hsprdef[6]
-    sx=hsprdef[1]
-    sy=hsprdef[2]
-    sw=hsprdef[3]
-    sh=hsprdef[4]
-    sspr( sx,sy,sw,sh, (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx * 48, ssy * 16, f )
+    sspr( hsprdef[1],hsprdef[2],hsprdef[3],hsprdef[4], 
+        (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx*hsprdef[5] * 48, ssy * 16, f )
 end
 
 function RenderHorizon()
@@ -824,22 +776,20 @@ end -- RenderSeg
 function _draw()
 	
     --cls()
-    
-    if RaceState < 4 then
-        camera( 0 + (rnd(sScreenShake[1]*2)-sScreenShake[1]), HUD_HEIGHT + (rnd(sScreenShake[2]*2)-sScreenShake[2]) )
-        ProfileStart(3)
-        RenderSky()
-        ProfileEnd(3)
-        RenderHorizon()
-        RenderRoad()
-        camera( 0, 0 )
-        ProfileStart(5)
-        RenderRaceUI()
-        ProfileEnd(5)
-    else
-        RenderSummaryUI()
+    if TitleState == 1 then
+        RenderMenus()
+    elseif TitleState == 2 then
+        if RaceState < 4 then
+            camera( 0 + (rnd(sScreenShake[1]*2)-sScreenShake[1]), HUD_HEIGHT + (rnd(sScreenShake[2]*2)-sScreenShake[2]) )
+            RenderSky()
+            RenderHorizon()
+            RenderRoad()
+            camera( 0, 0 )
+            RenderRaceUI()
+        else
+            RenderSummaryUI()
+        end
     end
-    DebugRender()
 
 end
 
@@ -861,24 +811,6 @@ function PrintBigDigitOutline( n, x, y, col )
     pal( 7, 7 )
 end
 
-
-function PrintBigNum( n, x, y, nrend )
-
-    hnd=flr(n/100)
-    ten=flr(n%100/10)
-    unit=flr(n%10)
-
-    xpos=x
-    if hnd != 0 then
-        x = PrintBigDigit( hnd, x, y, nrend )
-    end
-    if ten != 0 or hnd != 0 then
-        x = PrintBigDigit( ten, x, y, nrend )
-    end
-    return PrintBigDigit( unit, x, y, nrend )
-
-end
-
 function GetPlayerStanding()
     s=#OpptPos+1
     for i=1,#OpptPos do
@@ -892,27 +824,17 @@ function GetPlayerStanding()
 end
 
 function GetStandingSuffix(n)
-
-    if n == 1 then
-        return "st"
-    elseif n== 2 then
-        return "nd"
-    elseif n==3 then
-        return "rd"
-    else
-        return "th"
+    stnd={ "st", "nd", "rd" }
+    if n < 4 then
+        return stnd[n]
     end
-
-    return ""
-
+    return "th"
 end
 
 function RenderCountdown()
 
     if RaceState == 2 and RaceStateTime() < 1 then
         frac=( time() - RaceStateTimer )%1
-        PrintBigDigitOutline( 10,64-NFDEF[11][3]*0.5-8,30, 0 )
-        PrintBigDigitOutline( 0,64-NFDEF[1][3]*0.5+7,30, 0 )
         PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
         PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
         clip( 0, 33, 128, 128 )
@@ -923,7 +845,6 @@ function RenderCountdown()
         pal( 7, 9 )
         PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
         PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
-        pal( 7, 7 )
         pal( 7, 7 )
         clip()
     elseif RaceState == 1 then
@@ -976,13 +897,13 @@ end
 function RenderSummaryUI()
 
     rectfill( 0, 0, 128, 128, 0 )
-    
+    BayerRectH( -20, 0, 64, 128, 0, 5 )
+
     fillp(0x33CC)
     col = bor( 6 << 4, 0 );
     rectfill(0,12,33,21, col)
     rectfill(94,12,128,21, col)
     print( "race complete", 38, 15, 7 )
-    print( "[COUNTRY]", 38, 24, 6 )
     fillp()
 
     -- position
@@ -1005,7 +926,7 @@ function RenderSummaryUI()
     if RaceCompletePos == 1 then
         col = 9
     end
-    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 47, col )
+    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 48, col )
 
     -- tokens text
     col=7
@@ -1015,22 +936,7 @@ function RenderSummaryUI()
     print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 65, col )
 
     -- time text
-    mins=flr(RaceCompleteTime/60)
-    secs=flr(RaceCompleteTime%60)
-    if secs > 9 then
-        secstr=tostr(secs)
-    else
-        secstr="0"..tostr(secs)
-    end
-    hnd=flr(RaceCompleteTime%1*100)
-    if hnd > 9 then
-        hndstr=tostr(hnd)
-    else
-        hndstr="0"..tostr(hnd)
-    end
-    print( tostr( mins )..":".. secstr.."."..hndstr , 69, 82, 7 )
-
-    --DebugPrint(RaceCompleteTime)
+    PrintTime( RaceCompleteTime, 69, 82 )
 
 end
 
@@ -1042,7 +948,7 @@ function RenderRaceUI()
     rect( 1, 112, 126, 126, 13 )
 
     stand=GetPlayerStanding()
-    strlen=PrintBigNum( GetPlayerStanding(), 3, 114, 0 )
+    strlen=PrintBigDigit( GetPlayerStanding(), 3, 114, 0 )
     print( GetStandingSuffix(stand), 16, 114, 7 )
 
     sspr( 0, 110, 9, 5, 37, 114 )
@@ -1124,15 +1030,7 @@ function GetSpriteSSRect( s, x1, y1, w1, sc )
 end
 
 function RenderSpriteWorld( s, rrect, d )
-    
-    -- rectfill( x1 - ssc * 0.5, y1 - ssc, x1 - ssc * 0.5 + ssc, y1, 8 )
-    -- rectfill( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 8 )
-    -- sspr seems to over-round the h/w down for some reason, so correct it
-    --fact=max(min(d,1),0)
-    --print(flr(1+fact*(#BAYER-1)))
-    --fillp(BAYER[flr(1+fact*(#BAYER-1))]|0b.011)
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], ceil(rrect[3] + 1), ceil(rrect[4] + 1), SDEF[s][7] == 1 )
-    --sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], rrect[3], rrect[4] )
     --BayerRectT( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 13, d )
 end
 
@@ -1171,7 +1069,6 @@ function RenderRoad()
    
     -- calculate projections
     hrzny=128
-    ProfileStart(1)
     for i = 1, DRAW_DIST do
 
         -- fun foreshortening hack (add to i in statement below)
@@ -1198,19 +1095,16 @@ function RenderRoad()
         hrzny=min(hrzny,psy[i])
 
     end
-    ProfileEnd(1)
     
     for i = DRAW_DIST - 1, 1, -1 do
 
-        ProfileStart(2)
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
         -- segments
         j=i+1
         if ( psy[i] > psy[j] ) then
             RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
         end
-        ProfileEnd(2)
-        if i==1 then
+        if i==1 and TitleState == 2 then
             RenderPlayer()
             RenderParticles()
         end
@@ -1363,11 +1257,11 @@ dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffff2ddd
 066666666611111df4449ff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffff7777
 1611d11ddd118110444449f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffff77ff
 0611d16d6d1a7e1d444f4f99597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776fffffffff
-1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd3d373fff990ffffffff999afff6775776fffffff77
-1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3d33373ff909fffffffff9affff6777576fffff7777
-1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd3333373f099fffffffff55fffff67776fffff7777f
-fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff3333d73ff990fffffffff44ffffff666fffffffffff
-fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffff333d73fff909ffffffff4444fffffffffffff77ffff
+1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd7d373fff990ffffffff999afff6775776fffffff77
+1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3733373ff909fffffffff9affff6777576fffff7777
+1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd7333373f099fffffffff55fffff67776fffff7777f
+fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff36d3d63ff990fffffffff44ffffff666fffffffffff
+fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffffd63d6dfff909ffffffff4444fffffffffffff77ffff
 fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76ffffffff5ff5ffff099fffffffff21fffffffffffff77777ff
 fff41ff11ff14fffffffffffffffffff6ffff6ffff6ffffffffffffffc77777d5ffff44fffff22ffffffff6ff6ffff999ffff446664266666666ffffff77777f
 fffffffffffffffffffffffffffffffffffffffffffffffffffffffffccd7ddd5fff449fffff22ffffffff6ff6fffff5ffff41446642666666666fffffffffff
@@ -1375,24 +1269,44 @@ fffffffffffffff25222fffffffffffffffffffffffffffffffffffffcc7d7dd5ff44494fff2288f
 ffffffffffff2255452222fffffffffffffffffffffffffffffffffffc7c7d7d55dd55555555555555555ffff5fffff6ff414444446666666666666fffffffff
 ffffffffffff55444522222ffffffffffffffffffffffffffffffffffcc777dd55555ddddddddddddddddfff33fffff6f41444444442222222222222ffffffff
 ffffffffff22445442222522fffffffffffffffffffffffffffffffffccc7ccd555d5d65d65dd65d65dffffff536fff6fff2222222111111111114ffffffffff
-fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc555d5d65d65dd65d65dffff333fffffffff2222222122222222224ffffffffff
+fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc555d5d65d65dd65d65dffff3334ffffffff2222222122222222224ffffffffff
 ffffff222554454522222522222ffffffffffffffffffffffffffffffccccccc55555ddddddddddddddddfff3563fffffff4444444124442444224ffffffffff
 fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff55dd5ddddddddddddddddff3533ffffffff2222222129992444224ffffffffff
-fff25554455555544522222222222222255552222fffffffffffffffffffffff5ffffffffffffffffffffffff5fffffffff4444444129992445224ffffffffff
+fff25554455555544522222222222222255552222fffffffffffffffffffffff5fffffffffffffffffffffff45fffffffff4444444129992445224ffffffffff
 ff2545555555544445222222222222222252222222ffffffffffffffffffffff5ffffffffffffffffffffff33663fffffff2222222121112444224ffffffffff
 f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffff35533ffffffff4444444122222444224ffffffffff
-222222522255554522222222222222222222222222222222ffffffffffffffff5ffffffffffffffffffffffff5ffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffff6fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff544fffffffffffffffffffffffffffffffffffff
-ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffff6ddddddddddddcddd7676ddd67dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffff7556dddddddddc6c7d77d5d6666cdddddffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffc766666d6ddddd76c667cddd7d666dd5d5dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff777cdddd6dd6ddddc777757c656dd66c6dd55fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fd76dddd666ddddddd67c77677d666dd6cc66d55dfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-7777cdddddddd677c6c77c7777cdd666666d6dd1dddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+222222522255554522222222222222222222222222222222ffffffffffffffff5fffffffffffffffffffffff45ffffffffffffffffffffffffffff7181711111
+ffffffffffffffffffffffff6fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888811611
+ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffff000eeeeeeeeeefffffffffffffffffffffffffffffffffffffff7181711116
+ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffff00000eeeeeeeeeeeeeeeeeee000fffffffffffffffffffffffffffffffffff1111116111
+ffffff6ddddddddddddcddd7676ddd67dffffffffffffffffff00000000eee5111eeeee000011115555d1fffffffffffffffffffffffffffffffff1161111161
+fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffff00000000eee5dddd1e1115555555555dddd1ffffffffffffffffffffffffffffffff1676111611
+fffff7556dddddddddc6c7d77d5d6666cdddddfffffffffff0000000eeee5ed1ddd111d555ddddddddddddd1ffffffffffffffffffffffffffffff1161111111
+ffffc766666d6ddddd76c667cddd7d666dd5d5dffffffffffe8eeeeeeee5edddddd111ddddddddddddddddddd1ffffffffffffffffffffffffffff6161688888
+ff777cdddd6dd6ddddc777757c656dd66c6dd55ffffffffff8e8e8eeee05dd5ddddd11ddddddddddddddddddddd1ffffffffffffffffffffffffff1616177777
+fd76dddd666ddddddd67c77677d666dd6cc66d55dffffffffe8e8e8e8e5ed555ddddd11ddddddddddddddddddddd11ffffffffffffffffffffffff6161688888
+7777cdddddddd677c6c77c7777cdd666666d6dd1dddffffff8e8e010e8e8111555ddd11dddddddddddddddddddd55511ffffffffffffffffffffff1616177777
+c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddffffe1e05010e8e8e8111d5dd11dddddddd5555555111eeeeeeeeffffffffffffffffffff8888888888
+fffffffffffffffffffffffffffffffffffffffffffffffff120101010e8e1e8e8111d11ddddd555111eeee44444eeeeeeeeffffffffffffffffff7777777777
+fffffffffffffffffffffffffffffffffffffffffffffffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
+fffffffffffffffffffffffffffffffffffffffffffffffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
+fffffffffffffffffffffffffffffffffffffffffffffffff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191
+fffffffffffffffffffffffffffffffffffffffffffffffff05011d55001212128e8e8e8e8eeeeeeeeeeeeeeeeeeeeeee22eeee22eeeffffffffff1911111999
+ffffffffffffffffffffffffffffffffffffffffffffffffff00050111021212121e8e8e800eeeeeeeeeeeeeeeeeeeeeeee22e222eeeeeffffffff1191111191
+ffffffffffffffffffffffffffffffffffffffffffffffffffff00d050012121212121e8001010eeee22eee22eeeeeeeeeeeeeeeeee1515fffffff1111191111
+ffffffffffffffffffffffffffffffffffffffffffffffffffffff5d00051212121212120111008eeee22eeee22eeeeeeeeee515151515ffffffff1191911111
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffff100051512121212111105008eeeee222eeeeeeee51515154967151ffffffff1111111111
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00015151212120501050e8e8eeeeeee1515151515151960008effffffff7777777777
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00051512121111d1111e8e8e15151515151515100000008efffffffff7777888777
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000051512050605028e8e1517674515100000008e8e8e8fffffffff7778888877
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00001511115111128e851567000000008e8e8e821212fffffffff7778888877
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0005055d05021e8e100000008e8e8e8212121200ffffffffff7778888877
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000d0d11021e8e008e8e8e821212120000000ffffffffff7777888777
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff011d5500128e8e8e821212120000000fffffffffffffff7777777777
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5d00021e8212121210000000fffffffffffffffffffffffffffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff10002121210000000ffffffffffffffffffffffffffffffffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000fffffffffffffffffffffffffffffffffffffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000ffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -1400,40 +1314,20 @@ ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aaa5aaafffff7777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aa585aaffff77777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-a597e5afff777777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aa5c5aafff777fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aaa5aaafff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-feeeeeeeff777ff7777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-efffffffef777ffffff777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-efffefffef777777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-feeffefefff77777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffefffffff7777777777ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+fffffffffffffffffffffffffff0000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffffffffffffffff0999999999999999905566556655665566556655665566f56fff6fffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffffffffffffffff091199199119911990556655665566f566f5f6f5f6f5f6ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+aaa5aaafffff7777777777ffff091919191999199190665566556655665566556655665f6f5fff5fffffffffffffffffffffffffffffffffffffffffffffffff
+aa585aaffff77777777777ff000911991919991991900000000000f566f5f600000006f5000000fff000000fff0000000fffffffffffffffffffffffffffffff
+a597e5afff777777777777f09999199919911991199999990099990ff00ff0aaaaaaa0f0aaaaaa0f0aaaaaa0f0aaaaaaa0ffffffffffffffffffffffffffffff
+aa5c5aafff777ffffffffff0999999999999999999999990ee09990f0ee0f0aaaaaaaa0aaaaaaaa0aaaaaaaa0aaaaaaaa0ffffffffffffffffffffffffffffff
+aaa5aaafff777ff7777777ff000000000000000000000000ee0000000ee0ff000000aa0aa0000aa0aa0000aa0aa000000fffffffffffffffffffffffffffffff
+ffffffffff777ff7777777ff0ee0ee0ee00eeeee0f0eeee0ee00eeee0ee0f0aaaaaaaa0aa0000aa0aa0fff000aaaaaa0ffffffffffffffffffffffffffffffff
+feeeeeeeff777ff7777777ff0ee0ee0ee0eeeeeee0eeeee0ee0eeeee0ee0f0aaaaaaa00aa0aaaaa0aa0fff000aaaaaa0ffffffffffffffffffffffffffffffff
+efffffffef777ffffff777ff0ee0ee0ee0ee000ee0ee0000ee0ee0000ee0f0aa000aa00aa0aaaaa0aa0000aa0aa000000fffffffffffffffffffffffffffffff
+efffefffef777777777777ff0eeeeeeee0eeeeeee0ee0ff0ee0eeeeeeee0f0aa0ff0aa0aa0000aa0aaaaaaaa0aaaaaaaa0ffffffffffffffffffffffffffffff
+feeffefefff77777777777fff0eeeeee0f0eeeee00ee0ff0ee00eeeeeee0f0aa0ff0aa0aa0ff0aa00aaaaaa0f0aaaaaaa0ffffffffffffffffffffffffffffff
+ffffefffffff7777777777ffff000000fff00000ff00ffff00ff0000000fff00ffff00f00ffff00ff000000fff0000000fffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ff7777f7777777777fff7777777777ffffff777ff777ff777777777777fff777777777ffff77777777fffff77777777fffff77777777fffff77777777fffffff
 ff7777f77777777777ff77777777777ffff7777ff777ff777777777777ff7777777777fff7777777777fff7777777777fff7777777777fff7777777777ffffff
