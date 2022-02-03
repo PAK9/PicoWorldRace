@@ -61,8 +61,6 @@ function UpdateMenu_Campaign()
     elseif btnp(1) then -- right
         Theme=Theme%#THEMEDEF+1
     elseif btnp(4) then -- btn1
-        TitleState=2
-        RaceState=1
         InitRace()
     end
 end
@@ -143,6 +141,7 @@ function OpenMenu( i )
         UpdatePlayer()
     end
     MenuState=i
+    TitleState=1
 end
 
 function UpdateMenus()
