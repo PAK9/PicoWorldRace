@@ -13,6 +13,7 @@ __lua__
 #include trackdef.lua
 #include utility.lua
 #include profile.lua
+#include debug.lua
 
 -- music(0)
 
@@ -44,7 +45,7 @@ THEMEDEF = {
     { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2, "australia" }, -- 4. Oz
 }
 
-Theme = 4
+Theme = 1
 
 NumSegs = 0
 sPointsX = {}
@@ -52,7 +53,7 @@ sPointsY = {}
 sPointsZ = {}
 sPointsC = {}
 
-NUM_LAPS = 1
+NUM_LAPS = 3
 
 sSprite = {}
 sSpriteX = {}
@@ -182,13 +183,13 @@ function AddCurve( enter, hold, exit, c, y, sprp )
     AddSprites( tot, sprp )
 
     for i=1,enter do
-    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
+        AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
     end
     for i=1,hold do
-    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
+        AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
     end
     for i=1,exit do
-    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
+        AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
     end
     LastY=y
 
@@ -222,14 +223,16 @@ end
 
 function InitRace()
 
+    TitleState=2
     NumTokens=0
     TokenCollected=0
 
     -- 3.4 rep bug
-    BuildCustomTrack( Theme, 1, 1, 6.2 ) 
-    InitOps()
+    EraseTrack()
+    BuildCustomTrack( Theme, 1, 1, 3 ) 
+    --InitOps()
     RaceStateTimer = time()
-    RaceState = 2
+    RaceState = 1
     
     Position = SEG_LEN
     PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
@@ -246,6 +249,7 @@ function InitRace()
     RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
     RecoverTimer = 0
     InvincibleTime = 0
+    UpdatePlayer()
 end
 
 function _init()
@@ -273,24 +277,25 @@ function UpdateRaceInput()
 
     --constedits()
 
-    if RaceState != 2 then return end
+    if RaceState == 2 then
 
-    if btn(3) then -- down
-        if abs( PlayerXd ) > 0.1 then
-            PlayerDrift=sgn(PlayerXd)
-        else
-            PlayerVl=PlayerVl-0.08
+        if btn(5) then -- btn2
+            if abs( PlayerXd ) > 0.1 then
+                PlayerDrift=sgn(PlayerXd)
+            else
+                PlayerVl=PlayerVl-0.08
+            end
         end
-    end
 
-    if btn(4) then -- z / btn1
-        PlayerVl=PlayerVl+0.09
-    end
+        if btn(4) then -- z / btn1
+            PlayerVl=PlayerVl+0.09
+        end
 
-    if btn(0) then -- left
-        PlayerXd-= (0.022 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
-    elseif btn(1) then -- right
-        PlayerXd+= (0.022 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+        if btn(0) then -- left
+            PlayerXd-= (0.022 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+        elseif btn(1) then -- right
+            PlayerXd+= (0.022 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+        end
     end
 
 end
@@ -302,10 +307,8 @@ function UpdatePlayer()
     end
 
     if PlayerAir == 0 then
-        if RecoverStage == 0 and RaceState < 3 then
+        if RecoverStage == 0 then
             UpdateRaceInput()
-        elseif RaceState >= 3 then
-             PlayerVl=PlayerVl+0.08
         end
         drftslw=(1-abs(PlayerDrift)*0.001)
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
@@ -473,7 +476,7 @@ end
 
 function UpdateCollide()
 
-    if InvincibleTime > 0 or RecoverStage > 0 then
+    if InvincibleTime > 0 or RecoverStage > 0 or RaceState >= 3 then
         return
     end
 
@@ -532,13 +535,11 @@ function UpdateCollide()
         sdef1=SDEF[sSprite[nxtseg]]
 
         if sdef1[8]==1 then
-            -- these are roughly where the player is in screenspace
-            plx1n=48
-            plx2n=80
-
+            
             -- work out the range of pixels in the source sprite that we overlap
-            insprx1=(plx1n-SpriteCollideRect[1])/SpriteCollideRect[3];
-            insprx2=(plx2n-SpriteCollideRect[1])/SpriteCollideRect[3];
+            -- player is ~40-80px
+            insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3];
+            insprx2=(80-SpriteCollideRect[1])/SpriteCollideRect[3];
 
             it1=flr(max(sdef1[3]*insprx1,0))
             it2=flr(min(sdef1[3]*insprx2,sdef1[3]))
@@ -603,7 +604,7 @@ function UpdateRaceState()
 end
 
 function UpdateRace()
-    if RaceState < 4 then
+    if RaceState < 3 then
         -- screenshake
         sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
         sScreenShake[2]=lerp(sScreenShake[1],0, 0.1)
@@ -618,6 +619,15 @@ function UpdateRace()
         UpdateOpts()
         UpdateParticles()
         UpdateRaceState()
+    elseif RaceState == 3 then
+        PlayerVl=PlayerVl+0.01
+        PlayerX=sPointsX[PlayerSeg]
+    elseif RaceState == 4 then
+        if btnp(4) then -- btn1
+            OpenMenu(2)
+        elseif btnp(5) then --btn2
+            InitRace()
+        end
     end
     --constedits()
 end
@@ -693,31 +703,21 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     -- blocked out in the road render before this
     if idx % 8 <= 3 then
         fillp(0x5A5A)
-        col = thm[5]
-    else
-        fillp(0)
-        col = thm[4]
+        RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, thm[5] )
+        RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, thm[5] )        
     end
-    RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
-    RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
-    
-    --if idx % 4 == 0 then
-    --RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, col )
-    --RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, col )
-    --end
-
+   
     -- Road
+    fillp(0)
     if thm[3] == 1 then
         -- stripes
         if idx == 1 then
-            fillp(0)
             col = 1
         else
             if idx % 3 == 0 then
                 fillp(0x5A5A)
                 col = thm[2]
             else
-                fillp(0)
                 col = thm[1]
             end
         end
@@ -725,9 +725,8 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     elseif thm[3] == 2 then
         -- patches
         fillp(0x5A5A)
-        col = thm[2]
         -- TODO: dont overdraw
-        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, thm[2] )
         fillp(0)
         if idx == 1 then
             col = 1
@@ -745,29 +744,22 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         -- edge lane
         if idx % 2 > 0 then
             fillp(0)
-            col = 6
-            dst1=0.74
-            dst2=0.78
-            RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
-            RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
+            RenderPoly4( {x1-w1*0.74,y1},{x1-w1*0.78,y1},{x2-w2*0.78,y2},{x2-w2*0.74,y2}, 6 )
+            RenderPoly4( {x1+w1*0.78,y1},{x1+w1*0.74,y1},{x2+w2*0.74,y2},{x2+w2*0.78,y2}, 6 )
         end
     elseif thm[8] == 2 then
         -- centre alternating
         if idx % 4 > 2 then
             fillp(0)
-            col = 6
             lanew=0.02
-            RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, col )
+            RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, 6 )
         end
     elseif thm[8] == 3 then
        -- 3 lane yellow
         if idx % 4 == 0 then
             fillp(0)
-            col = 9
-            dst1=0.3
-            dst2=0.34
-            RenderPoly4( {x1-w1*dst1,y1},{x1-w1*dst2,y1},{x2-w2*dst2,y2},{x2-w2*dst1,y2}, col )
-            RenderPoly4( {x1+w1*dst2,y1},{x1+w1*dst1,y1},{x2+w2*dst1,y2},{x2+w2*dst2,y2}, col )
+            RenderPoly4( {x1-w1*0.3,y1},{x1-w1*0.34,y1},{x2-w2*0.34,y2},{x2-w2*0.3,y2}, 9 )
+            RenderPoly4( {x1+w1*0.34,y1},{x1+w1*0.3,y1},{x2+w2*0.3,y2},{x2+w2*0.34,y2}, 9 )
         end
     end
     
@@ -786,6 +778,12 @@ function _draw()
             RenderRoad()
             camera( 0, 0 )
             RenderRaceUI()
+            
+            if stat(1) < 0.9 then
+                --DRAW_DIST+=1
+            elseif stat(1) > 0.95 then
+                --DRAW_DIST-=4
+            end
         else
             RenderSummaryUI()
         end
@@ -835,34 +833,21 @@ function RenderCountdown()
 
     if RaceState == 2 and RaceStateTime() < 1 then
         frac=( time() - RaceStateTimer )%1
-        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
-        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
-        clip( 0, 33, 128, 128 )
-        pal( 7, 10 )
-        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
-        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
-        clip( 0, 39, 128, 128 )
-        pal( 7, 9 )
-        PrintBigDigit( 10,64-NFDEF[11][3]*0.5-8,30,0 )
-        PrintBigDigit( 0,64-NFDEF[1][3]*0.5+7,30,0 )
-        pal( 7, 7 )
-        clip()
+        x=64-NFDEF[11][3]*0.5-8
+        PrintBigDigitOutline( 10,x,30, 0 )
+        PrintBigDigit( 10,x,30,0 )
+        x=x+16
+        PrintBigDigitOutline( 0,x,30, 0 )
+        PrintBigDigit( 0,x,30,0 )
     elseif RaceState == 1 then
         num= 3-flr( RaceStateTime() )
         frac=( RaceStateTime() )%1
         if num <= 0 then
             return
         elseif frac < 0.9 then
-            PrintBigDigitOutline( num,64-NFDEF[num+1][3]*0.5,30, 0 )
-            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
-            clip( 0, 33, 128, 128 )
-            pal( 7, 10 )
-            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
-            clip( 0, 39, 128, 128 )
-            pal( 7, 9 )
-            PrintBigDigit( num,64-NFDEF[num+1][3]*0.5,30,0 )
-            pal( 7, 7 )
-            clip()
+            x=64-NFDEF[num+1][3]*0.5
+            PrintBigDigitOutline( num,x,30, 0 )
+            PrintBigDigit( num,x,30,0 )
         end
     end
 end
@@ -897,7 +882,6 @@ end
 function RenderSummaryUI()
 
     rectfill( 0, 0, 128, 128, 0 )
-    BayerRectH( -20, 0, 64, 128, 0, 5 )
 
     fillp(0x33CC)
     col = bor( 6 << 4, 0 );
@@ -937,6 +921,10 @@ function RenderSummaryUI()
 
     -- time text
     PrintTime( RaceCompleteTime, 69, 82 )
+
+    -- controls
+    print( " \142  menu", 50, 103, 6 )
+    print( " \151  retry", 50, 109, 6 )
 
 end
 
@@ -988,8 +976,10 @@ function RenderRaceUI()
     if spd > 99 then
         x1-= 4
     end
-    print( flr( PlayerVl * 8.5 ), x1, 114, 6 )
-    print( "mph", 94, 114, 6 )
+    --print( flr( PlayerVl * 8.5 ), x1, 114, 6 )
+    print(stat(1),88,114,6)
+    --print(DRAW_DIST,88,114,6)
+    --print( "mph", 94, 114, 6 )
     RenderCountdown()
     RenderRaceEndStanding()
 
@@ -1014,18 +1004,18 @@ end
 
 function GetSpriteSSRect( s, x1, y1, w1, sc )
     ssc=w1*sc
-    aspx = 1
-    aspy = 1
+    aspx = ssc
+    aspy = ssc
     if SDEF[s][3] > SDEF[s][4] then
-        aspx = SDEF[s][3]/SDEF[s][4]
+        aspx = ssc*SDEF[s][3]/SDEF[s][4]
     else
-        aspy = SDEF[s][4]/SDEF[s][3]
+        aspy = ssc*SDEF[s][4]/SDEF[s][3]
     end
     
-    rrect= { x1 - ssc * aspx * 0.5,
-            y1 - ssc * aspy,
-            ssc * aspx,
-            ssc * aspy }
+    rrect= { x1 - aspx * 0.5,
+            y1 - aspy,
+            aspx,
+            aspy }
     return rrect
 end
 
@@ -1069,6 +1059,7 @@ function RenderRoad()
    
     -- calculate projections
     hrzny=128
+    hrzseg=DRAW_DIST
     for i = 1, DRAW_DIST do
 
         -- fun foreshortening hack (add to i in statement below)
@@ -1092,13 +1083,23 @@ function RenderRoad()
         psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64));
         psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64);
 
-        hrzny=min(hrzny,psy[i])
+        -- store the min y to block out the ground
+        if psy[i] < hrzny then
+            hrzny=psy[i]+1
+            hrzseg=i
+        end
 
     end
     
     for i = DRAW_DIST - 1, 1, -1 do
 
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+        
+         if i+1== hrzseg then
+            fillp(0)
+            rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
+        end
+        
         -- segments
         j=i+1
         if ( psy[i] > psy[j] ) then

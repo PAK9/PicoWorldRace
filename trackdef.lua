@@ -1,8 +1,8 @@
 
 function BuildCustomTrack( theme, ysc, cmax, seed )
 
-    --len=28
-    len=10
+    len=28
+    --len=8
     srand(seed)
     for n=1,len do
         w=rnd(1)
@@ -60,4 +60,19 @@ function BuildPreviewTrack( theme )
     AddCurve(10,10,10,2,0,1)
     AddCurve(10,10,10,2,0,1)
     AddCurve(10,10,10,2,0,1)
+end
+
+function donothin() end
+
+function EraseTrack()
+    while(deli( sPointsX )!=null) donothin()
+    while(deli( sPointsY )!=null) donothin()
+    while(deli( sPointsZ )!=null) donothin()
+    while(deli( sPointsC )!=null) donothin()
+    while(deli( sTokensX )!=null) donothin()
+    while(deli( sTokensExist )!=null) donothin()
+    while(deli( sSprite )!=null) donothin()
+    while(deli( sSpriteX )!=null) donothin()
+    while(deli( sSpriteSc )!=null) donothin()
+    NumSegs=0
 end
