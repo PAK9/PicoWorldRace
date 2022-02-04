@@ -229,8 +229,8 @@ function InitRace()
 
     -- 3.4 rep bug
     EraseTrack()
-    BuildCustomTrack( Theme, 1, 1, 3 ) 
-    --InitOps()
+    BuildCustomTrack( Theme, 1, 1, 3.1 ) 
+    InitOps()
     RaceStateTimer = time()
     RaceState = 1
     
@@ -277,7 +277,7 @@ function UpdateRaceInput()
 
     --constedits()
 
-    if RaceState == 2 then
+    if RaceState == 2 and PlayerAir == 0 then
 
         if btn(5) then -- btn2
             if abs( PlayerXd ) > 0.1 then
@@ -384,7 +384,7 @@ function UpdatePlayer()
                 sScreenShake[2] = 1 * PlayerVf * 0.1
             end
         else
-            if Frame%8 == 0 then
+            if Frame%8 == 0 and PlayerAir == 0 then
                 if PlayerDrift < 0 then
                     AddParticle( 1, 58 - rnd( 4 ), 120 + rnd( 2 ) )
                 elseif PlayerDrift > 0 then
@@ -686,23 +686,8 @@ function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
     --RenderPoly4( {xlt,yt}, {xrt,yt}, {xrb, yb }, { xlb, yb }, c )
     --polyfill({{x=xlt,y=yt},{x=xrt,y=yt},{x=xrb,y=yb}},c)
     --polyfill({{x=xrt,y=yb},{x=xrb,y=yb},{x=xrt,y=yt}},c)
-    RenderPoly4( { xlt, yt }, { xrt, yt }, { xlb, yb }, { xrb, yb }, c )
+    RenderPoly4( { xlt, yt }, { xrt, yt }, { xrb, yb }, { xlb, yb }, c )
     end
-    --[[
-    assert(y1<=y2)
-    f1=y2-y1
-    fc=1/f1
-    --frac=(y1-i)*fc
-    xloff=(xlb-xlt)*fc
-    xroff=(xrb-xrt)*fc
-    xl=xlt
-    xr=xrt
-    for i=y1,y2 do
-        line( xl, i, xr, i, c )
-        xl=xl+xloff
-        xr=xr+xroff
-    end
-    --]]
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
@@ -716,6 +701,17 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
     thm=THEMEDEF[Theme]
 
+    -- Ground
+    -- We only render intermittent strips, most of the ground has been
+    -- blocked out in the road render before this
+    if idx % 8 <= 3 then
+        fillp(0x5A5A)
+        RenderP4( -1, x1-w1, -1, x2-w2, y1, y2, thm[5] )
+        RenderP4( x1+w1, 128, x2+w2, 128, y1, y2,thm[5] )
+        --RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, thm[5] )
+        --RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, thm[5] )        
+    end
+
     -- Edge
     if idx % 4 > 1 then
         fillp(0)
@@ -726,17 +722,12 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     end
     edgew1=w1*0.86
     edgew2=w2*0.86
-    RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
-    RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
+    RenderP4( x1-edgew1, x1-w1,x2-edgew2, x2-w2, y1, y2, col )
+    RenderP4( x1+w1, x1+edgew1, x2+w2, x2+edgew2, y1, y2, col )
+    --RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
+    --RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
 
-    -- Ground
-    -- We only render intermittent strips, most of the ground has been
-    -- blocked out in the road render before this
-    if idx % 8 <= 3 then
-        fillp(0x5A5A)
-        RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, thm[5] )
-        RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, thm[5] )        
-    end
+   
    
     -- Road
     fillp(0)
@@ -753,12 +744,13 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
             end
         end
         --RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
-        RenderP4( x1-edgew1, x1+edgew1, x2+edgew2, x2-edgew2, y1, y2, col )
+        RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, col )
     elseif thm[3] == 2 then
         -- patches
         fillp(0x5A5A)
         -- TODO: dont overdraw
-        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, thm[2] )
+        RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, thm[2] )
+        --RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, thm[2] )
         fillp(0)
         if idx == 1 then
             col = 1
@@ -766,9 +758,9 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
             col = thm[1]
         end
         srand( idx )
-        pminx=rnd( 0.6 ) + 0.3
-        pmaxx=rnd( 0.6 ) + 0.3
-        RenderPoly4( {x1-w1*pminx,y1},{x1+w1*pmaxx,y1},{x2+w2*pmaxx,y2},{x2-w2*pminx,y2}, col )
+        rx1=rnd( 0.6 ) + 0.3
+        rx2=rnd( 0.6 ) + 0.3
+        RenderP4( x1-edgew1*rx1, x1+edgew1*rx2, x2-edgew2*rx1, x2+edgew2*rx2, y1, y2, thm[2] )
     end
 
      -- Lanes
@@ -776,8 +768,10 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         -- edge lane
         if idx % 2 > 0 then
             fillp(0)
-            RenderPoly4( {x1-w1*0.74,y1},{x1-w1*0.78,y1},{x2-w2*0.78,y2},{x2-w2*0.74,y2}, 6 )
-            RenderPoly4( {x1+w1*0.78,y1},{x1+w1*0.74,y1},{x2+w2*0.74,y2},{x2+w2*0.78,y2}, 6 )
+            RenderP4( x1-w1*0.74, x1-w1*0.78, x2-w2*0.74, x2-w2*0.78, y1, y2, 6 )
+            RenderP4( x1+w1*0.78, x1+w1*0.74, x2+w2*0.78, x2+w2*0.74, y1, y2, 6 )
+            --RenderPoly4( {x1-w1*0.74,y1},{x1-w1*0.78,y1},{x2-w2*0.78,y2},{x2-w2*0.74,y2}, 6 )
+            --RenderPoly4( {x1+w1*0.78,y1},{x1+w1*0.74,y1},{x2+w2*0.74,y2},{x2+w2*0.78,y2}, 6 )
         end
     elseif thm[8] == 2 then
         -- centre alternating
@@ -813,10 +807,10 @@ function _draw()
             camera( 0, 0 )
             RenderRaceUI()
             
-            if stat(1) < 0.9 then
+            if stat(1) < 0.80 then
                 --DRAW_DIST+=1
-            elseif stat(1) > 0.95 then
-                --DRAW_DIST-=4
+            elseif stat(1) > 0.9 then
+                --DRAW_DIST-=10
             end
         else
             RenderSummaryUI()
@@ -1026,8 +1020,12 @@ function RenderPlayer()
     end
 
     if PlayerDrift != 0 then
-        woby=rnd(1.8)
-        spr( 9, 64 - 24 + PlayerDrift * 0, 100 - woby, 6, 3, PlayerDrift > 0 )
+        woby=0
+        if PlayerAir == 0 then
+        srand(time())
+        woby=rnd(1.2)
+        end
+        spr( 9, 44, 100-woby, 6, 3, PlayerDrift > 0 )
     elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
         spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
     else
@@ -1139,7 +1137,7 @@ function RenderRoad()
         ProfileStart(3)
         -- segments
         j=i+1
-        if psy[i] > psy[j] then
+        if psy[i] > psy[j] and ( psy[i] >= hrzny ) then
             RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
         end
         ProfileEnd(3)

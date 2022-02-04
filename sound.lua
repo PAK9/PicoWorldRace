@@ -7,7 +7,7 @@ function UpdateRaceSound()
     -- player
     tgtsnd=-1
     if RecoverStage == 0 and RaceState < 3 then
-        if PlayerDrift != 0 then
+        if PlayerDrift != 0 and PlayerAir == 0 then
             tgtsnd=3
         elseif PlayerVl < 0.8 then
             tgtsnd=0
