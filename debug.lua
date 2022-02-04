@@ -21,15 +21,15 @@ function DebugRender()
     print( flr(stat(1)*100).."%", 98,2,3 )
     -- print(tostr( flr(stat(0)) ) .."/2048k", 98,10,3 )
 
-    --[[
     if #proftms > 0 then
-        --rectfill( 0, 0, 28, 128, 3 )
+        
         for i = 1,#proftms do
-            print(tostr(i)..". ".. tostr(proftms[i]),24,2 + (i-1) * 6, 0)
+            RenderTextOutlined( tostr(i)..". ".. tostr(proftms[i]),24,2 + (i-1) * 6, 0, 6 )
+            --print(tostr(i)..". ".. tostr(proftms[i]),24,2 + (i-1) * 6, 0, 6 )
             proftms[i]=0
         end
     end
-    --]]
+
 end
 
 proftms={0,0,0,0,0,0,0,0}

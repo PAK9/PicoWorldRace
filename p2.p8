@@ -634,6 +634,7 @@ end
 
 function _update60()
 
+    DebugUpdate()
     Frame=Frame+1
     if TitleState == 1 then
         UpdateMenus()
@@ -672,6 +673,36 @@ function RenderSky()
     BayerRectV( 0, 20, 138, 50, THEMEDEF[Theme][9], THEMEDEF[Theme][10] )
     fillp(0)
     rectfill( 0, 50, 128, 64, THEMEDEF[Theme][9] ) -- block out
+end
+
+function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
+    
+    if yt - yb < 1 then
+    return
+    elseif yt - yb < 2 then
+    --if false then
+    line( xlt, yt, xrt, yt, c)
+    else
+    --RenderPoly4( {xlt,yt}, {xrt,yt}, {xrb, yb }, { xlb, yb }, c )
+    --polyfill({{x=xlt,y=yt},{x=xrt,y=yt},{x=xrb,y=yb}},c)
+    --polyfill({{x=xrt,y=yb},{x=xrb,y=yb},{x=xrt,y=yt}},c)
+    RenderPoly4( { xlt, yt }, { xrt, yt }, { xlb, yb }, { xrb, yb }, c )
+    end
+    --[[
+    assert(y1<=y2)
+    f1=y2-y1
+    fc=1/f1
+    --frac=(y1-i)*fc
+    xloff=(xlb-xlt)*fc
+    xroff=(xrb-xrt)*fc
+    xl=xlt
+    xr=xrt
+    for i=y1,y2 do
+        line( xl, i, xr, i, c )
+        xl=xl+xloff
+        xr=xr+xroff
+    end
+    --]]
 end
 
 function RenderPoly4( v1, v2, v3, v4, c )
@@ -721,7 +752,8 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
                 col = thm[1]
             end
         end
-        RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+        --RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
+        RenderP4( x1-edgew1, x1+edgew1, x2+edgew2, x2-edgew2, y1, y2, col )
     elseif thm[3] == 2 then
         -- patches
         fillp(0x5A5A)
@@ -775,7 +807,9 @@ function _draw()
             camera( 0 + (rnd(sScreenShake[1]*2)-sScreenShake[1]), HUD_HEIGHT + (rnd(sScreenShake[2]*2)-sScreenShake[2]) )
             RenderSky()
             RenderHorizon()
+            ProfileStart(1)
             RenderRoad()
+            ProfileEnd(1)
             camera( 0, 0 )
             RenderRaceUI()
             
@@ -788,7 +822,7 @@ function _draw()
             RenderSummaryUI()
         end
     end
-
+    DebugRender()
 end
 
 function PrintBigDigit( n, x, y, nrend )
@@ -1057,6 +1091,7 @@ function RenderRoad()
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
    
+   ProfileStart(2)
     -- calculate projections
     hrzny=128
     hrzseg=DRAW_DIST
@@ -1090,6 +1125,7 @@ function RenderRoad()
         end
 
     end
+    ProfileEnd(2)
     
     for i = DRAW_DIST - 1, 1, -1 do
 
@@ -1100,15 +1136,19 @@ function RenderRoad()
             rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
         end
         
+        ProfileStart(3)
         -- segments
         j=i+1
-        if ( psy[i] > psy[j] ) then
+        if psy[i] > psy[j] then
             RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
         end
+        ProfileEnd(3)
+        ProfileStart(4)
         if i==1 and TitleState == 2 then
             RenderPlayer()
             RenderParticles()
         end
+        ProfileEnd(4)
 
         -- sprites
         
