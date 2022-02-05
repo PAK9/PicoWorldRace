@@ -52,7 +52,7 @@ sPointsY = {}
 sPointsZ = {}
 sPointsC = {}
 
-NUM_LAPS = 3
+NUM_LAPS = 1
 
 sSprite = {}
 sSpriteX = {}
@@ -332,6 +332,9 @@ function UpdatePlayer()
     nxtseg=(PlayerSeg)%NumSegs + 1
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
 
+    if RaceState == 3 then
+        PlayerX=lerp(PlayerX,sPointsX[PlayerSeg],0.05)
+    end
     if abs( PlayerXd ) < 0.005 then
         PlayerXd = 0
     end
@@ -601,7 +604,7 @@ function UpdateRaceState()
 end
 
 function UpdateRace()
-    if RaceState < 3 then
+    if RaceState < 4 then
         -- screenshake
         sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
         sScreenShake[2]=lerp(sScreenShake[1],0, 0.1)
@@ -616,10 +619,7 @@ function UpdateRace()
         UpdateOpts()
         UpdateParticles()
         UpdateRaceState()
-    elseif RaceState == 3 then
-        PlayerVl=PlayerVl+0.01
-        PlayerX=sPointsX[PlayerSeg]
-    elseif RaceState == 4 then
+    else
         if btnp(4) then -- btn1
             OpenMenu(2)
         elseif btnp(5) then --btn2
@@ -790,10 +790,10 @@ function _draw()
             camera( 0, 0 )
             RenderRaceUI()
             
-            if stat(1) < 0.70 then
+            if stat(1) < 0.65 then
                 DRAW_DIST+=1
-            elseif stat(1) > 0.95 then
-                DRAW_DIST-=10
+            elseif stat(1) > 0.8 then
+                DRAW_DIST-=5
             end
         else
             RenderSummaryUI()

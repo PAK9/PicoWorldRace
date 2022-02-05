@@ -1,8 +1,8 @@
 
 function BuildCustomTrack( theme, ysc, cmax, seed )
 
-    len=28
-    --len=8
+    --len=28
+    len=8
     srand(seed)
     for n=1,len do
         w=rnd(1)
