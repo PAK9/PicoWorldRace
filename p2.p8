@@ -6,7 +6,6 @@ __lua__
 
 #include menus.lua
 #include particle.lua
-#include poly.lua
 #include renderutils.lua
 #include sound.lua
 #include spritedef.lua
@@ -274,8 +273,6 @@ function RaceStateTime()
 end
 
 function UpdateRaceInput()
-
-    --constedits()
 
     if RaceState == 2 and PlayerAir == 0 then
 
@@ -629,7 +626,6 @@ function UpdateRace()
             InitRace()
         end
     end
-    --constedits()
 end
 
 function _update60()
@@ -680,21 +676,18 @@ function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
     if yt - yb < 1 then
     return
     elseif yt - yb < 2 then
-    --if false then
-    line( xlt, yt, xrt, yt, c)
+        line( xlt, yt, xrt, yt, c)
     else
-    --RenderPoly4( {xlt,yt}, {xrt,yt}, {xrb, yb }, { xlb, yb }, c )
-    --polyfill({{x=xlt,y=yt},{x=xrt,y=yt},{x=xrb,y=yb}},c)
-    --polyfill({{x=xrt,y=yb},{x=xrb,y=yb},{x=xrt,y=yt}},c)
-    RenderPoly4( { xlt, yt }, { xrt, yt }, { xrb, yb }, { xlb, yb }, c )
+        yd=yt-yb
+        rp=1/yd
+        xldlt=(xlt-xlb)*rp
+        xrdlt=(xrt-xrb)*rp
+        for i=yb,yt do
+            line( xlb, i, xrb, i, c)
+            xlb+=xldlt
+            xrb+=xrdlt
+        end
     end
-end
-
-function RenderPoly4( v1, v2, v3, v4, c )
-
-    polyfill({{x=v1[1],y=v1[2]},{x=v2[1],y=v2[2]},{x=v3[1],y=v3[2]}},c)
-    polyfill({{x=v1[1],y=v1[2]},{x=v4[1],y=v4[2]},{x=v3[1],y=v3[2]}},c)
-
 end
 
 function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
@@ -708,8 +701,6 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         fillp(0x5A5A)
         RenderP4( -1, x1-w1, -1, x2-w2, y1, y2, thm[5] )
         RenderP4( x1+w1, 128, x2+w2, 128, y1, y2,thm[5] )
-        --RenderPoly4( {-1,y2},{-1,y1},{x1-w1,y1},{x2-w2,y2}, thm[5] )
-        --RenderPoly4( {128,y2},{128,y1},{x1+w1,y1},{x2+w2,y2}, thm[5] )        
     end
 
     -- Edge
@@ -724,11 +715,7 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     edgew2=w2*0.86
     RenderP4( x1-edgew1, x1-w1,x2-edgew2, x2-w2, y1, y2, col )
     RenderP4( x1+w1, x1+edgew1, x2+w2, x2+edgew2, y1, y2, col )
-    --RenderPoly4( {x1-edgew1,y1},{x1-w1,y1},{x2-w2,y2},{x2-edgew2,y2}, col )
-    --RenderPoly4( {x1+w1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2+w2,y2}, col )
-
-   
-   
+  
     -- Road
     fillp(0)
     if thm[3] == 1 then
@@ -743,14 +730,12 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
                 col = thm[1]
             end
         end
-        --RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, col )
         RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, col )
     elseif thm[3] == 2 then
         -- patches
         fillp(0x5A5A)
         -- TODO: dont overdraw
         RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, thm[2] )
-        --RenderPoly4( {x1-edgew1,y1},{x1+edgew1,y1},{x2+edgew2,y2},{x2-edgew2,y2}, thm[2] )
         fillp(0)
         if idx == 1 then
             col = 1
@@ -770,15 +755,13 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
             fillp(0)
             RenderP4( x1-w1*0.74, x1-w1*0.78, x2-w2*0.74, x2-w2*0.78, y1, y2, 6 )
             RenderP4( x1+w1*0.78, x1+w1*0.74, x2+w2*0.78, x2+w2*0.74, y1, y2, 6 )
-            --RenderPoly4( {x1-w1*0.74,y1},{x1-w1*0.78,y1},{x2-w2*0.78,y2},{x2-w2*0.74,y2}, 6 )
-            --RenderPoly4( {x1+w1*0.78,y1},{x1+w1*0.74,y1},{x2+w2*0.74,y2},{x2+w2*0.78,y2}, 6 )
         end
     elseif thm[8] == 2 then
         -- centre alternating
         if idx % 4 > 2 then
             fillp(0)
             lanew=0.02
-            RenderPoly4( {x1-w1*lanew,y1},{x1+w1*lanew,y1},{x2+w2*lanew,y2},{x2-w2*lanew,y2}, 6 )
+            RenderP4(x1-w1*lanew,x1+w1*lanew,x2-w2*lanew,x2+w2*lanew,y1,y2,6 )
         end
     elseif thm[8] == 3 then
        -- 3 lane yellow
@@ -807,10 +790,10 @@ function _draw()
             camera( 0, 0 )
             RenderRaceUI()
             
-            if stat(1) < 0.80 then
-                --DRAW_DIST+=1
-            elseif stat(1) > 0.9 then
-                --DRAW_DIST-=10
+            if stat(1) < 0.70 then
+                DRAW_DIST+=1
+            elseif stat(1) > 0.95 then
+                DRAW_DIST-=10
             end
         else
             RenderSummaryUI()
@@ -965,7 +948,7 @@ function RenderRaceUI()
 
     stand=GetPlayerStanding()
     strlen=PrintBigDigit( GetPlayerStanding(), 3, 114, 0 )
-    print( GetStandingSuffix(stand), 16, 114, 7 )
+    print( GetStandingSuffix(stand), strlen+1, 114, 7 )
 
     sspr( 0, 110, 9, 5, 37, 114 )
     print( min(PlayerLap, NUM_LAPS), 49, 114, 6 )
@@ -1204,7 +1187,7 @@ function RenderRoad()
                 opsx=0
                 opsy=0
                 opsw=0
-                if i>10 then
+                if i>15 then
                 -- Imposters, just render them at the seg pos (and in the middle of the road)
                 opsx=psx[i]
                 opsy=psy[i]
