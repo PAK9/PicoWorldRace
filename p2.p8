@@ -1197,9 +1197,19 @@ function RenderRoad()
         end
 
         -- opponents
+        ProfileStart(5)
         for o = 1,#OpptPos do
             if OpptSeg[o] == segidx then
                 
+                opsx=0
+                opsy=0
+                opsw=0
+                if i>10 then
+                -- Imposters, just render them at the seg pos (and in the middle of the road)
+                opsx=psx[i]
+                opsy=psy[i]
+                opsw=psw[i]
+                else
                 plsegoff1=(OpptSeg[o]-PlayerSeg)%NumSegs+1
                 opinseg=1-(OpptSeg[o]*SEG_LEN-OpptPos[o])/SEG_LEN
 
@@ -1217,6 +1227,7 @@ function RenderRoad()
                 opsx = flr(64 + (opss * opcamx * 64));
                 opsy = flr(64 - (opss * opcamy * 64));
                 opsw = flr(opss * ROAD_WIDTH * 64);
+                end
 
                 opcols1 = { 12, 11, 10, 9, 8, 6 }
                 opcols2 = { 1, 3, 4, 4, 2, 5 }
@@ -1238,6 +1249,7 @@ function RenderRoad()
                 pal( 2, 2 )
             end
         end
+        ProfileEnd(5)
 
     end
 end -- RenderRoad
