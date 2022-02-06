@@ -31,3 +31,10 @@ function WriteProfile( lvl, id, val )
     PlayerProfile[idx]=val
     SaveProfile()
 end
+
+function EraseProfile()
+    for i=0,#PlayerProfile do
+        PlayerProfile[i]=0
+    end
+    SaveProfile()
+end

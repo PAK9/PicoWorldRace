@@ -42,7 +42,7 @@ THEMEDEF = {
     { 5, 0x05, 1, 6, 0x6D, 6, 0x15, 3, 6, 12, 3 }, -- 2. Alaska
     { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
     { 5, 0x25, 2, 2, 0x21, 5, 0x42, 3, 13, 2, 2 }, -- 4. Oz
-    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 }, -- 5. nairobi
+    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 }, -- 5. kenya
     { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 6. Nepal
     { 5, 0x51, 1, 5, 0x35, 6, 0x82, 1, 1, 0, 1 }, -- 7. Germany
     { 13, 0xCD, 1, 2, 0x2E, 10, 0xBD, 3, 6, 14, 2 }, -- 8. Funland
@@ -50,14 +50,14 @@ THEMEDEF = {
 
 -- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
 LEVELDEF={
-    { 1, 1, 1, 1, 1, "usa" },
-    { 4, 4, 1, 1, 1, "australia" },
+    { 1, 1, 0.5, 0.8, 1, "usa" },
+    { 4, 4, 0.8, 1, 1, "australia" },
     { 2, 2, 1, 0.8, 1, "alaska" },
     { 3, 3, 1, 1, 1, "japan" },
-    { 5, 4, 1, 1, 1, "nairobi" },
-    { 6, 2, 1.1, 1, 1, "nepal" },
-    { 7, 1, 1.1, 1, 1, "germany" },
-    { 8, 4, 1.1, 1, 1, "funland" },
+    { 5, 4, 0.7, 1, 1, "kenya" },
+    { 6, 2, 1.2, 0.9, 1, "nepal" },
+    { 7, 1, 1.1, 1.1, 1, "germany" },
+    { 8, 5, 1.4, 1.1, 1, "funland" },
 }
 
 Theme = 1
@@ -75,6 +75,7 @@ sSprite = {}
 sSpriteX = {}
 sSpriteSc = {} -- scale
 SpriteCollideRect = {}
+SpriteCollideIdx=-1
 
 sTokensX = {}
 sTokensExist = {}
@@ -238,15 +239,26 @@ function InitOps()
     end
 end
 
+function MenuRestart()
+    InitRace()
+end
+
+function MenuQuit()
+    OpenMenu(2)
+end
+
 function InitRace()
 
     TitleState=2
+
+    menuitem( 1, "restart race", MenuRestart )
+    menuitem( 2, "abandon race", MenuQuit )
+
     NumTokens=0
     TokenCollected=0
 
-    -- 3.4 rep bug
     EraseTrack()
-    BuildCustomTrack( Theme, 1, 1, 3.1 ) 
+    BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] ) 
     InitOps()
     RaceStateTimer = time()
     RaceState = 1
@@ -271,8 +283,8 @@ end
 
 function _init()
 
-
     LoadProfile()
+    --EraseProfile()
     InitSpriteDef()
 
     -- draw black pixels
@@ -550,10 +562,9 @@ function UpdateCollide()
 
     -- sprites
     
-    if sSprite[nxtseg] > 0 and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+    if SpriteCollideIdx > 0 then --and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
 
-        sdef1=SDEF[sSprite[nxtseg]]
-
+        sdef1=SDEF[SpriteCollideIdx]
         if sdef1[8]==1 then
             
             -- work out the range of pixels in the source sprite that we overlap
@@ -620,6 +631,17 @@ function UpdateRaceState()
         RaceCompleteTime=RaceStateTime()
         RaceCompletePos=GetPlayerStanding()
         RaceStateTimer=time()
+        ProfTime=ReadProfile( Level, 3 )
+        if ProfTime==0 or RaceCompleteTime < ProfTime then
+            WriteProfile( Level, 3, RaceCompleteTime )
+        end
+        ProfStand=ReadProfile( Level, 1 )
+        if ProfStand==0 or RaceCompletePos < ProfStand then
+            WriteProfile( Level, 1, RaceCompletePos )
+        end
+        if TokenCollected > ReadProfile( Level, 2 ) then
+            WriteProfile( Level, 2, TokenCollected )
+        end
     end
 end
 
@@ -660,6 +682,12 @@ function _update60()
         UpdateRace()
     end
 
+    --WriteProfile( 5, 3, 123 )
+    --DebugPrint( ReadProfile( 5, 3 ) )
+    for i=1,3 do
+        DebugPrint( ReadProfile( 1, i ) )
+    end
+    --assert( ReadProfile( 2, 1 ) == 0 )
 end
 
 function HrzSprite( x, ssx, ssy, f )
@@ -820,7 +848,6 @@ function _draw()
             RenderSummaryUI()
         end
     end
-    DebugPrint( Position )
     DebugRender()
 end
 
@@ -1129,7 +1156,7 @@ function RenderRoad()
 
     end
     ProfileEnd(2)
-    
+    SpriteCollideIdx=-1
     for i = DRAW_DIST - 1, 1, -1 do
 
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
@@ -1170,7 +1197,8 @@ function RenderRoad()
             end
             if i == 2 then
                 SpriteCollideRect = rrect
-            end
+                SpriteCollideIdx=sSprite[segidx]
+            end         
         end
 
         -- Start gantry
@@ -1344,42 +1372,42 @@ fd76dddd666ddddddd67c77677d666dd6cc66d55dffffffffe8e8e8e8e5ed555ddddd11ddddddddd
 7777cdddddddd677c6c77c7777cdd666666d6dd1dddffffff8e8e010e8e8111555ddd11dddddddddddddddddddd55511ffffffffffffffffffffff1616177777
 c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddffffe1e05010e8e8e8111d5dd11dddddddd5555555111eeeeeeeeffffffffffffffffffff8888888888
 fffffffffffffffffffffffffffffffffffffffffffffffff120101010e8e1e8e8111d11ddddd555111eeee44444eeeeeeeeffffffffffffffffff7777777777
-fffffffffffffffffffffffffffffffffffffffffffffffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
-fffffffffffffffffffffffffffffffffffffffffffffffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
-fffffffffffffffffffffffffffffffffffffffffffffffff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191
-fffffffffffffffffffffffffffffffffffffffffffffffff05011d55001212128e8e8e8e8eeeeeeeeeeeeeeeeeeeeeee22eeee22eeeffffffffff1911111999
-ffffffffffffffffffffffffffffffffffffffffffffffffff00050111021212121e8e8e800eeeeeeeeeeeeeeeeeeeeeeee22e222eeeeeffffffff1191111191
-ffffffffffffffffffffffffffffffffffffffffffffffffffff00d050012121212121e8001010eeee22eee22eeeeeeeeeeeeeeeeee1515fffffff1111191111
-ffffffffffffffffffffffffffffffffffffffffffffffffffffff5d00051212121212120111008eeee22eeee22eeeeeeeeee515151515ffffffff1191911111
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffff100051512121212111105008eeeee222eeeeeeee51515154967151ffffffff1111111111
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00015151212120501050e8e8eeeeeee1515151515151960008effffffff7777777777
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00051512121111d1111e8e8e15151515151515100000008efffffffff7777888777
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000051512050605028e8e1517674515100000008e8e8e8fffffffff7778888877
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00001511115111128e851567000000008e8e8e821212fffffffff7778888877
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0005055d05021e8e100000008e8e8e8212121200ffffffffff7778888877
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000d0d11021e8e008e8e8e821212120000000ffffffffff7777888777
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff011d5500128e8e8e821212120000000fffffffffffffff7777777777
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5d00021e8212121210000000fffffffffffffffffffffffffffff
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff10002121210000000ffffffffffffffffffffffffffffffffff
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000fffffffffffffffffffffffffffffffffffffff
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000ffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-fffffffffffffffffffffffffff0000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffff0999999999999999905566556655665566556655665566f56fff6fffffffffffffffffffffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffff091199199119911990556655665566f566f5f6f5f6f5f6ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-aaa5aaafffff7777777777ffff091919191999199190665566556655665566556655665f6f5fff5fffffffffffffffffffffffffffffffffffffffffffffffff
-aa585aaffff77777777777ff000911991919991991900000000000f566f5f600000006f5000000fff000000fff0000000fffffffffffffffffffffffffffffff
-a597e5afff777777777777f09999199919911991199999990099990ff00ff0aaaaaaa0f0aaaaaa0f0aaaaaa0f0aaaaaaa0ffffffffffffffffffffffffffffff
-aa5c5aafff777ffffffffff0999999999999999999999990ee09990f0ee0f0aaaaaaaa0aaaaaaaa0aaaaaaaa0aaaaaaaa0ffffffffffffffffffffffffffffff
-aaa5aaafff777ff7777777ff000000000000000000000000ee0000000ee0ff000000aa0aa0000aa0aa0000aa0aa000000fffffffffffffffffffffffffffffff
-ffffffffff777ff7777777ff0ee0ee0ee00eeeee0f0eeee0ee00eeee0ee0f0aaaaaaaa0aa0000aa0aa0fff000aaaaaa0ffffffffffffffffffffffffffffffff
-feeeeeeeff777ff7777777ff0ee0ee0ee0eeeeeee0eeeee0ee0eeeee0ee0f0aaaaaaa00aa0aaaaa0aa0fff000aaaaaa0ffffffffffffffffffffffffffffffff
+5aaa8f555566ff7fff888fffffffff55fff55ffffffffffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
+5aa8859aaaaa5778f88788fffffff588555885fffffffffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
+5a88c595aa5a6788f88878fffffff588585885fffffffffff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191
+588cc59aaaaa5886f88888ff555555555555555ffffffffff05011d55001212128e8e8e8e8eeeeeeeeeeeeeeeeeeeeeee22eeee22eeeffffffffff1911111999
+58ccb195aa5a5867ff888fff5365bbbb585bb75fffffffffff00050111021212121e8e8e800eeeeeeeeeeeeeeeeeeeeeeee22e222eeeeeffffffff1191111191
+5ccbb19955aa5677fff8ffff5335b7bb585bbb5fffffffffffff00d050012121212121e8001010eeee22eee22eeeeeeeeeeeeeeeeee1515fffffff1111191111
+5cbb7f199aa5f778fff7ffff5335777b5857bb5fffffffffffffff5d00051212121212120111008eeee22eeee22eeeeeeeeee515151515ffffffff1191911111
+5bb77ff1555ff788ffff77ff5635b7bb58577b5fffffffffffffffff100051512121212111105008eeeee222eeeeeeee51515154967151ffffffff1111111111
+5b77efff11fff886ffffff7f5665bbbb5857bb5ffffffffffffffffffff00015151212120501050e8e8eeeeeee1515151515151960008effffffff7777777777
+577eefff55fff867ffffff7f5635bbb7585bbb5ffffffffffffffffffffff00051512121111d1111e8e8e15151515151515100000008efffffffff7777888777
+57eeefff55fff677fffff7ff555555555555555ffffffffffffffffffffffff000051512050605028e8e1517674515100000008e8e8e8fffffffff7778888877
+5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00001511115111128e851567000000008e8e8e821212fffffffff7778888877
+5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0005055d05021e8e100000008e8e8e8212121200ffffffffff7778888877
+5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000d0d11021e8e008e8e8e821212120000000ffffffffff7777888777
+5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff011d5500128e8e8e821212120000000fffffffffffffff7777777777
+5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5d00021e8212121210000000fffffffffffffffffff111fffffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff10002121210000000ffffffffffffffffffffffff18711fffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000fffffffffffffffffffffffffffff1888811fff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000ffffffffffffffffffffffffffffffffff18711fffff
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1777811fff
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff187888811f
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1111111111
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0007007000
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
+fffffffffffffffffffffffffff0000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
+ffffffffffffffffffffffffff0999999999999999905566556655665566556655665566f56fff6fffffffffffffffffffffffffffffffffffffff3337337333
+ffffffffffffffffffffffffff091199199119911990556655665566f566f5f6f5f6f5f6ffffffffffffffffffffffffffffffffffffffffffffff3333333333
+aaa5aaafffff7777777777ffff091919191999199190665566556655665566556655665f6f5fff5fffffffffffffffffffffffffffffaaaccccccc0000000000
+aa585aaffff77777777777ff000911991919991991900000000000f566f5f600000006f5000000fff000000fff0000000fffffffffffaacc77cccc0000000000
+a597e5afff777777777777f09999199919911991199999990099990ff00ff0aaaaaaa0f0aaaaaa0f0aaaaaa0f0aaaaaaa0ffffffffffaccccc7ccc8888888888
+aa5c5aafff777ffffffffff0999999999999999999999990ee09990f0ee0f0aaaaaaaa0aaaaaaaa0aaaaaaaa0aaaaaaaa0ffffffffffccccc7cccc8888888888
+aaa5aaafff777ff7777777ff000000000000000000000000ee0000000ee0ff000000aa0aa0000aa0aa0000aa0aa000000fffffffffffccccccccca8888888888
+ffffffffff777ff7777777ff0ee0ee0ee00eeeee0f0eeee0ee00eeee0ee0f0aaaaaaaa0aa0000aa0aa0fff000aaaaaa0ffffffffffffccccc7ccaaaaaaaaaaaa
+feeeeeeeff777ff7777777ff0ee0ee0ee0eeeeeee0eeeee0ee0eeeee0ee0f0aaaaaaa00aa0aaaaa0aa0fff000aaaaaa0ffffffffffffcccccccaaaaaaaaaaaaa
 efffffffef777ffffff777ff0ee0ee0ee0ee000ee0ee0000ee0ee0000ee0f0aa000aa00aa0aaaaa0aa0000aa0aa000000fffffffffffffffffffffffffffffff
 efffefffef777777777777ff0eeeeeeee0eeeeeee0ee0ff0ee0eeeeeeee0f0aa0ff0aa0aa0000aa0aaaaaaaa0aaaaaaaa0ffffffffffffffffffffffffffffff
 feeffefefff77777777777fff0eeeeee0f0eeeee00ee0ff0ee00eeeeeee0f0aa0ff0aa0aa0ff0aa00aaaaaa0f0aaaaaaa0ffffffffffffffffffffffffffffff

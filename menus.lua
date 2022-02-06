@@ -16,7 +16,7 @@ function RenderFlag( x,y,lvl )
         -- oz
         sspr( 118, 62, 10, 7, x, y )
     elseif lvl==5 then
-        -- nairobi
+        -- kenya
         --sspr( 118, 62, 10, 7, x, y )
     elseif lvl==6 then
         -- nepal
@@ -84,8 +84,8 @@ end
 function RenderMenu_Campaign()
 
     fillp(0)
-    rectfill( 13, 26, 115, 90, 13 )
-    rect( 12, 25, 116, 91, 6 )
+    rectfill( 13, 26, 115, 86, 13 )
+    rect( 12, 25, 116, 87, 6 )
 
     -- logo
     sspr( 23, 101, 75, 14, 27, 5 )
@@ -100,11 +100,11 @@ function RenderMenu_Campaign()
     -- position
     rectfill( 16, 41, 46, 64, 1 )
     sspr( 103, 40, 8, 9, 27, 43 ) -- trophy
-    if ReadProfile(Level,1) == 0 then
+    ProfStnd=ReadProfile(Level,1)
+    if ProfStnd == 0 then
         print( "none", 24, 57, 7 )
     else
-        stnd=ReadProfile(Level,1)
-        print( tostr(stnd)..tostr( GetStandingSuffix(stnd) ), 55, 57 )
+        print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, 7 )
     end
 
     -- tokens
@@ -121,7 +121,6 @@ function RenderMenu_Campaign()
     
     RenderTextOutlined( " \142  race", 38, 70, 1, 10 )
     print( "\139\145 country", 38, 77, 6 )
-    print( " \151  random race", 38, 83, 6 )
 
 end
 
@@ -158,6 +157,8 @@ function OpenMenu( i )
     end
     MenuState=i
     TitleState=1
+    menuitem(1)
+    menuitem(2)
 end
 
 function UpdateMenus()
