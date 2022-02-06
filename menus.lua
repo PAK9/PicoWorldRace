@@ -2,19 +2,22 @@
 -- 1. Title 2. Campaign 3. Custom race
 MenuState=2
 
-function RenderFlag( x,y,them )
-    if them==1 then
+function RenderFlag( x,y,lvl )
+    if lvl==1 then
         --usa
         sspr( 118, 69, 10, 7, x, y )
-    elseif them==2 then
+    elseif lvl==2 then
         --alaska
         sspr( 118, 76, 10, 7, x, y )
-    elseif them==3 then
+    elseif lvl==3 then
         --japan
         sspr( 118, 83, 10, 7, x, y )
-    elseif them==4 then
+    elseif lvl==4 then
         -- oz
         sspr( 118, 62, 10, 7, x, y )
+    elseif lvl==5 then
+        -- nairobi
+        --sspr( 118, 62, 10, 7, x, y )
     else
         assert( false )
     end
@@ -57,9 +60,11 @@ end
 -- Campaign
 function UpdateMenu_Campaign()
     if btnp(0) then -- left
-        Theme=(Theme-2)%#THEMEDEF+1
+        Level=(Level-2)%#LEVELDEF+1
+        Theme=LEVELDEF[Level][1]
     elseif btnp(1) then -- right
-        Theme=Theme%#THEMEDEF+1
+        Level=Level%#LEVELDEF+1
+        Theme=LEVELDEF[Level][1]
     elseif btnp(4) then -- btn1
         InitRace()
     end
@@ -78,28 +83,28 @@ function RenderMenu_Campaign()
     sspr( 49, 64, 62, 30, 38, 96 )
 
     -- Country
-    RenderFlag( 43, 29, Theme )
-    RenderTextOutlined( THEMEDEF[Theme][12], 56, 30, 0, 7 )
+    RenderFlag( 43, 29, Level )
+    RenderTextOutlined( LEVELDEF[Level][6], 56, 30, 0, 7 )
 
     -- position
     rectfill( 16, 41, 46, 64, 1 )
     sspr( 103, 40, 8, 9, 27, 43 ) -- trophy
-    if PlayerProfile[Theme][1] == 0 then
+    if ReadProfile(Level,1) == 0 then
         print( "none", 24, 57, 7 )
     else
-        stnd=PlayerProfile[Theme][1]
+        stnd=ReadProfile(Level,1)
         print( tostr(stnd)..tostr( GetStandingSuffix(stnd) ), 55, 57 )
     end
 
     -- tokens
     rectfill( 49, 41, 79, 64, 2 )
     sspr( 23, 40, 7, 7, 61, 44 ) -- token
-    print( tostr(PlayerProfile[Theme][2]).."/20", 56, 57, 7 )
+    print( tostr(ReadProfile(Level,2)).."/20", 56, 57, 7 )
 
     -- time
     rectfill( 82, 41, 112, 64, 3 )
     sspr( 112, 41, 7, 7, 94, 44 ) -- clock
-    PrintTime( PlayerProfile[Theme][3], 84, 57 )
+    PrintTime( ReadProfile(Level,3), 84, 57 )
 
     -- controls
     
@@ -134,7 +139,7 @@ end
 function OpenMenu( i )
     if i == 2 then
         -- campaign
-        BuildPreviewTrack( Theme )
+        BuildPreviewTrack()
         Position = SEG_LEN
         PlayerX = 0
         PlayerY = 0

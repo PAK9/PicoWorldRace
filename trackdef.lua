@@ -1,15 +1,17 @@
 
-function BuildCustomTrack( theme, ysc, cmax, seed )
+function BuildCustomTrack( lvl, ysc, cmax, seed )
 
-    --len=28
-    len=8
+    sp=LEVELDEF[Level][2]
+
+    len=28
+    --len=8
     srand(seed)
     for n=1,len do
         w=rnd(1)
         slen=((w*1.4)*(w*1.4))*0.5 -- tend towards shorter
         if rnd(4)<2 or n==1 or n==len then
             --straight
-            sptn=flr(rnd(#SPDEF[theme]-2))+3
+            sptn=flr(rnd(#SPDEF[sp]-2))+3
             cnt=slen*30+10
             AddStraight( cnt, 0, sptn )
         else
@@ -24,7 +26,7 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
                 sptn=2 -- left turns are spdef 1
             else
                 -- random pick of all other spdefs
-                sptn=flr(rnd(#SPDEF[theme]-2))+3
+                sptn=flr(rnd(#SPDEF[sp]-2))+3
             end
             cnt=flr((2-rnd(cmax))*(slen+rnd(1))*18)+6
             cntin=flr((2-rnd(cmax))*(slen+rnd(1))*18)+6
@@ -55,7 +57,7 @@ function BuildCustomTrack( theme, ysc, cmax, seed )
 
 end
 
-function BuildPreviewTrack( theme )
+function BuildPreviewTrack()
 
     AddCurve(10,10,10,2,0,1)
     AddCurve(10,10,10,2,0,1)

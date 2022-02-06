@@ -33,18 +33,29 @@ HORZSDEF = {
 {0, 64, 45, 10, 1.2, 0.8 }, -- 3. Glacier
 }
 
--- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr 12. Name
+-- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
 -- Road patterns: 1. alternating stripes 2. random patches
 -- Lane patterns: 1. edges 2. centre alternating 3. 3 lane yellow
 THEMEDEF = {
---    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz name
-    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1, "usa"}, -- 1. USA
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3, "alaska" }, -- 2. Alaska
-    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1, "japan" }, -- 3. Japan
-    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2,  2, "australia" }, -- 4. Oz
+--    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
+    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. USA
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 2. Alaska
+    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
+    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2, 2 }, -- 4. Oz
+    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 2, 2 }, -- 5. nairobi
+}
+
+-- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
+LEVELDEF={
+    { 1, 1, 1, 1, 1, "usa" },
+    { 4, 4, 1, 1, 1, "australia" },
+    { 2, 2, 1, 1, 1, "alaska" },
+    { 3, 3, 1, 1, 1, "japan" },
+    { 5, 4, 1, 1, 1, "nairobi" },
 }
 
 Theme = 1
+Level=1
 
 NumSegs = 0
 sPointsX = {}
@@ -140,7 +151,8 @@ function AddSeg( c, y )
 end
 
 function AddSprites( n, p )
-    sd=SPDEF[Theme][p]
+    sp=LEVELDEF[Level][2]
+    sd=SPDEF[sp][p]
     for i = 1, n do
 
         if p == 0 then
@@ -255,6 +267,8 @@ function _init()
 
 
     LoadProfile()
+    InitSpriteDef()
+
     -- draw black pixels
     palt(0, false)
     -- don't draw tan pixels
@@ -767,8 +781,8 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
        -- 3 lane yellow
         if idx % 4 == 0 then
             fillp(0)
-            RenderPoly4( {x1-w1*0.3,y1},{x1-w1*0.34,y1},{x2-w2*0.34,y2},{x2-w2*0.3,y2}, 9 )
-            RenderPoly4( {x1+w1*0.34,y1},{x1+w1*0.3,y1},{x2+w2*0.3,y2},{x2+w2*0.34,y2}, 9 )
+            RenderP4( x1-w1*0.3, x1-w1*0.34, x2-w2*0.3, x2-w2*0.34, y1, y2, 9 )
+            RenderP4( x1+w1*0.34, x1+w1*0.3, x2+w2*0.34, x2+w2*0.3, y1, y2, 9 )
         end
     end
     
