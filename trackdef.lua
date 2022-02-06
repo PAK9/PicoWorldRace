@@ -59,6 +59,7 @@ end
 
 function BuildPreviewTrack()
 
+    EraseTrack()
     AddCurve(10,10,10,2,0,1)
     AddCurve(10,10,10,2,0,1)
     AddCurve(10,10,10,2,0,1)

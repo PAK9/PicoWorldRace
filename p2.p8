@@ -39,19 +39,25 @@ HORZSDEF = {
 THEMEDEF = {
 --    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
     { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. USA
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 2. Alaska
+    { 5, 0x05, 1, 6, 0x6D, 6, 0x15, 3, 6, 12, 3 }, -- 2. Alaska
     { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
-    { 5, 0x24, 2, 4, 0x24, 5, 0x42, 3, 13, 2, 2 }, -- 4. Oz
-    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 2, 2 }, -- 5. nairobi
+    { 5, 0x25, 2, 2, 0x21, 5, 0x42, 3, 13, 2, 2 }, -- 4. Oz
+    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 }, -- 5. nairobi
+    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 6. Nepal
+    { 5, 0x51, 1, 5, 0x35, 6, 0x82, 1, 1, 0, 1 }, -- 7. Germany
+    { 13, 0xCD, 1, 2, 0x2E, 10, 0xBD, 3, 6, 14, 2 }, -- 8. Funland
 }
 
 -- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
 LEVELDEF={
     { 1, 1, 1, 1, 1, "usa" },
     { 4, 4, 1, 1, 1, "australia" },
-    { 2, 2, 1, 1, 1, "alaska" },
+    { 2, 2, 1, 0.8, 1, "alaska" },
     { 3, 3, 1, 1, 1, "japan" },
     { 5, 4, 1, 1, 1, "nairobi" },
+    { 6, 2, 1.1, 1, 1, "nepal" },
+    { 7, 1, 1.1, 1, 1, "germany" },
+    { 8, 4, 1.1, 1, 1, "funland" },
 }
 
 Theme = 1
@@ -670,7 +676,7 @@ function RenderHorizon()
     --BayerRectV( 0, 64, 138, 74, THEMEDEF[Theme][4], THEMEDEF[Theme][9] )
     rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
     HrzSprite(10, 1.0, 0.7, true)
-    HrzSprite(64, 0.3, 1.5, false)
+    HrzSprite(64, 0.3, 1.2, false)
     HrzSprite(60, 2.3, 0.3, false)
     HrzSprite(128, 1, 1, false)
     HrzSprite(178, 1.5, 0.5, true)
@@ -697,6 +703,7 @@ function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
         xldlt=(xlt-xlb)*rp
         xrdlt=(xrt-xrb)*rp
         for i=yb,yt do
+            if i > 126 then return end
             line( xlb, i, xrb, i, c)
             xlb+=xldlt
             xrb+=xrdlt
@@ -759,7 +766,7 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
         srand( idx )
         rx1=rnd( 0.6 ) + 0.3
         rx2=rnd( 0.6 ) + 0.3
-        RenderP4( x1-edgew1*rx1, x1+edgew1*rx2, x2-edgew2*rx1, x2+edgew2*rx2, y1, y2, thm[2] )
+        RenderP4( x1-edgew1*rx1, x1+edgew1*rx2, x2-edgew2*rx1, x2+edgew2*rx2, y1, y2, col )
     end
 
      -- Lanes
@@ -805,14 +812,15 @@ function _draw()
             RenderRaceUI()
             
             if stat(1) < 0.65 then
-                DRAW_DIST+=1
+                --DRAW_DIST+=1
             elseif stat(1) > 0.8 then
-                DRAW_DIST-=5
+                --DRAW_DIST-=5
             end
         else
             RenderSummaryUI()
         end
     end
+    DebugPrint( Position )
     DebugRender()
 end
 

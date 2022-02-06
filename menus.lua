@@ -18,6 +18,15 @@ function RenderFlag( x,y,lvl )
     elseif lvl==5 then
         -- nairobi
         --sspr( 118, 62, 10, 7, x, y )
+    elseif lvl==6 then
+        -- nepal
+        --sspr( 118, 62, 10, 7, x, y )
+    elseif lvl==7 then
+        -- germany
+        --sspr( 118, 62, 10, 7, x, y )
+    elseif lvl==8 then
+        -- funland
+        --sspr( 118, 62, 10, 7, x, y )
     else
         assert( false )
     end
@@ -62,9 +71,11 @@ function UpdateMenu_Campaign()
     if btnp(0) then -- left
         Level=(Level-2)%#LEVELDEF+1
         Theme=LEVELDEF[Level][1]
+        BuildPreviewTrack()
     elseif btnp(1) then -- right
         Level=Level%#LEVELDEF+1
         Theme=LEVELDEF[Level][1]
+        BuildPreviewTrack()
     elseif btnp(4) then -- btn1
         InitRace()
     end

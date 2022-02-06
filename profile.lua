@@ -5,7 +5,6 @@ PlayerProfile = {}
 -- note: 1 based in cart memory
 function LoadProfile()
     cartdata("pak9_pwr_1")
-    assert( #LEVELDEF == 5)
     for i=1,#LEVELDEF*3 do
         add(PlayerProfile, dget(i))
         assert( PlayerProfile[i] != nil )    
@@ -14,7 +13,6 @@ function LoadProfile()
             --end
         --end
     end
-    assert( ReadProfile(5,3) !=nil )
 end
 
 function SaveProfile()
