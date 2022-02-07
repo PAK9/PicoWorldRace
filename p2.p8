@@ -12,14 +12,14 @@ __lua__
 #include trackdef.lua
 #include utility.lua
 #include profile.lua
-#include debug.lua
+--#include debug.lua
 
 -- music(0)
 
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 60
+DRAW_DIST = 80
 CANVAS_SIZE = 128
 ROAD_WIDTH = 60 -- half
 CAM_HEIGHT = 21
@@ -51,13 +51,13 @@ THEMEDEF = {
 -- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
 LEVELDEF={
     { 1, 1, 0.5, 0.8, 1, "usa" },
-    { 4, 4, 0.8, 1, 1, "australia" },
-    { 2, 2, 1, 0.8, 1, "alaska" },
-    { 3, 3, 1, 1, 1, "japan" },
-    { 5, 4, 0.7, 1, 1, "kenya" },
-    { 6, 2, 1.2, 0.9, 1, "nepal" },
-    { 7, 1, 1.1, 1.1, 1, "germany" },
-    { 8, 5, 1.4, 1.1, 1, "funland" },
+    { 4, 4, 0.8, 1, 4, "australia" },
+    { 2, 2, 1.1, 0.8, 8, "alaska" },
+    { 3, 3, 0.9, 1.1, 13, "japan" },
+    { 5, 4, 0.8, 1, 30, "kenya" },
+    { 6, 2, 1.2, 0.9, 14, "nepal" },
+    { 7, 1, 0.9, 1.2, 88, "germany" },
+    { 8, 5, 1.3, 1.4, 29, "funland" },
 }
 
 Theme = 1
@@ -348,7 +348,7 @@ function UpdatePlayer()
         end
     end
     if PlayerVl < 0.02 then
-        --PlayerVl = 0
+        PlayerVl = 0
     end
 
     PlayerVf = PlayerVl*0.35
@@ -674,7 +674,7 @@ end
 
 function _update60()
 
-    DebugUpdate()
+    --DebugUpdate()
     Frame=Frame+1
     if TitleState == 1 then
         UpdateMenus()
@@ -682,13 +682,6 @@ function _update60()
         UpdateRace()
     end
     UpdateRaceSound()
-
-    --WriteProfile( 5, 3, 123 )
-    --DebugPrint( ReadProfile( 5, 3 ) )
-    for i=1,3 do
-        DebugPrint( ReadProfile( 1, i ) )
-    end
-    --assert( ReadProfile( 2, 1 ) == 0 )
 end
 
 function HrzSprite( x, ssx, ssy, f )
@@ -834,22 +827,22 @@ function _draw()
             camera( sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
             RenderSky()
             RenderHorizon()
-            ProfileStart(1)
             RenderRoad()
-            ProfileEnd(1)
             camera( 0, 0 )
             RenderRaceUI()
             
+            --[[
             if stat(1) < 0.65 then
-                --DRAW_DIST+=1
+                DRAW_DIST+=1
             elseif stat(1) > 0.8 then
-                --DRAW_DIST-=5
+                DRAW_DIST-=5
             end
+            --]]
         else
             RenderSummaryUI()
         end
     end
-    DebugRender()
+    --DebugRender()
 end
 
 function PrintBigDigit( n, x, y, nrend )
@@ -951,6 +944,9 @@ function RenderSummaryUI()
     print( "race complete", 38, 15, 7 )
     fillp()
 
+    RenderFlag( 38, 28, Level )
+    print( LEVELDEF[Level][6], 50, 29, 7 )
+
     -- position
     rectfill(0,44,64,56, 1)
     print( "position", 19, 48, 6 )
@@ -1029,7 +1025,7 @@ function RenderRaceUI()
         line( i, y1, i, 124, col )
     end
 
-    spd=flr( PlayerVl * 15 )
+    spd=flr( PlayerVl * 8.5 )
     x1=88
     if spd > 9 then
         x1 -= 4
@@ -1037,10 +1033,10 @@ function RenderRaceUI()
     if spd > 99 then
         x1-= 4
     end
-    --print( flr( PlayerVl * 8.5 ), x1, 114, 6 )
-    print(stat(1),88,114,6)
+    print( spd, x1, 114, 6 )
+    --print(stat(1),88,114,6)
     --print(DRAW_DIST,88,114,6)
-    --print( "mph", 94, 114, 6 )
+    print( "mph", 94, 114, 6 )
     RenderCountdown()
     RenderRaceEndStanding()
 
@@ -1122,7 +1118,6 @@ function RenderRoad()
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
    
-   ProfileStart(2)
     -- calculate projections
     hrzny=128
     hrzseg=DRAW_DIST
@@ -1156,7 +1151,6 @@ function RenderRoad()
         end
 
     end
-    ProfileEnd(2)
     SpriteCollideIdx=-1
     for i = DRAW_DIST - 1, 1, -1 do
 
@@ -1167,19 +1161,15 @@ function RenderRoad()
             rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
         end
         
-        ProfileStart(3)
         -- segments
         j=i+1
         if psy[i] > psy[j] and ( psy[i] >= hrzny ) then
             RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
         end
-        ProfileEnd(3)
-        ProfileStart(4)
         if i==1 and TitleState == 2 then
             RenderPlayer()
             RenderParticles()
         end
-        ProfileEnd(4)
 
         -- sprites
         
@@ -1231,7 +1221,6 @@ function RenderRoad()
         end
 
         -- opponents
-        ProfileStart(5)
         for o = 1,#OpptPos do
             if OpptSeg[o] == segidx then
                 
@@ -1251,11 +1240,15 @@ function RenderRoad()
             
                 plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
                 
+                ppos=Position
+                if OpptLap[o] > PlayerLap then
+                    ppos-=SEG_LEN*NumSegs
+                end
                 ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
                 optx=OpptX[o]*ROAD_WIDTH
                 opcamx = lerp( sPointsX[OpptSeg[o]] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
                 opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
-                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - (Position);
+                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - ppos;
 
                 opss = CAM_DEPTH/opcamz;
                 opsx = flr(64 + (opss * opcamx * 64));
@@ -1283,7 +1276,6 @@ function RenderRoad()
                 pal( 2, 2 )
             end
         end
-        ProfileEnd(5)
 
     end
 end -- RenderRoad
@@ -1323,7 +1315,7 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
 fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ffbb3bffffff666ffe7ffffffffffff65ff0ffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fb3bbbbbbff66666feeff0ffffffffff56f0ffff0fffaffffff11661166116611f555555
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fb3bbbbbbff66666feeff0ffffffffff56f0ffff0ffffffffff11661166116611f555555
 fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a9bbbb3bb35bfdff66ffefff0fff00fff65fff0ff0fffa7af555500770077007700f55ff65
 fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333333353fdddddffefff0ff0ffffff56fff0f0ffa777a555577007700770077f5f5f65
 ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a00099553333353bff555f7ff00f0ff0ffff3f5ff0f000fffa7af555577007700770077f5ff565
@@ -1361,29 +1353,29 @@ fff25554455555544522222222222222255552222fffffffffffffffffffffff5fffffffffffffff
 ff2545555555544445222222222222222252222222ffffffffffffffffffffff5ffffffffffffffffffffff33663fffffff2222222121112444224ffffffffff
 f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffff35533ffffffff4444444122222444224ffffffffff
 222222522255554522222222222222222222222222222222ffffffffffffffff5fffffffffffffffffffffff45ffffffffffffffffffffffffffff7181711111
-ffffffffffffffffffffffff6fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888811611
-ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffff000eeeeeeeeeefffffffffffffffffffffffffffffffffffffff7181711116
-ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffff00000eeeeeeeeeeeeeeeeeee000fffffffffffffffffffffffffffffffffff1111116111
-ffffff6ddddddddddddcddd7676ddd67dffffffffffffffffff00000000eee5111eeeee000011115555d1fffffffffffffffffffffffffffffffff1161111161
-fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffff00000000eee5dddd1e1115555555555dddd1ffffffffffffffffffffffffffffffff1676111611
-fffff7556dddddddddc6c7d77d5d6666cdddddfffffffffff0000000eeee5ed1ddd111d555ddddddddddddd1ffffffffffffffffffffffffffffff1161111111
-ffffc766666d6ddddd76c667cddd7d666dd5d5dffffffffffe8eeeeeeee5edddddd111ddddddddddddddddddd1ffffffffffffffffffffffffffff6161688888
+ffffffffffffffffffffffff6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff11fff8888811611
+ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffff000eeeeeeeeeeffffffffffffffffffffffffffffffffff171ff7181711116
+ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffff00000eeeeeeeeeeeeeeeeeee000ffffffffffffffffffffffffffffff1aa1f1111116111
+ffffff6ddddddddddddcddd7676ddd67dffffffffffffffffff00000000eee5111eeeee000011115555d1ffffffffffffffffffffffffffff1aaa11161111161
+fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffff00000000eee5dddd1e1115555555555dddd1fffffffffffffffffffffffffff1991f1676111611
+fffff7556dddddddddc6c7d77d5d6666cdddddfffffffffff0000000eeee5ed1ddd111d555ddddddddddddd1fffffffffffffffffffffffff191ff1161111111
+ffffc766666d6ddddd76c667cddd7d666dd5d5dffffffffffe8eeeeeeee5edddddd111ddddddddddddddddddd1fffffffffffffffffffffff11fff6161688888
 ff777cdddd6dd6ddddc777757c656dd66c6dd55ffffffffff8e8e8eeee05dd5ddddd11ddddddddddddddddddddd1ffffffffffffffffffffffffff1616177777
 fd76dddd666ddddddd67c77677d666dd6cc66d55dffffffffe8e8e8e8e5ed555ddddd11ddddddddddddddddddddd11ffffffffffffffffffffffff6161688888
 7777cdddddddd677c6c77c7777cdd666666d6dd1dddffffff8e8e010e8e8111555ddd11dddddddddddddddddddd55511ffffffffffffffffffffff1616177777
 c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddffffe1e05010e8e8e8111d5dd11dddddddd5555555111eeeeeeeeffffffffffffffffffff8888888888
 fffffffffffffffffffffffffffffffffffffffffffffffff120101010e8e1e8e8111d11ddddd555111eeee44444eeeeeeeeffffffffffffffffff7777777777
-5aaa8f555566ff7fff888fffffffff55fff55ffffffffffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
-5aa8859aaaaa5778f88788fffffff588555885fffffffffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
-5a88c595aa5a6788f88878fffffff588585885fffffffffff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191
-588cc59aaaaa5886f88888ff555555555555555ffffffffff05011d55001212128e8e8e8e8eeeeeeeeeeeeeeeeeeeeeee22eeee22eeeffffffffff1911111999
-58ccb195aa5a5867ff888fff5365bbbb585bb75fffffffffff00050111021212121e8e8e800eeeeeeeeeeeeeeeeeeeeeeee22e222eeeeeffffffff1191111191
-5ccbb19955aa5677fff8ffff5335b7bb585bbb5fffffffffffff00d050012121212121e8001010eeee22eee22eeeeeeeeeeeeeeeeee1515fffffff1111191111
-5cbb7f199aa5f778fff7ffff5335777b5857bb5fffffffffffffff5d00051212121212120111008eeee22eeee22eeeeeeeeee515151515ffffffff1191911111
-5bb77ff1555ff788ffff77ff5635b7bb58577b5fffffffffffffffff100051512121212111105008eeeee222eeeeeeee51515154967151ffffffff1111111111
-5b77efff11fff886ffffff7f5665bbbb5857bb5ffffffffffffffffffff00015151212120501050e8e8eeeeeee1515151515151960008effffffff7777777777
-577eefff55fff867ffffff7f5635bbb7585bbb5ffffffffffffffffffffff00051512121111d1111e8e8e15151515151515100000008efffffffff7777888777
-57eeefff55fff677fffff7ff555555555555555ffffffffffffffffffffffff000051512050605028e8e1517674515100000008e8e8e8fffffffff7778888877
+5aaa8f555566ff7fff888fffffffff55fff55fffff55fffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
+5aa8859aaaaa5778f88788fffffff588555885fff5675ffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
+5a88c595aa5a6788f88878fffffff588585885ff565575fff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191
+588cc59aaaaa5886f88888ff555555555555555f565565fff05011d55001212128e8e8e8e8eeeeeeeeeeeeeeeeeeeeeee22eeee22eeeffffffffff1911111999
+58ccb195aa5a5867ff888fff5365bbbb585bb7555555555fff00050111021212121e8e8e800eeeeeeeeeeeeeeeeeeeeeeee22e222eeeeeffffffff1191111191
+5ccbb19955aa5677fff8ffff5335b7bb585bbb55aaaa995fffff00d050012121212121e8001010eeee22eee22eeeeeeeeeeeeeeeeee1515fffffff1111191111
+5cbb7f199aa5f778fff7ffff5335777b5857bb55aaa9995fffffff5d00051212121212120111008eeee22eeee22eeeeeeeeee515151515ffffffff1191911111
+5bb77ff1555ff788ffff77ff5635b7bb58577b559999995fffffffff100051512121212111105008eeeee222eeeeeeee51515154967151ffffffff1111111111
+5b77efff11fff886ffffff7f5665bbbb5857bb55aa99995ffffffffffff00015151212120501050e8e8eeeeeee1515151515151960008effffffff7777777777
+577eefff55fff867ffffff7f5635bbb7585bbb559999995ffffffffffffff00051512121111d1111e8e8e15151515151515100000008efffffffff7777888777
+57eeefff55fff677fffff7ff555555555555555f5555555ffffffffffffffff000051512050605028e8e1517674515100000008e8e8e8fffffffff7778888877
 5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00001511115111128e851567000000008e8e8e821212fffffffff7778888877
 5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0005055d05021e8e100000008e8e8e8212121200ffffffffff7778888877
 5fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000d0d11021e8e008e8e8e821212120000000ffffffffff7777888777

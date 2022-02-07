@@ -7,11 +7,7 @@ function LoadProfile()
     cartdata("pak9_pwr_1")
     for i=1,#LEVELDEF*3 do
         add(PlayerProfile, dget(i))
-        assert( PlayerProfile[i] != nil )    
-        --if PlayerProfile[i] == nil then
-          --      PlayerProfile[i] = 0
-            --end
-        --end
+        assert( PlayerProfile[i] != nil )
     end
 end
 
