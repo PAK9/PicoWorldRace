@@ -7,26 +7,26 @@ function RenderFlag( x,y,lvl )
         --usa
         sspr( 118, 69, 10, 7, x, y )
     elseif lvl==2 then
-        --alaska
-        sspr( 118, 76, 10, 7, x, y )
+       -- oz
+       sspr( 118, 62, 10, 7, x, y )
     elseif lvl==3 then
+         --alaska
+         sspr( 118, 76, 10, 7, x, y )
+    elseif lvl==4 then
         --japan
         sspr( 118, 83, 10, 7, x, y )
-    elseif lvl==4 then
-        -- oz
-        sspr( 118, 62, 10, 7, x, y )
     elseif lvl==5 then
         -- kenya
-        --sspr( 118, 62, 10, 7, x, y )
+        sspr( 118, 97, 10, 7, x, y )
     elseif lvl==6 then
         -- nepal
-        --sspr( 118, 62, 10, 7, x, y )
+        sspr( 118, 90, 10, 7, x, y )
     elseif lvl==7 then
         -- germany
-        --sspr( 118, 62, 10, 7, x, y )
+        sspr( 118, 104, 10, 7, x, y )
     elseif lvl==8 then
         -- funland
-        --sspr( 118, 62, 10, 7, x, y )
+        sspr( 108, 104, 10, 7, x, y )
     else
         assert( false )
     end
@@ -66,6 +66,14 @@ end
 function RenderMenu_Title()
 end
 
+function BestParticles( x, y )
+    
+    srand(Frame+x)
+    if (Frame+x)%60==0 then
+        AddParticle( 10, x+rnd(8), y+rnd(5) )
+    end
+end
+
 -- Campaign
 function UpdateMenu_Campaign()
     if btnp(0) then -- left
@@ -85,7 +93,7 @@ function RenderMenu_Campaign()
 
     fillp(0)
     rectfill( 13, 26, 115, 86, 13 )
-    rect( 12, 25, 116, 87, 6 )
+    rect( 12, 25, 116, 87, 1 )
 
     -- logo
     sspr( 23, 101, 75, 14, 27, 5 )
@@ -98,28 +106,41 @@ function RenderMenu_Campaign()
     RenderTextOutlined( LEVELDEF[Level][6], 56, 30, 0, 7 )
 
     -- position
+    ProfStnd=ReadProfile(Level,1)
     rectfill( 16, 41, 46, 64, 1 )
     sspr( 103, 40, 8, 9, 27, 43 ) -- trophy
-    ProfStnd=ReadProfile(Level,1)
+    col=7
+    if ProfStnd == 1 then
+        BestParticles( 27, 43 )
+        rect( 16, 41, 46, 64, 10 )
+        col=10
+    end
+
     if ProfStnd == 0 then
         print( "none", 24, 57, 7 )
     else
-        print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, 7 )
+        print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, col )
     end
 
     -- tokens
+    ProfTkns=ReadProfile(Level,2)
     rectfill( 49, 41, 79, 64, 2 )
     sspr( 23, 40, 7, 7, 61, 44 ) -- token
-    print( tostr(ReadProfile(Level,2)).."/20", 56, 57, 7 )
+    col=7
+    if ProfTkns == 20 then
+        BestParticles( 61, 43 )
+        rect( 49, 41, 79, 64, 10 )
+        col=10
+    end
+    print( tostr(ProfTkns).."/20", 56, 57, col )
 
     -- time
     rectfill( 82, 41, 112, 64, 3 )
     sspr( 112, 41, 7, 7, 94, 44 ) -- clock
     PrintTime( ReadProfile(Level,3), 84, 57 )
-
-    -- controls
-    
-    RenderTextOutlined( " \142  race", 38, 70, 1, 10 )
+  
+    --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
+    print( " \142  race", 38, 70, 6 )
     print( "\139\145 country", 38, 77, 6 )
 
 end
@@ -138,7 +159,7 @@ function RenderMenus()
         RenderHorizon()
         RenderRoad()
         RenderMenu_Campaign()
-    elseif MenuState==3 then
+        RenderParticles()
     end
 end
 
@@ -169,4 +190,5 @@ function UpdateMenus()
     elseif MenuState==3 then
         UpdateMenu_Custom()
     end
+    UpdateParticles()
 end
