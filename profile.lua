@@ -38,3 +38,11 @@ function EraseProfile()
     end
     SaveProfile()
 end
+
+function CountProfileTokens()
+    tkns=0
+    for i=1,#LEVELDEF do
+        tkns+=ReadProfile( i, 2 )
+    end
+    return tkns
+end

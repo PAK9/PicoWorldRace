@@ -1,6 +1,9 @@
 
 -- 1. Title 2. Campaign 3. Custom race
+-- (not implemented)
 MenuState=2
+
+MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
 
 function RenderFlag( x,y,lvl )
     if lvl==1 then
@@ -59,13 +62,6 @@ function PrintTime( secs,x,y )
     print( tostr( mins )..":".. secstr.."."..hndstr , x, y, 7 )
 end
 
--- Title
-function UpdateMenu_Title()
-end
-
-function RenderMenu_Title()
-end
-
 function BestParticles( x, y )
     
     srand(Frame+x)
@@ -77,14 +73,14 @@ end
 -- Campaign
 function UpdateMenu_Campaign()
     if btnp(0) then -- left
-        Level=(Level-2)%#LEVELDEF+1
+        Level=max(Level-1,1)
         Theme=LEVELDEF[Level][1]
         BuildPreviewTrack()
     elseif btnp(1) then -- right
-        Level=Level%#LEVELDEF+1
+        Level=min(Level+1,#LEVELDEF)
         Theme=LEVELDEF[Level][1]
         BuildPreviewTrack()
-    elseif btnp(4) then -- btn1
+    elseif btnp(4) and CountProfileTokens() >= MenuLvlTokenReq[Level] then -- btn1
         InitRace()
     end
 end
@@ -105,66 +101,73 @@ function RenderMenu_Campaign()
     RenderFlag( 43, 29, Level )
     RenderTextOutlined( LEVELDEF[Level][6], 56, 30, 0, 7 )
 
-    -- position
-    ProfStnd=ReadProfile(Level,1)
-    rectfill( 16, 41, 46, 64, 1 )
-    sspr( 103, 40, 8, 9, 27, 43 ) -- trophy
-    col=7
-    if ProfStnd == 1 then
-        BestParticles( 27, 43 )
-        rect( 16, 41, 46, 64, 10 )
-        col=10
-    end
+    TotalTkns=CountProfileTokens()
+    if TotalTkns >= MenuLvlTokenReq[Level] then
+        -- position
+        ProfStnd=ReadProfile(Level,1)
+        rectfill( 16, 41, 46, 64, 1 )
+        sspr( 103, 40, 8, 9, 27, 43 ) -- trophy
+        col=7
+        if ProfStnd == 1 then
+            BestParticles( 27, 43 )
+            rect( 16, 41, 46, 64, 10 )
+            col=10
+        end
 
-    if ProfStnd == 0 then
-        print( "none", 24, 57, 7 )
+        if ProfStnd == 0 then
+            print( "none", 24, 57, 7 )
+        else
+            print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, col )
+        end
+
+        -- tokens
+        ProfTkns=ReadProfile(Level,2)
+        rectfill( 49, 41, 79, 64, 2 )
+        sspr( 23, 40, 7, 7, 61, 44 ) -- token
+        col=7
+        if ProfTkns == 20 then
+            BestParticles( 61, 43 )
+            rect( 49, 41, 79, 64, 10 )
+            col=10
+        end
+        print( tostr(ProfTkns).."/20", 56, 57, col )
+
+        -- time
+        rectfill( 82, 41, 112, 64, 3 )
+        sspr( 112, 41, 7, 7, 94, 44 ) -- clock
+        PrintTime( ReadProfile(Level,3), 84, 57 )
+    
+        --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
+        print( " \142  race", 38, 70, 6 )
     else
-        print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, col )
-    end
+        sspr( 39, 75, 8, 11, 30, 44 ) -- lock
+        sspr( 39, 75, 8, 11, 91, 44 ) -- lock
+        print( "race locked", 43, 48, 9 )
 
-    -- tokens
-    ProfTkns=ReadProfile(Level,2)
-    rectfill( 49, 41, 79, 64, 2 )
-    sspr( 23, 40, 7, 7, 61, 44 ) -- token
-    col=7
-    if ProfTkns == 20 then
-        BestParticles( 61, 43 )
-        rect( 49, 41, 79, 64, 10 )
-        col=10
+        sspr( 0, 104, 7, 5, 36, 62 ) -- lock
+        print( tostr(TotalTkns).."/".. tostr(MenuLvlTokenReq[Level]) .. " tokens", 46, 62, 6 )
     end
-    print( tostr(ProfTkns).."/20", 56, 57, col )
-
-    -- time
-    rectfill( 82, 41, 112, 64, 3 )
-    sspr( 112, 41, 7, 7, 94, 44 ) -- clock
-    PrintTime( ReadProfile(Level,3), 84, 57 )
-  
-    --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
-    print( " \142  race", 38, 70, 6 )
     print( "\139\145 country", 38, 77, 6 )
 
-end
+    -- arrows
+    xoff=sin(time())*1.2
+    if Level < #LEVELDEF then
+        sspr( 113, 62, 5, 9, 120+xoff, 49 ) -- arrow
+    end
+    if Level > 1 then
+        sspr( 113, 62, 5, 9, 5-xoff, 49, 5, 9 ,1 ) -- arrow
+    end
 
--- Custom
-function UpdateMenu_Custom()
-end
-
-function RenderMenu_Custom()
 end
 
 function RenderMenus()
-    if MenuState == 1 then
-    elseif MenuState==2 then
+    if MenuState==2 then
         RenderSky()
         RenderHorizon()
         RenderRoad()
         RenderMenu_Campaign()
         RenderParticles()
     end
-end
-
-function CloseMenu( i )
-    
 end
 
 function OpenMenu( i )
@@ -183,12 +186,8 @@ function OpenMenu( i )
 end
 
 function UpdateMenus()
-    if MenuState==1 then
-        UpdateMenu_Title()
-    elseif MenuState==2 then
+    if MenuState==2 then
         UpdateMenu_Campaign()
-    elseif MenuState==3 then
-        UpdateMenu_Custom()
     end
     UpdateParticles()
 end

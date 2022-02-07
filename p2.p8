@@ -69,7 +69,7 @@ sPointsY = {}
 sPointsZ = {}
 sPointsC = {}
 
-NUM_LAPS = 1
+NUM_LAPS = 3
 
 sSprite = {}
 sSpriteX = {}
@@ -127,7 +127,6 @@ HznOffset = 0
 HUD_HEIGHT = 16
 
 sScreenShake = {0,0}
-sScreenShakeR = {0,0}
 
 -- 1. Menus 2. Racing
 TitleState=1
@@ -385,8 +384,8 @@ function UpdatePlayer()
     PlayerY=max(PlayerY+PlayerYd, ground)
     if( PlayerY == ground ) then
         if PlayerYd < -2 and PlayerAir > 4 then
-            sScreenShake = {2,7}
-            sfx( 7, 2 )
+            sScreenShake = {1.5,4}
+            sfx( 11, 2 )
             AddParticle( 6, 52, 122 )
             AddParticle( 7, 78, 126 )
             AddParticle( 1, 52, 122 )
@@ -406,14 +405,14 @@ function UpdatePlayer()
 
     if RecoverStage < 2 then
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
-            dirtfq=flr(7-min( PlayerVf, 6 ))
-            if Frame%dirtfq == 0 then
+            dirtfq=flr(6-min( PlayerVf, 6 ))
+            if Frame%(dirtfq*4) == 0 then
                 srand(Frame)
                 AddParticle( 3, 64 + rnd(32)-16, 124 + rnd( 2 ) )
             end
-            if Frame%(dirtfq*8) == 0 then
-                sScreenShake[1] = 2 * PlayerVf * 0.1
-                sScreenShake[2] = 1 * PlayerVf * 0.1
+            if Frame%(dirtfq*8+20) == 0 then
+                sScreenShake[1] = 2 * PlayerVf * 0.2
+                sScreenShake[2] = 1 * PlayerVf * 0.2
             end
         else
             if Frame%8 == 0 and PlayerAir == 0 then
@@ -533,7 +532,7 @@ function UpdateCollide()
             PlayerVl = OpptV[i]
             PlayerXd = -sgn(PlayerX) * 0.2
 
-            sScreenShake[1] = 6
+            sScreenShake[1] = 4
             sScreenShake[2] = 2
 
             AddCollisionParticles()
@@ -608,8 +607,8 @@ function UpdateCollide()
                 else
                     -- big hit
                     sfx( 6, 2 )
-                    sScreenShake[1] = 8
-                    sScreenShake[2] = 3
+                    sScreenShake[1] = 10
+                    sScreenShake[2] = 4
 
                     PlayerXd = sgn(PlayerX) * 0.2
                     PlayerVl = PlayerVl * 0.2
@@ -649,11 +648,14 @@ function UpdateRace()
     if RaceState < 4 then
         -- screenshake
         sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
-        sScreenShake[2]=lerp(sScreenShake[1],0, 0.1)
+        sScreenShake[2]=lerp(sScreenShake[2],0, 0.1)
+        if Frame%3 == 0 then
+            sScreenShake[1]=-sScreenShake[1]
+            sScreenShake[2]=-sScreenShake[2]
+        end
         if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
             sScreenShake = {0,0}
         end
-        -- camera(sScreenShake[1],sScreenShake[2])
 
         UpdatePlayer()
         UpdateRecover()
@@ -677,10 +679,9 @@ function _update60()
     if TitleState == 1 then
         UpdateMenus()
     elseif TitleState == 2 then
-        --if RaceState > 0 then
-        UpdateRaceSound()
         UpdateRace()
     end
+    UpdateRaceSound()
 
     --WriteProfile( 5, 3, 123 )
     --DebugPrint( ReadProfile( 5, 3 ) )
@@ -830,7 +831,7 @@ function _draw()
         RenderMenus()
     elseif TitleState == 2 then
         if RaceState < 4 then
-            camera( 0 + (rnd(sScreenShake[1]*2)-sScreenShake[1]), HUD_HEIGHT + (rnd(sScreenShake[2]*2)-sScreenShake[2]) )
+            camera( sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
             RenderSky()
             RenderHorizon()
             ProfileStart(1)
@@ -1322,11 +1323,11 @@ eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffff
 f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
 f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
 fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ffbb3bffffff666ffe7ffffffffffff65ff0ffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fb3bbbbbbff66666feeff0ffffffffff56f0ffff0ffffffffff11661166116611f555555
-fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a9bbbb3bb35bfdff66ffefff0fff00fff65fff0ff0fffffff555500770077007700f55ff65
-fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333333353fdddddffefff0ff0ffffff56fff0f0fffffff555577007700770077f5f5f65
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a00099553333353bff555f7ff00f0ff0ffff3f5ff0f000fffffff555577007700770077f5ff565
-ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaff0f0ff0fffff353ff000ffffffff555500770077007700f566655
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fb3bbbbbbff66666feeff0ffffffffff56f0ffff0fffaffffff11661166116611f555555
+fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a9bbbb3bb35bfdff66ffefff0fff00fff65fff0ff0fffa7af555500770077007700f55ff65
+fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333333353fdddddffefff0ff0ffffff56fff0f0ffa777a555577007700770077f5f5f65
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a00099553333353bff555f7ff00f0ff0ffff3f5ff0f000fffa7af555577007700770077f5ff565
+ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaff0f0ff0fffff353ff000fffffaff555500770077007700f566655
 ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ff4f4f33ffffffe7ffaf000f0ffff3fffffff00ffffffffffff11661166116611f555555
 ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151fff42f4fffffeeeffffff000ffffff3f3f3fffffffffffffffffffffffffffffffffffff
 ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffafff0f0ffffffd33dfffffffffffffffffffffffffffffffff7ffff
@@ -1565,8 +1566,10 @@ c60200090b0200a020084100a0200b1100a010074100a0200a020100001100000000000000000000
 4804000034660356503564034640336402f6401a6401764014630106200f6200d6200c6200b6200b6100a6100c6100e6100f6100e6100d6100b61009610076100661004610036100261002610016100161000610
 00020000286302863027620246201762015610136101361013610126100e6100b6000861007610056100461003610016100060001600006000060000000000000000000000000000000000000000000000000000
 140200001a5441a5441a5441a53016030160301604016030160431753517535175251751516700000000000000000000000000000000000000000000000000002e705000002e1052e005000002e1052e70500000
-150400003435036050382403902000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-01050000322302f240312403225034240332303622039040390503905000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+140400003435036050382403902000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00050000322302f240312403225034240332303622039040390503905000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+480200001e650226500b250206400a2301c630196200b600096000760007600066000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+4c0200091a0301a7201a7201c0301a7301b7201b7301c0301b0300000000000000000000000000043000030000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __music__
 00 00044208
 00 00044108
