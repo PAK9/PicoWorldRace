@@ -1,8 +1,15 @@
 pico-8 cartridge // http://www.pico-8.com
 version 19
 __lua__
--- hello world
--- by zep
+
+-- This is the 'compression' of sprite and sprite pattern data for pwr.
+-- It produces strings containing a concatenation of the table values
+-- This actually takes more text than the table definitions but the token
+-- count is reduced. 
+
+-- The output files are spr.txt and sprp.txt
+-- The runtime strings are located in Spritedef.lua
+
 
 -- sprite definitions (the bottom of the sprite should be on the ground)
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.collidable
