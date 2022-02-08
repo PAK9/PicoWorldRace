@@ -1,3 +1,4 @@
+------------------ Particle.lua
 
 -- particle definitions
 -- 1.sx, 2.sy, 3.sw, 4.sh, 5.life 6.dx 7.dy 8.dsc 9. sc

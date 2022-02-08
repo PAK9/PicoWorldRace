@@ -1,3 +1,4 @@
+-- Trackdef.lua ---------------------------------------
 
 function BuildCustomTrack( lvl, ysc, cmax, seed )
 

@@ -1,3 +1,4 @@
+-- Spritedef.lua ---------------------------------------
 
 function StrToTable( str, stridx, num, stride )
     tbl={}

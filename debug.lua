@@ -1,3 +1,5 @@
+-- Debug.lua ---------------------------------------
+
 local DEBUG_PRINT = {}
 local DEBUG_PRINT_I = 1
 

@@ -1,3 +1,4 @@
+-- RenderUtils.lua ---------------------------------------
 
 local BAYER={ 0, 0x0208, 0x0A0A, 0x1A4A, 0x5A5A, 0xDA7A, 0xFAFA, 0xFBFE, 0xFFFF }
 

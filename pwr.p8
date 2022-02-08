@@ -4,9 +4,6 @@ __lua__
 -- P2
 -- by PAK-9
 
-function RenderFlag( x,y,lvl )
-    if lvl==1 then
-        --usa
 #include menus.lua
 #include particle.lua
 #include renderutils.lua
