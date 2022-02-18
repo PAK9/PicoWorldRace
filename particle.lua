@@ -16,12 +16,12 @@ PDEF = { { 67, 24, 5, 5, 0.5, -0.5,0.25, -0.05,  1 }, -- 1. drift left
          { 98, 25, 5, 5, 0.8, 0, -0.01, -0.05,  1 }, -- 11. menu sparkle left
 }
 
-local sPartic = {}
-local sParticT = {}
-local sParticSc = {}
-local sParticX = {}
-local sParticY = {}
-local NextPartic = 1
+sPartic = {}
+sParticT = {}
+sParticSc = {}
+sParticX = {}
+sParticY = {}
+NextPartic = 1
 
 function InitParticles()
     for i=1,40 do
