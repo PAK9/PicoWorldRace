@@ -8,11 +8,133 @@ __lua__
 #include particle.lua
 #include renderutils.lua
 #include sound.lua
-#include spritedef.lua
+--#include spritedef.lua --not necessary anymore if we leverage pico-8's own split string function as below
 #include trackdef.lua
 #include utility.lua
 #include profile.lua
 --#include debug.lua
+
+-- sprite definitions (the bottom of the sprite should be on the ground)
+-- 1.sx, 2.sy, 3.sw, 4.sh, 5.scalemin, 6.scalemax, 7.flip, 8.collidable
+SDEF=split([[
+ 48, 24, 8, 8, 1.4, 1.4, 0, 1 /
+ 48, 24, 8, 8, 1.4, 1.4, 1, 1 /
+ 57, 35, 7, 5, 0.4, 0.6, 0, 0 /
+ 56, 24, 10, 11, 2.5, 4.5, 0, 1 /
+ 48, 32, 8, 8, 0.5, 2, 0, 0 /
+ 0, 40, 16, 11, 4, 4, 0, 1 /
+ 0, 0, 32, 24, 1, 1, 0, 0 /
+ 36, 0, 36, 24, 1, 1, 0, 0 /
+ 36, 0, 36, 24, 1, 1, 1, 0 /
+ 23, 40, 7, 7, 1, 1, 0, 0 /
+ 122, 25, 6, 6, 1, 1, 0, 1 /
+ 103, 25, 18, 15, 1, 1, 0, 0 /
+ 103, 25, 18, 15, 1, 1, 1, 0 /
+ 30, 40, 5, 11, 0.6, 0.6, 0, 1 /
+ 35, 40, 5, 11, 0.6, 0.6, 0, 1 /
+ 40, 40, 5, 11, 0.6, 0.6, 0, 1 /
+ 45, 40, 12, 8, 1.2, 1.2, 0, 1 /
+ 45, 40, 12, 8, 1.2, 1.2, 1, 1 /
+ 57, 40, 8, 23, 1, 1, 0, 1 /
+ 57, 40, 8, 23, 1, 1, 1, 1 /
+ 65, 40, 10, 13, 1.8, 3, 0, 1 /
+ 65, 53, 20, 6, 3, 3, 0, 1 /
+ 75, 46, 4, 7, 0.6, 0.6, 0, 1 /
+ 75, 25, 9, 11, 2, 3.5, 0, 1 /
+ 91, 24, 6, 7, 1, 2, 0, 1 /
+ 86, 24, 4, 6, 0.2, 0.5, 0, 0 /
+ 85, 30, 6, 5, 0.4, 0.8, 0, 0 /
+ 76, 36, 8, 4, 0.2, 0.8, 0, 1 /
+ 84, 35, 5, 9, 0.9, 0.9, 0, 1 /
+ 84, 35, 5, 9, 0.9, 0.9, 1, 1 /
+ 89, 35, 9, 9, 4, 9, 0, 1 /
+ 85, 44, 8, 8, 1.1, 1.1, 0, 1 /
+ 85, 44, 8, 8, 1.1, 1.1, 1, 1 /
+ 86, 53, 6, 10, 2, 3, 0, 1 /
+ 94, 44, 3, 12, 0.4, 0.4, 0, 1 /
+ 97, 49, 23, 13, 2.5, 2.5, 0, 1 /
+ 0, 75, 5, 16, 1, 1, 1, 1 /
+ 0, 75, 5, 16, 1, 1, 0, 1 /
+ 5, 75, 8, 11, 0.6, 0.6, 0, 1 /
+ 13, 75, 3, 11, 0.4, 0.4, 0, 1 /
+ 17, 75, 6, 19, 0.4, 1, 0, 0 /
+ 24, 75, 15, 11, 0.4, 2.2, 0, 1
+ ]],"/")
+
+-- sprite pattern definitions
+-- when conflict first is used
+-- 1. SDEF, 2. interval, 3. interval offset, 4. minx (*roadw), 5. maxx (*roadw), 6. rand l/r
+SPDEF = {
+-- 1. Green raceway
+split(
+  [[
+  2, 6,0, 1.6, 1.6, 0 / 4, 4,0, 2, 8, 1 / 3, 2,1, 1.5, 2, 1 `
+  1, 6, 0, -1.6, -1.6, 0 / 4, 4,0, 2, 8, 1 / 3, 2,1, 1.5, 2, 1 `
+  4, 6,2, 1.5, 8, 1 / 5, 5,1, 2, 4, 1 / 3, 2,0, 1.4, 3, 1 `
+  6, 18,0, 2, 2, 0 / 4, 2,0, 1.5, 8, 1 / 5, 3,0, 2, 4, 1 / 3, 1,0, 1.4, 3, 1 `
+  14, 12, 0, -1.1, -1.1, 0 / 4, 6,2, 1.1, 4, 1 `
+  15, 8, 0,-1.1,-1.1, 0 / 16, 8, 1, 1.1, 1.1, 0 / 5, 5, 0, 2, 4, 1
+  ]]
+ ,"`"),
+ -- 2. Snowy
+ split(
+  [[
+  33, 6, 0, 1.4, 1.4, 0 / 34, 7, 0, 1.2, 8, 1 / 27, 6,0, 1.1, 2, 1 `
+  32, 6,0, -1.4, -1.4, 0 / 34, 7, 0, 1.2, 8, 1 / 27, 6,0, 1.1, 2, 1 `
+  35, 12, 0, -1.1, -1.1, 0 / 34, 7, 0, 1.2, 3, 1 `
+  36, 26, 0, 1.8, 4.5, 1 / 34, 7, 0, 1.2, 3, 1 / 28, 9, 0, 1.2, 3, 1
+  ]]
+ ,"`"),
+ -- 3. Japan
+ split(
+  [[
+  18, 6, 0, 1.6, 1.6, 0 / 21, 2, 0, 1.2, 8, 1 / 3, 1,0, 1.5, 2, 1 `
+  17, 6, 0, -1.6, -1.6, 0 / 21, 2, 0, 1.2, 8, 1 / 3, 1,0, 1.5, 2, 1 `
+  19, 6, 0, 1.05, 1.1, 0 / 20, 6, 1, -1.1, -1.1, 0 `
+  21, 5, 0, 1.5, 6, 1 } { 5, 5, 0, 2, 4, 1 / 3, 1,0, 1.4, 3, 1 `
+  15, 8, 0,-1.1,-1.1, 0 / 16, 8, 1, 1.1, 1.1, 0 / 5, 5, 0, 2, 4, 1 `
+  22, 8, 0, 4, 6, 1 / 21, 3, 0, 1.5, 6, 1 `
+  23, 6, 0, 1.2, 1.2, 0 / 23, 6, 2, -1.2, -1.2, 0 / 21, 7, 0, 1.5, 6, 1 `
+  19, 8, 0, 1.02, 1.02, 0 / 3, 5, 0, 2, 2, 1 `
+  20, 8, 0, -1.1, -1.1, 0 / 3, 5, 0, 2, 2, 1
+  ]]
+ ,"`"),
+ -- 4. Red desert
+ split(
+  [[
+  30, 7, 0, 1.6, 1.6, 0 / 27, 8, 0, 1.5, 2, 1 / 28, 5, 1, 2, 4, 1 `
+  29, 7, 0, -1.6, -1.6, 0 / 27, 8, 0, 1.5, 2, 1 / 28, 5, 1, 2, 4, 1 `
+  24, 12, 0, 1.5, 6, 1 } { 26, 5, 0, 1.2, 4, 1 / 28, 4,0, 1.4, 5, 1 `
+  25, 12, 0, 1.5, 6, 1 } { 26, 8, 2, 1.2, 4, 1 / 28, 6,1, 1.4, 5, 1 `
+  27, 6, 0, 1.6, 6, 1 `
+  31, 18, 0, 5, 9, 1 / 25, 20, 0, 1.5, 6, 1 } { 27, 8, 2, 1.2, 4, 1
+  ]]
+ ,"`"),
+-- 5. fun land
+ split(
+  [[
+  30, 7, 0, 1.6, 1.6, 0 / 41, 5, 0, 1, 1.5, 1 / 21, 8, 1.5, 2, 4, 1 `
+  29, 7, 0, -1.6, -1.6, 0 / 41, 5, 0, 1, 1.5, 1 / 21, 8, 1.5, 2, 4, 1 `
+  37, 8, 0, 1.02, 1.02, 0 / 41, 5, 0, 0.2, 2, 1 `
+  38, 8, 0, -1.1, -1.1, 0 / 41, 5, 0, 0.2, 2, 1 / 40, 10, 5, 1.2, 1.2, 1 `
+  39, 6, 0, -1.2, -1.2, 1 / 41, 8, 0, 0.5, 2, 1 `
+  42, 12, 0, 1.5, 2, 1 / 41, 8, 0, 0.5, 2, 1 / 40, 10, 5, 1.2, 1.2, 1
+  ]]
+ ,"`"),
+}
+
+function InitSpriteDef()
+  -- Sprite def
+  for i=1, #SDEF do SDEF[i]=split(SDEF[i]) end
+
+  for i=1, #SPDEF do
+   for j=1, #SPDEF[i] do SPDEF[i][j]=split(SPDEF[i][j],"/")
+    for k=1, #SPDEF[i][j] do SPDEF[i][j][k]=split(SPDEF[i][j][k]) end
+   end
+  end
+
+end
+
 
 -- music(0)
 
@@ -92,7 +214,7 @@ NFDEF = {{ 111, 116, 12, 11 },  -- 0
         { 59, 116, 12, 11 },
         { 72, 116, 12, 11 },
         { 85, 116, 12, 11 },
-        { 98, 116, 12, 11 }, -- 9 
+        { 98, 116, 12, 11 }, -- 9
         { 10, 104, 12, 11}} -- G (for the countdown)
 
 LastY = 0 -- last y height when building a track
@@ -172,7 +294,7 @@ function AddSprites( n, p )
                 sdi=sd[j]
                 if (#sSprite+sdi[3]) % sdi[2] == 0 then
                     -- SDEF, interval, interval offset, minx (*roadw), maxx (*roadw), rand l/r
-                    
+
                     xrand = 1
                     if sdi[6] == 1 and rnd( 30000 ) > 15000 then
                         xrand = -1
@@ -213,7 +335,7 @@ function AddCurve( enter, hold, exit, c, y, sprp )
 end
 
 function AddStraight( n, y, sprp )
-    
+
     AddSprites( n, sprp )
     for i=1,n do
         AddSeg( 0, easeinout( LastY, y, i/n ) )
@@ -257,11 +379,11 @@ function InitRace()
     TokenCollected=0
 
     EraseTrack()
-    BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] ) 
+    BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] )
     InitOps()
     RaceStateTimer = time()
     RaceState = 1
-    
+
     Position = SEG_LEN
     PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
     PlayerXd = 0
@@ -394,7 +516,7 @@ function UpdatePlayer()
         nposinseg=1-(PlayerSeg*SEG_LEN-(Position+PlayerVf ))/SEG_LEN
         nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
         PlayerYd = ( nground - ground ) - 0.2
-        
+
         PlayerAir = 0
     else
         PlayerYd=PlayerYd-0.25
@@ -427,11 +549,11 @@ function UpdatePlayer()
 end
 
 function UpdateRecover()
-    
+
     if RecoverStage == 0 then
         return
     else
-        
+
         t1=1.5
         t2=2.5
         t3=3.5
@@ -469,7 +591,7 @@ function UpdateRecover()
 end
 
 function UpdateOpts()
-    
+
     for i=1,#OpptPos do
 
         OpptPos[i]=OpptPos[i]+OpptV[i]
@@ -488,7 +610,7 @@ function UpdateOpts()
             end
             OpptV[i]=OpptV[i]+opspd
             OpptV[i]=OpptV[i]*0.92
-                        
+
             if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
                 OpptX[i] = min( max( OpptX[i] + 0.001 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
             end
@@ -526,7 +648,7 @@ function UpdateCollide()
            ( Position + PlayerVf ) < ( opposl + OpptV[i] ) and
             ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 12 and
             ( PlayerY-ground ) < 2 then
-        
+
             sfx( 7, 2 )
 
             PlayerVl = OpptV[i]
@@ -547,7 +669,7 @@ function UpdateCollide()
         if PlayerDrift != 0 then
             hitbox=0.25
         end
-        if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and 
+        if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and
             ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
             sTokensExist[nxtseg] = 0
             TokenCollected+=1
@@ -560,12 +682,12 @@ function UpdateCollide()
     end
 
     -- sprites
-    
+
     if SpriteCollideIdx > 0 then --and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
 
         sdef1=SDEF[SpriteCollideIdx]
         if sdef1[8]==1 then
-            
+
             -- work out the range of pixels in the source sprite that we overlap
             -- player is ~40-80px
             insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3];
@@ -687,7 +809,7 @@ end
 function HrzSprite( x, ssx, ssy, f )
     hsprdef=HORZSDEF[THEMEDEF[Theme][11]]
     ssy=ssy*hsprdef[6]
-    sspr( hsprdef[1],hsprdef[2],hsprdef[3],hsprdef[4], 
+    sspr( hsprdef[1],hsprdef[2],hsprdef[3],hsprdef[4],
         (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx*hsprdef[5] * 48, ssy * 16, f )
 end
 
@@ -714,7 +836,7 @@ function RenderSky()
 end
 
 function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
-    
+
     if yt - yb < 1 then
     return
     elseif yt - yb < 2 then
@@ -758,7 +880,7 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
     edgew2=w2*0.86
     RenderP4( x1-edgew1, x1-w1,x2-edgew2, x2-w2, y1, y2, col )
     RenderP4( x1+w1, x1+edgew1, x2+w2, x2+edgew2, y1, y2, col )
-  
+
     -- Road
     fillp(0)
     if thm[3] == 1 then
@@ -814,11 +936,11 @@ function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
             RenderP4( x1+w1*0.34, x1+w1*0.3, x2+w2*0.34, x2+w2*0.3, y1, y2, 9 )
         end
     end
-    
+
 end -- RenderSeg
 
 function _draw()
-	
+
     --cls()
     if TitleState == 1 then
         RenderMenus()
@@ -830,7 +952,7 @@ function _draw()
             RenderRoad()
             camera( 0, 0 )
             RenderRaceUI()
-            
+
             --[[
             if stat(1) < 0.65 then
                 DRAW_DIST+=1
@@ -908,7 +1030,7 @@ end
 
 function RenderRaceEndStanding()
     if RaceState != 3 then return end
-    
+
     if RaceStateTime() < 1 then
         clip( 0, 0, (RaceStateTime()*8)*128, 128 )
     elseif RaceStateTime() > 3 then
@@ -926,7 +1048,7 @@ function RenderRaceEndStanding()
 
     if RaceStateTime() > 3.6 then
         fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
-        BayerRectT( 0, 0, 128, 128, 0xE0, fade )    
+        BayerRectT( 0, 0, 128, 128, 0xE0, fade )
         if RaceStateTime() > 4.2 then
             RaceState = 4
         end
@@ -961,7 +1083,7 @@ function RenderSummaryUI()
     rectfill(0,78,64,90, 3)
     print( "time", 35, 82, 6 )
     sspr( 112, 41, 7, 7, 55, 81 ) -- clock
-    
+
     -- position text
     col=7
     if RaceCompletePos == 1 then
@@ -1002,14 +1124,14 @@ function RenderRaceUI()
 
     sspr( 0, 104, 7, 5, 38, 120 )
     print( TokenCollected, 49, 120, 6 )
-    print( "/" ..tostr(NumTokens), 57, 120, 5 )    
+    print( "/" ..tostr(NumTokens), 57, 120, 5 )
 
     for i=80, 124, 2 do
         y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
         y1=max(min(y1,121),115)
         -- top speed is ~17.5 m/s
         norm=(i-80)/(128-80)
-        
+
         col = 5
         if norm < PlayerVl/19 then
             if i < 104 then
@@ -1072,7 +1194,7 @@ function GetSpriteSSRect( s, x1, y1, w1, sc )
     else
         aspy = ssc*SDEF[s][4]/SDEF[s][3]
     end
-    
+
     rrect= { x1 - aspx * 0.5,
             y1 - aspy,
             aspx,
@@ -1086,7 +1208,7 @@ function RenderSpriteWorld( s, rrect, d )
 end
 
 function RenderSpriteRepeat( s, rrect, d, dx, dy, n )
-    
+
     for i=1,n do
         RenderSpriteWorld( s, rrect, d )
         rrect[1]=rrect[1]+rrect[3]*dx
@@ -1098,7 +1220,7 @@ end
 oopon=0
 
 function RenderRoad()
-       
+
     loopoff=0
 
     pscreenscale = {}
@@ -1117,7 +1239,7 @@ function RenderRoad()
     xoff = 0
     posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
     dxoff = - sPointsC[PlayerSeg] * posinseg
-   
+
     -- calculate projections
     hrzny=128
     hrzseg=DRAW_DIST
@@ -1155,12 +1277,12 @@ function RenderRoad()
     for i = DRAW_DIST - 1, 1, -1 do
 
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
-        
+
          if i+1== hrzseg then
             fillp(0)
             rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
         end
-        
+
         -- segments
         j=i+1
         if psy[i] > psy[j] and ( psy[i] >= hrzny ) then
@@ -1172,7 +1294,7 @@ function RenderRoad()
         end
 
         -- sprites
-        
+
         if sSprite[segidx] != 0 then
             psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
@@ -1189,7 +1311,7 @@ function RenderRoad()
             if i == 2 then
                 SpriteCollideRect = rrect
                 SpriteCollideIdx=sSprite[segidx]
-            end         
+            end
         end
 
         -- Start gantry
@@ -1206,7 +1328,7 @@ function RenderRoad()
                 psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 0.55 ) * 64));
                 rrect = GetSpriteSSRect( 12, psx1l, psy[i],psw[i], 1 )
                 RenderSpriteWorld( 12, rrect, d )
-                
+
                 rrect = GetSpriteSSRect( 13, psx1r, psy[i],psw[i], 1 )
                 RenderSpriteWorld( 13, rrect, d )
             end
@@ -1223,7 +1345,7 @@ function RenderRoad()
         -- opponents
         for o = 1,#OpptPos do
             if OpptSeg[o] == segidx then
-                
+
                 opsx=0
                 opsy=0
                 opsw=0
@@ -1237,9 +1359,9 @@ function RenderRoad()
                 opinseg=1-(OpptSeg[o]*SEG_LEN-OpptPos[o])/SEG_LEN
 
                 nxtseg = (OpptSeg[o]) % NumSegs + 1
-            
+
                 plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
-                
+
                 ppos=Position
                 if OpptLap[o] > PlayerLap then
                     ppos-=SEG_LEN*NumSegs
