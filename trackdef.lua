@@ -66,17 +66,15 @@ function BuildPreviewTrack()
     AddCurve(10,10,10,2,0,1)
 end
 
-function donothin() end
-
 function EraseTrack()
-    while(deli( sPointsX )!=null) donothin()
-    while(deli( sPointsY )!=null) donothin()
-    while(deli( sPointsZ )!=null) donothin()
-    while(deli( sPointsC )!=null) donothin()
-    while(deli( sTokensX )!=null) donothin()
-    while(deli( sTokensExist )!=null) donothin()
-    while(deli( sSprite )!=null) donothin()
-    while(deli( sSpriteX )!=null) donothin()
-    while(deli( sSpriteSc )!=null) donothin()
+    sPointsX={}
+    sPointsY={}
+    sPointsZ={}
+    sPointsC={}
+    sTokensX={}
+    sTokensExist={}
+    sSprite={}
+    sSpriteX={}
+    sSpriteSc={}
     NumSegs=0
 end
