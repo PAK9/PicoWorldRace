@@ -14,6 +14,9 @@ __lua__
 #include profile.lua
 --#include debug.lua
 
+-- numeric font definitions now uses pico-8 custom font
+font="8,8,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,240,248,252,28,28,0,0,0,15,31,63,56,56,0,0,0,192,192,192,128,128,0,0,0,3,3,3,3,3,0,0,0,252,252,252,0,240,0,0,0,15,31,63,56,63,0,0,0,252,252,252,0,252,0,0,0,15,31,63,56,63,0,0,0,224,240,120,60,28,0,0,0,28,28,28,28,28,0,0,0,252,252,252,28,252,0,0,0,63,63,63,0,15,0,0,0,240,248,252,28,252,0,0,0,31,31,31,0,15,0,0,0,240,248,252,28,0,0,0,0,15,31,63,56,56,28,28,28,252,248,240,0,0,56,56,56,63,31,15,0,0,128,128,128,128,128,128,0,0,3,3,3,3,3,3,0,0,248,252,28,252,252,252,0,0,31,15,0,63,63,63,0,0,252,252,0,252,252,252,0,0,63,63,56,63,31,15,0,0,28,252,248,0,0,0,0,0,28,63,63,28,28,28,0,0,252,252,0,252,252,252,0,0,31,63,56,63,31,15,0,0,252,252,28,252,248,240,0,0,31,63,56,63,31,15,0,0,0,0,0,0,128,128,0,0,56,60,30,15,7,3,0,0,0,0,0,240,248,252,28,252,0,0,0,15,31,63,56,63,0,0,0,240,248,252,28,252,0,0,0,15,31,63,56,63,0,0,0,240,248,252,28,156,0,0,0,63,63,63,0,63,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,252,252,28,252,248,240,0,0,63,63,56,63,31,15,0,0,252,248,0,248,248,248,0,0,63,63,56,63,63,31,0,0,156,156,28,252,248,240,0,0,63,63,56,63,63,63,0,0,0,0,0,0,0,0,0,0,0"
+
 -- music(0)
 
 Frame = 0
@@ -28,37 +31,37 @@ CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 -- horizon sprite def
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
 HORZSDEF = {
-{0, 24, 48, 16, 1, 1 }, -- 1. City
-{0, 52, 48, 11, 1.2, 0.8 }, -- 2. Mountain
-{0, 64, 45, 10, 1.2, 0.8 }, -- 3. Glacier
+split"0, 24, 48, 16, 1, 1" , -- 1. City
+split"0, 52, 48, 11, 1.2, 0.8 ", -- 2. Mountain
+split"0, 64, 45, 10, 1.2, 0.8 ", -- 3. Glacier
 }
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
 -- Road patterns: 1. alternating stripes 2. random patches
 -- Lane patterns: 1. edges 2. centre alternating 3. 3 lane yellow
 THEMEDEF = {
---    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
-    { 5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 }, -- 1. USA
-    { 5, 0x05, 1, 6, 0x6D, 6, 0x15, 3, 6, 12, 3 }, -- 2. Alaska
-    { 5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 }, -- 3. Japan
-    { 5, 0x25, 2, 2, 0x21, 5, 0x42, 3, 13, 2, 2 }, -- 4. Oz
-    { 4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 }, -- 5. kenya
-    { 5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 }, -- 6. Nepal
-    { 5, 0x51, 1, 5, 0x35, 6, 0x82, 1, 1, 0, 1 }, -- 7. Germany
-    { 13, 0xCD, 1, 2, 0x2E, 10, 0xBD, 3, 6, 14, 2 }, -- 8. Funland
-}
+  --    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
+  split"5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 ", -- 1. USA
+  split"5, 0x05, 1, 6, 0x6D, 6, 0x15, 3, 6, 12, 3 ",-- 2. Alaska
+  split"5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 ", -- 3. Japan
+  split"5, 0x25, 2, 2, 0x21, 5, 0x42, 3, 13, 2, 2 ", -- 4. Oz
+  split"4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 ", -- 5. kenya
+  split"5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 ", -- 6. Nepal
+  split"5, 0x51, 1, 5, 0x35, 6, 0x82, 1, 1, 0, 1 ", -- 7. Germany
+  split"13, 0xCD, 1, 2, 0x2E, 10, 0xBD, 3, 6, 14, 2 ", -- 8. Funland
+  }
 
--- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
-LEVELDEF={
-    { 1, 1, 0.5, 0.8, 1, "usa" },
-    { 4, 4, 0.8, 1, 4, "australia" },
-    { 2, 2, 1.1, 0.8, 8, "alaska" },
-    { 3, 3, 0.9, 1.1, 13, "japan" },
-    { 5, 4, 0.8, 1, 30, "kenya" },
-    { 6, 2, 1.2, 0.9, 14, "nepal" },
-    { 7, 1, 0.9, 1.2, 88, "germany" },
-    { 8, 5, 1.3, 1.4, 29, "funland" },
-}
+  -- 1. Theme 2. spr pattern 3. yscale 4. curvescale 5. seed 6. name
+  LEVELDEF={
+  split"1, 1, 0.5, 0.8, 1, usa ",
+  split"4, 4, 0.8, 1, 4, australia",
+  split"2, 2, 1.1, 0.8, 8, alaska",
+  split"3, 3, 0.9, 1.1, 13, japan",
+  split"5, 4, 0.8, 1, 30, kenya",
+  split"6, 2, 1.2, 0.9, 14, nepal",
+  split"7, 1, 0.9, 1.2, 88, germany",
+  split"8, 5, 1.3, 1.4, 29, funland"
+  }
 
 Theme = 1
 Level=1
@@ -81,19 +84,6 @@ sTokensX = {}
 sTokensExist = {}
 TokenCollected=0
 NumTokens = 0
-
--- numeric font definitions {sx,sy,sw,sh}
-NFDEF = {{ 111, 116, 12, 11 },  -- 0
-        { 2, 116, 4, 11 }, -- 1
-        { 7, 116, 12, 11 }, -- etc..
-        { 20, 116, 12, 11 },
-        { 33, 116, 12, 11 },
-        { 46, 116, 12, 11 },
-        { 59, 116, 12, 11 },
-        { 72, 116, 12, 11 },
-        { 85, 116, 12, 11 },
-        { 98, 116, 12, 11 }, -- 9
-        { 10, 104, 12, 11}} -- G (for the countdown)
 
 LastY = 0 -- last y height when building a track
 
@@ -281,6 +271,10 @@ function InitRace()
 end
 
 function _init()
+
+    --font initialization
+    memset(0x5600,0,256*8)
+    poke(0x5600,unpack(split(font)))
 
     LoadProfile()
     --EraseProfile()
@@ -845,21 +839,24 @@ function _draw()
     --DebugRender()
 end
 
-function PrintBigDigit( n, x, y, nrend )
-    i=n+1
-    if nrend == 0 then
-        sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y )
-    end
-    return x + NFDEF[i][3] + 1
+function PrintBigDigit( n, x, y,nrend)
+  x-=2
+  if not nrend then
+    poke(0x5f58, 0x1 | 0x80) --set custom font
+      n=n*2+16+n\8*16
+      print(chr(n)..chr(n+1).."\n"..chr(n+16)..chr(n+17),x,y-3,7) --uses 4 chars to print 1 big
+    poke(0x5f58, 0x0) --set default font
+  end
+  return 16
 end
 
 function PrintBigDigitOutline( n, x, y, col )
     i=n+1
     pal( 7, col )
-    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x-1, y )
-    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x+1, y )
-    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y-1 )
-    sspr( NFDEF[i][1], NFDEF[i][2], NFDEF[i][3], NFDEF[i][4], x, y+1 )
+    PrintBigDigit( n, x-1, y )
+    PrintBigDigit( n, x+1, y )
+    PrintBigDigit( n, x, y-1 )
+    PrintBigDigit( n, x, y+1 )
     pal( 7, 7 )
 end
 
@@ -884,26 +881,25 @@ function GetStandingSuffix(n)
 end
 
 function RenderCountdown()
-
-    if RaceState == 2 and RaceStateTime() < 1 then
-        frac=( time() - RaceStateTimer )%1
-        x=64-NFDEF[11][3]*0.5-8
-        PrintBigDigitOutline( 10,x,30, 0 )
-        PrintBigDigit( 10,x,30,0 )
-        x=x+16
-        PrintBigDigitOutline( 0,x,30, 0 )
-        PrintBigDigit( 0,x,30,0 )
-    elseif RaceState == 1 then
-        num= 3-flr( RaceStateTime() )
-        frac=( RaceStateTime() )%1
-        if num <= 0 then
-            return
-        elseif frac < 0.9 then
-            x=64-NFDEF[num+1][3]*0.5
-            PrintBigDigitOutline( num,x,30, 0 )
-            PrintBigDigit( num,x,30,0 )
-        end
-    end
+  if RaceState == 2 and RaceStateTime() < 1 then
+      frac=( time() - RaceStateTimer )%1
+      x=64-16
+      PrintBigDigitOutline( 10,x,30, 0 )
+      PrintBigDigit( 10,x,30)
+      x=x+16
+      PrintBigDigitOutline( 0,x,30, 0 )
+      PrintBigDigit( 0,x,30)
+  elseif RaceState == 1 then
+      num= 3-flr( RaceStateTime() )
+      frac=( RaceStateTime() )%1
+      if num <= 0 then
+          return
+      elseif frac < 0.9 then
+          x=64-8
+          PrintBigDigitOutline( num,x,30, 0 )
+          PrintBigDigit( num,x,30)
+      end
+  end
 end
 
 function RenderRaceEndStanding()
@@ -916,7 +912,7 @@ function RenderRaceEndStanding()
     end
     rectfill( 0, 25, 128, 49, 1 )
     tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
-    PrintBigDigit( RaceCompletePos, 64-(tw*0.5+4), 32, 0 )
+    PrintBigDigit( RaceCompletePos, 64-(tw*0.5+4), 32)
     print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-3, 32, 7 )
 
     sspr( 121, 32, 7, 19, 64-(tw+8+7), 27, 7, 19, true )
@@ -993,14 +989,14 @@ function RenderRaceUI()
     rect( 1, 112, 126, 126, 13 )
 
     stand=GetPlayerStanding()
-    strlen=PrintBigDigit( GetPlayerStanding(), 3, 114, 0 )
+    strlen=PrintBigDigit( GetPlayerStanding(), 3, 114)
     print( GetStandingSuffix(stand), strlen+1, 114, 7 )
 
-    sspr( 0, 110, 9, 5, 37, 114 )
+    sspr( 118, 123, 9, 5, 37, 114 )
     print( min(PlayerLap, NUM_LAPS), 49, 114, 6 )
     print( "/"..tostr(NUM_LAPS), 57, 114, 5 )
 
-    sspr( 0, 104, 7, 5, 38, 120 )
+    sspr( 119, 118, 7, 5, 38, 120 )
     print( TokenCollected, 49, 120, 6 )
     print( "/" ..tostr(NumTokens), 57, 120, 5 )
 
@@ -1280,15 +1276,6 @@ function RenderRoad()
     end
 end -- RenderRoad
 
-
-
-
-
-
-
-
-
-
 __gfx__
 fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffe1eeeeeeeeeeeeeeeeeeffffffffffffffffffffff
 ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dfffffffffffffffffffff1dddd1eeeeee55555555dddddffffffffffffffffffff
@@ -1391,33 +1378,33 @@ ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0007007000
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
-fffffffffffffffffffffffffff0000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
-ffffffffffffffffffffffffff0999999999999999905566556655665566556655665566f56fff6fffffffffffffffffffffffffffffffffffffff3337337333
-ffffffffffffffffffffffffff091199199119911990556655665566f566f5f6f5f6f5f6ffffffffffffffffffffffffffffffffffffffffffffff3333333333
-aaa5aaafffff7777777777ffff091919191999199190665566556655665566556655665f6f5fff5fffffffffffffffffffffffffffffaaaccccccc0000000000
-aa585aaffff77777777777ff000911991919991991900000000000f566f5f600000006f5000000fff000000fff0000000fffffffffffaacc77cccc0000000000
-a597e5afff777777777777f09999199919911991199999990099990ff00ff0aaaaaaa0f0aaaaaa0f0aaaaaa0f0aaaaaaa0ffffffffffaccccc7ccc8888888888
-aa5c5aafff777ffffffffff0999999999999999999999990ee09990f0ee0f0aaaaaaaa0aaaaaaaa0aaaaaaaa0aaaaaaaa0ffffffffffccccc7cccc8888888888
-aaa5aaafff777ff7777777ff000000000000000000000000ee0000000ee0ff000000aa0aa0000aa0aa0000aa0aa000000fffffffffffccccccccca8888888888
-ffffffffff777ff7777777ff0ee0ee0ee00eeeee0f0eeee0ee00eeee0ee0f0aaaaaaaa0aa0000aa0aa0fff000aaaaaa0ffffffffffffccccc7ccaaaaaaaaaaaa
-feeeeeeeff777ff7777777ff0ee0ee0ee0eeeeeee0eeeee0ee0eeeee0ee0f0aaaaaaa00aa0aaaaa0aa0fff000aaaaaa0ffffffffffffcccccccaaaaaaaaaaaaa
-efffffffef777ffffff777ff0ee0ee0ee0ee000ee0ee0000ee0ee0000ee0f0aa000aa00aa0aaaaa0aa0000aa0aa000000fffffffffffffffffffffffffffffff
-efffefffef777777777777ff0eeeeeeee0eeeeeee0ee0ff0ee0eeeeeeee0f0aa0ff0aa0aa0000aa0aaaaaaaa0aaaaaaaa0ffffffffffffffffffffffffffffff
-feeffefefff77777777777fff0eeeeee0f0eeeee00ee0ff0ee00eeeeeee0f0aa0ff0aa0aa0ff0aa00aaaaaa0f0aaaaaaa0ffffffffffffffffffffffffffffff
-ffffefffffff7777777777ffff000000fff00000ff00ffff00ff0000000fff00ffff00f00ffff00ff000000fff0000000fffffffffffffffffffffffffffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-ff7777f7777777777fff7777777777ffffff777ff777ff777777777777fff777777777ffff77777777fffff77777777fffff77777777fffff77777777fffffff
-ff7777f77777777777ff77777777777ffff7777ff777ff777777777777ff7777777777fff7777777777fff7777777777fff7777777777fff7777777777ffffff
-ff7777f777777777777f777777777777ff7777fff777ff777777777777f77777777777ff777777777777f777777777777f777777777777f777777777777fffff
-fff777ffffffffff777ffffffffff777f7777ffff777ff777ffffffffff777ffffffffff777ffffff777f777ffffff777f777ffffff777f777ffffff777fffff
-fff777fff7777777777f777777777777f777fffff777ff7777777777fff7777777777ffffffffffff777f777777777777f777777777777f777ffffff777fffff
-fff777ff7777777777ff777777777777f777fffff777ff77777777777ff77777777777fffffffffff777f777777777777f777777777777f777ffffff777fffff
-fff777f7777777777fff777777777777f777777777777f777777777777f777777777777fffffffff7777f777777777777ff77777777777f777ffffff777fffff
-fff777f777fffffffffffffffffff777ff77777777777ffffffffff777f777ffffff777ffffffff7777ff777ffffff777ffffffffff777f777ffffff777fffff
-fff777f777777777777f777777777777fffffffff777ff777777777777f777777777777fffffff7777fff777777777777ff77777777777f777777777777fffff
-fff777f777777777777f77777777777ffffffffff777ff77777777777fff7777777777fffffff7777fffff7777777777fff77777777777ff7777777777ffffff
-fff777f777777777777f7777777777fffffffffff777ff7777777777fffff77777777ffffffff777fffffff77777777ffff7777777777ffff77777777fffffff
-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888778888
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3337337333
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3333333333
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888888888
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888888888
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8888888888
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffaaaaaaaaaa
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffaaaaaaaaaa
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffaaaccccccc
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffaacc77cccc
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffaccccc7ccc
+fffffffffffffffffffffffffffffffffffffffffffffff0000000000000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffccccc7cccc
+ffffffffffffffffffffffffffffffffffffffffffffff0999999999999999905566556655665566556655665566f56fff6fffffffffffffffffffccccccccca
+ffffffffffffffffffffffffffffffffffffffffffffff091199199119911990556655665566f566f5f6f5f6f5f6ffffffffffffffffffffffffffccccc7ccaa
+ffffffffffffffffffffffffffffffffffffffffffffff091919191999199190665566556655665566556655665f6f5fff5fffffffffffffffffffcccccccaaa
+ffffffffffffffffffffffffffffffffffffffffffff000911991919991991900000000000f566f5f600000006f5000000fff000000fff0000000ffaaa5aaaff
+fffffffffffffffffffffffffffffffffffffffffff09999199919911991199999990099990ff00ff0aaaaaaa0f0aaaaaa0f0aaaaaa0f0aaaaaaa0faa585aaff
+fffffffffffffffffffffffffffffffffffffffffff0999999999999999999999990ee09990f0ee0f0aaaaaaaa0aaaaaaaa0aaaaaaaa0aaaaaaaa0fa597e5aff
+ffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000ee0000000ee0ff000000aa0aa0000aa0aa0000aa0aa000000ffaa5c5aaff
+ffffffffffffffffffffffffffffffffffffffffffff0ee0ee0ee00eeeee0f0eeee0ee00eeee0ee0f0aaaaaaaa0aa0000aa0aa0fff000aaaaaa0fffaaa5aaaff
+ffffffffffffffffffffffffffffffffffffffffffff0ee0ee0ee0eeeeeee0eeeee0ee0eeeee0ee0f0aaaaaaa00aa0aaaaa0aa0fff000aaaaaa0fffeeeeeeeff
+ffffffffffffffffffffffffffffffffffffffffffff0ee0ee0ee0ee000ee0ee0000ee0ee0000ee0f0aa000aa00aa0aaaaa0aa0000aa0aa000000fefffffffef
+ffffffffffffffffffffffffffffffffffffffffffff0eeeeeeee0eeeeeee0ee0ff0ee0eeeeeeee0f0aa0ff0aa0aa0000aa0aaaaaaaa0aaaaaaaa0efffefffef
+fffffffffffffffffffffffffffffffffffffffffffff0eeeeee0f0eeeee00ee0ff0ee00eeeeeee0f0aa0ff0aa0aa0ff0aa00aaaaaa0f0aaaaaaa0feeffefeff
+ffffffffffffffffffffffffffffffffffffffffffffff000000fff00000ff00ffff00ff0000000fff00ffff00f00ffff00ff000000fff0000000fffffefffff
 __label__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
