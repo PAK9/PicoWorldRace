@@ -30,7 +30,7 @@ function RenderFlag( x,y,lvl )
         sspr( 118, 104, 10, 7, x, y )
     elseif lvl==8 then
         -- funland
-        sspr( 108, 104, 10, 7, x, y )
+        sspr( 118, 111, 10, 7, x, y )
     else
         assert( false )
     end
@@ -64,7 +64,7 @@ function PrintTime( secs,x,y )
 end
 
 function BestParticles( x, y )
-    
+
     srand(Frame+x)
     if (Frame+x)%60==0 then
         AddParticle( 10, x+rnd(8), y+rnd(5) )
@@ -93,7 +93,7 @@ function RenderMenu_Campaign()
     rect( 12, 25, 116, 87, 1 )
 
     -- logo
-    sspr( 23, 101, 75, 14, 27, 5 )
+    sspr( 43, 114, 75, 14, 27, 5 )
 
     -- car
     sspr( 49, 64, 62, 30, 38, 96 )
@@ -137,7 +137,7 @@ function RenderMenu_Campaign()
         rectfill( 82, 41, 112, 64, 3 )
         sspr( 112, 41, 7, 7, 94, 44 ) -- clock
         PrintTime( ReadProfile(Level,3), 84, 57 )
-    
+
         --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
         print( " \142  race", 38, 70, 6 )
     else
