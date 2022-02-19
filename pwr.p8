@@ -31,11 +31,10 @@ CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 -- horizon sprite def
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
 HORZSDEF = {
-{0, 24, 48, 16, 1, 1 }, -- 1. City
-{0, 52, 48, 11, 1.2, 0.8 }, -- 2. Mountain
-{0, 64, 45, 10, 1.2, 0.8 }, -- 3. Glacier
+split"0, 24, 48, 16, 1, 1" , -- 1. City
+split"0, 52, 48, 11, 1.2, 0.8 ", -- 2. Mountain
+split"0, 64, 45, 10, 1.2, 0.8 ", -- 3. Glacier
 }
-
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
 -- Road patterns: 1. alternating stripes 2. random patches
