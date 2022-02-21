@@ -65,6 +65,7 @@ THEMEDEF = {
 
 Theme = 1
 Level=1
+IsCustomRace=0
 
 NumSegs = 0
 sPointsX = {}
@@ -233,7 +234,7 @@ function MenuRestart()
 end
 
 function MenuQuit()
-    OpenMenu(2)
+    OpenMenu(MenuState)
 end
 
 function InitRace()
@@ -247,7 +248,11 @@ function InitRace()
     TokenCollected=0
 
     EraseTrack()
-    BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] )
+    if IsCustomRace==1 then
+        BuildCustomTrack( CustomLevel, CT_HILLS[CustomHills], CT_CURVES[CustomCurves], CustomSeed )
+    else
+        BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] )
+    end
     InitOps()
     RaceStateTimer = time()
     RaceState = 1
@@ -287,7 +292,7 @@ function _init()
 
     InitParticles()
 
-    OpenMenu(2)
+    OpenMenu(3)
 
     --InitRace()
 
@@ -659,7 +664,7 @@ function UpdateRace()
         UpdateRaceState()
     else
         if btnp(4) then -- btn1
-            OpenMenu(2)
+            OpenMenu(MenuState)
         elseif btnp(5) then --btn2
             InitRace()
         end
@@ -1347,11 +1352,11 @@ ffffff6ddddddddddddcddd7676ddd67dffffffffffffffffff00000000eee5111eeeee000011115
 fffff76ddddddddddddc66dd6d6c66cc65dddfffffffffffff00000000eee5dddd1e1115555555555dddd1fffffffffffffffffffffffffff1991f1676111611
 fffff7556dddddddddc6c7d77d5d6666cdddddfffffffffff0000000eeee5ed1ddd111d555ddddddddddddd1fffffffffffffffffffffffff191ff1161111111
 ffffc766666d6ddddd76c667cddd7d666dd5d5dffffffffffe8eeeeeeee5edddddd111ddddddddddddddddddd1fffffffffffffffffffffff11fff6161688888
-ff777cdddd6dd6ddddc777757c656dd66c6dd55ffffffffff8e8e8eeee05dd5ddddd11ddddddddddddddddddddd1ffffffffffffffffffffffffff1616177777
-fd76dddd666ddddddd67c77677d666dd6cc66d55dffffffffe8e8e8e8e5ed555ddddd11ddddddddddddddddddddd11ffffffffffffffffffffffff6161688888
-7777cdddddddd677c6c77c7777cdd666666d6dd1dddffffff8e8e010e8e8111555ddd11dddddddddddddddddddd55511ffffffffffffffffffffff1616177777
-c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddffffe1e05010e8e8e8111d5dd11dddddddd5555555111eeeeeeeeffffffffffffffffffff8888888888
-fffffffffffffffffffffffffffffffffffffffffffffffff120101010e8e1e8e8111d11ddddd555111eeee44444eeeeeeeeffffffffffffffffff7777777777
+ff777cdddd6dd6ddddc777757c656dd66c6dd55ffffffffff8e8e8eeee05dd5ddddd11ddddddddddddddddddddd1fffffffffffffffffffffff1ff1616177777
+fd76dddd666ddddddd67c77677d666dd6cc66d55dffffffffe8e8e8e8e5ed555ddddd11ddddddddddddddddddddd11fffffffffffffffffffff71f6161688888
+7777cdddddddd677c6c77c7777cdd666666d6dd1dddffffff8e8e010e8e8111555ddd11dddddddddddddddddddd55511fffffffffffffffffffaa11616177777
+c6c776dc6dddddd7cc76dd777666d5d666ccc66ddddddffffe1e05010e8e8e8111d5dd11dddddddd5555555111eeeeeeeefffffffffffffffff91f8888888888
+fffffffffffffffffffffffffffffffffffffffffffffffff120101010e8e1e8e8111d11ddddd555111eeee44444eeeeeeeefffffffffffffff1ff7777777777
 5aaa8f555566ff7fff888fffffffff55fff55fffff55fffff2100101108e851e8e8e11115111eeee44444eeeeeeeeeeeeeeeeeffffffffffffffff8888888888
 5aa8859aaaaa5778f88788fffffff588555885fff5675ffff150106d5001e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffffffffffff1111111111
 5a88c595aa5a6788f88878fffffff588585885ff565575fff01005561102121e8e8e8e8e8eeeeeeeeeeeeeeeeeeeeeeeeeeee2eeeeffffffffffff1111111191

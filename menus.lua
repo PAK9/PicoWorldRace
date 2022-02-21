@@ -2,11 +2,28 @@
 
 -- 1. Title 2. Campaign 3. Custom race
 -- (not implemented)
-MenuState=2
+MenuState=3
 
 MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
 
+-- 1. Level/Theme 2. Hills 3. Curves 4. Seed
+CustomOption=1
+CustomLevel=1
+-- 1. Low 2. Medium 3. High 4. Extreme
+CustomHills=1
+-- 1. Low 2. Medium 4. High 4. Extreme
+CustomCurves=1
+CustomSeed=1
+
+CUSTOM_SETSTR={ "low", "medium", "high", "extreme" }
+
+function SetLevel( n )
+    Level=n
+    Theme=LEVELDEF[Level][1]
+end
+
 function RenderFlag( x,y,lvl )
+    -- TODO: Stick these sprite defs into a table to save some tokens
     if lvl==1 then
         --usa
         sspr( 118, 69, 10, 7, x, y )
@@ -74,21 +91,17 @@ end
 -- Campaign
 function UpdateMenu_Campaign()
     if btnp(0) then -- left
-        Level=max(Level-1,1)
-        Theme=LEVELDEF[Level][1]
+        SetLevel( max(Level-1,1) )
         BuildPreviewTrack()
     elseif btnp(1) then -- right
-        Level=min(Level+1,#LEVELDEF)
-        Theme=LEVELDEF[Level][1]
+        SetLevel( min(Level+1,#LEVELDEF) )
         BuildPreviewTrack()
     elseif btnp(4) and CountProfileTokens() >= MenuLvlTokenReq[Level] then -- btn1
         InitRace()
     end
 end
 
-function RenderMenu_Campaign()
-
-    fillp(0)
+function RenderMenu_BG()
     rectfill( 13, 26, 115, 86, 13 )
     rect( 12, 25, 116, 87, 1 )
 
@@ -97,6 +110,11 @@ function RenderMenu_Campaign()
 
     -- car
     sspr( 49, 64, 62, 30, 38, 96 )
+end
+
+function RenderMenu_Campaign()
+
+    RenderMenu_BG()    
 
     -- Country
     RenderFlag( 43, 29, Level )
@@ -161,25 +179,82 @@ function RenderMenu_Campaign()
 
 end
 
-function RenderMenus()
-    if MenuState==2 then
-        RenderSky()
-        RenderHorizon()
-        RenderRoad()
-        RenderMenu_Campaign()
-        RenderParticles()
+function RenderMenu_Custom()
+    RenderMenu_BG()
+    RenderTextOutlined( "custom race", 42, 30, 0, 7 )
+
+    -- cursor
+    xoff=(flr(time()*3  )%2)
+    ypos=33 + CustomOption * 8
+    rectfill( 68, ypos-1, 104, ypos+5, 1 )
+    sspr( 115, 70, 3, 5, 64-xoff, ypos, 3, 5, 1 )
+    sspr( 115, 70, 3, 5, 106+xoff, ypos )
+
+    -- Level/Theme
+    print( "country", 29, 41, 6 )
+    print( LEVELDEF[CustomLevel][6], 65, 41, 7 )
+
+    -- Hills
+    print( "hills", 37, 49, 6 )
+    print( CUSTOM_SETSTR[CustomHills], 69, 49, 7 )
+
+    -- Curves
+    print( "curves", 33, 57, 6 )
+    print( CUSTOM_SETSTR[CustomCurves], 69, 57, 7 )
+
+    -- Seed
+    print( "seed", 41, 65, 6 )
+    print( CustomSeed, 69, 65, 7 )
+
+    print( " \142 race", 48, 78, 6 )
+end
+
+function UpdateMenu_Custom()
+    if btnp(0) or btnp(1) then -- left/right
+        if btnp(0) then dir=-1 else dir=1 end
+        if CustomOption==1 then
+            CustomLevel=max(min(CustomLevel+dir,#LEVELDEF),1)
+            SetLevel( CustomLevel )
+        elseif CustomOption==2 then
+            CustomHills=max(min(CustomHills+dir,4),1)
+        elseif CustomOption==3 then
+            CustomCurves=max(min(CustomCurves+dir,4),1)
+        else --if CustomOption==4 then
+            CustomSeed=max(min(CustomSeed+dir,100),1)
+        end
+    elseif btnp(2) then -- up
+        CustomOption=max( CustomOption-1, 1 )
+    elseif btnp(3) then -- down
+        CustomOption=min( CustomOption+1, 4 )
+    elseif btnp(4) then -- btn 1
+        IsCustomRace=1
+        InitRace()
     end
 end
 
-function OpenMenu( i )
-    if i == 2 then
-        -- campaign
-        BuildPreviewTrack()
-        Position = SEG_LEN
-        PlayerX = 0
-        PlayerY = 0
-        UpdatePlayer()
+function RenderMenus()
+    
+    RenderSky()
+    RenderHorizon()
+    RenderRoad()
+    fillp(0)
+    if MenuState==2 then
+        RenderMenu_Campaign()
+    elseif MenuState==3 then
+        RenderMenu_Custom()
     end
+    RenderParticles()
+
+end
+
+function OpenMenu( i )
+    
+    BuildPreviewTrack()
+    Position = SEG_LEN
+    PlayerX = 0
+    PlayerY = 0
+    UpdatePlayer()
+    
     MenuState=i
     TitleState=1
     menuitem(1)
@@ -189,6 +264,8 @@ end
 function UpdateMenus()
     if MenuState==2 then
         UpdateMenu_Campaign()
+    elseif MenuState==3 then
+        UpdateMenu_Custom()
     end
     UpdateParticles()
 end
