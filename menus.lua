@@ -2,7 +2,7 @@
 
 -- 1. Title 2. Campaign 3. Custom race
 -- (not implemented)
-MenuState=3
+MenuState=1
 
 MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
 
@@ -14,6 +14,8 @@ CustomHills=1
 -- 1. Low 2. Medium 4. High 4. Extreme
 CustomCurves=1
 CustomSeed=1
+
+TitleOption=1
 
 CUSTOM_SETSTR={ "low", "medium", "high", "extreme" }
 
@@ -232,13 +234,31 @@ function UpdateMenu_Custom()
     end
 end
 
+function RenderMenu_Title()
+    RenderMenu_BG()
+
+    sspr( 111, 76, 7, 7, 15, 37 )
+    print( "world tour", 29, 41, 6 )
+
+    sspr( 111, 83, 7, 7, 15, 45 )
+    print( "custom race", 29, 49, 6 )
+
+    print( " \142 select", 48, 78, 6 )
+
+end
+
+function UpdateMenu_Title()
+end
+
 function RenderMenus()
     
     RenderSky()
     RenderHorizon()
     RenderRoad()
     fillp(0)
-    if MenuState==2 then
+    if MenuState==1 then
+        RenderMenu_Title()
+    elseif MenuState==2 then
         RenderMenu_Campaign()
     elseif MenuState==3 then
         RenderMenu_Custom()
@@ -262,7 +282,9 @@ function OpenMenu( i )
 end
 
 function UpdateMenus()
-    if MenuState==2 then
+    if MenuState==1 then
+        UpdateMenu_Title()
+    elseif MenuState==2 then
         UpdateMenu_Campaign()
     elseif MenuState==3 then
         UpdateMenu_Custom()
