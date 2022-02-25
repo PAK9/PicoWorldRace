@@ -1,10 +1,12 @@
 -- Menus.lua ---------------------------------------
 
--- 1. Title 2. Campaign 3. Custom race
--- (not implemented)
+-- 1. Title 2. Campaign 3. Custom race (not implemented)
 MenuState=2
 
-MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
+MenuLvlTokenReq=split"0,0,0,0,0,60,80,120"
+
+pd_car={"G@I\\O\0CaIQH\0GFIhTᵉGXb{UᵉMbd@RᵉMaJ|WᵉF@MESᵉC]HLIᵉC`ey`\0C`dz_\0Cacx_²Ccbz^²MJTXZ²MW^K[²C@TAR²M^\\`c²M`bz]☉MUSf^☉C`cy_▒Cabz^▒CcJmP■GPJgR\rM`KlP\rMNJKO\rMVLbJ⁵MNK`Q\rC|Yc^¹GLNNP⁵C|Xc]¹M@MXV☉C|Zc_¹C|Yc^✽C|Xc]✽C{Zc_✽ClPYS¹CiPXSしCSKWS¹CSLWS¹CRLWQ¹CKPXS¹CKNJO¹CLRMS¹CNLNL¹CQKNJ■C\\JRK¹C@V\\b⁵C@T\\`⁵GBPHX\0MIZAU\0CUJXJ\0M\\Y^b\0GWX]b\0CAW_d\0C@V_c\0BX\\\\b⁵BY_[b\rBDUFX\rBDRGYUCRJRKᵉMJTYZ▒GIX@QねM\\aLZ▒M]\\bc▒K_=▒░⁸Ff]i^⁷Ci]i]⁴Ch]i^	Ff]g^vCy\\e`\0Cz[e_\0Cda{\\☉CfXiY²CaXbX²CbYfZ²CuUwVBCwWvW²CqVtW²C_ScS⁴CfRjR⁴CMJJM⁵CTQNPECLSLS⁵"}
+pd_root={}
 
 function RenderFlag( x,y,lvl )
     if lvl==1 then
@@ -96,7 +98,8 @@ function RenderMenu_Campaign()
     sspr( 43, 114, 75, 14, 27, 5 )
 
     -- car
-    sspr( 49, 64, 62, 30, 38, 96 )
+    --sspr( 49, 64, 62, 30, 38, 96 )
+    pd_draw( 1, 38, 88)
 
     -- Country
     RenderFlag( 43, 29, Level )
@@ -138,7 +141,6 @@ function RenderMenu_Campaign()
         sspr( 112, 41, 7, 7, 94, 44 ) -- clock
         PrintTime( ReadProfile(Level,3), 84, 57 )
 
-        --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
         print( " \142  race", 38, 70, 6 )
     else
         sspr( 39, 75, 8, 11, 30, 44 ) -- lock
