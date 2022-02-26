@@ -5,7 +5,6 @@ MenuState=2
 
 MenuLvlTokenReq=split"0,0,0,0,0,60,80,120"
 
-pd_car={"G@I\\O\0CaIQH\0GFIhTᵉGXb{UᵉMbd@RᵉMaJ|WᵉF@MESᵉC]HLIᵉC`ey`\0C`dz_\0Cacx_²Ccbz^²MJTXZ²MW^K[²C@TAR²M^\\`c²M`bz]☉MUSf^☉C`cy_▒Cabz^▒CcJmP■GPJgR\rM`KlP\rMNJKO\rMVLbJ⁵MNK`Q\rC|Yc^¹GLNNP⁵C|Xc]¹M@MXV☉C|Zc_¹C|Yc^✽C|Xc]✽C{Zc_✽ClPYS¹CiPXSしCSKWS¹CSLWS¹CRLWQ¹CKPXS¹CKNJO¹CLRMS¹CNLNL¹CQKNJ■C\\JRK¹C@V\\b⁵C@T\\`⁵GBPHX\0MIZAU\0CUJXJ\0M\\Y^b\0GWX]b\0CAW_d\0C@V_c\0BX\\\\b⁵BY_[b\rBDUFX\rBDRGYUCRJRKᵉMJTYZ▒GIX@QねM\\aLZ▒M]\\bc▒K_=▒░⁸Ff]i^⁷Ci]i]⁴Ch]i^	Ff]g^vCy\\e`\0Cz[e_\0Cda{\\☉CfXiY²CaXbX²CbYfZ²CuUwVBCwWvW²CqVtW²C_ScS⁴CfRjR⁴CMJJM⁵CTQNPECLSLS⁵"}
 pd_root={}
 
 function RenderFlag( x,y,lvl )
@@ -98,8 +97,7 @@ function RenderMenu_Campaign()
     sspr( 43, 114, 75, 14, 27, 5 )
 
     -- car
-    --sspr( 49, 64, 62, 30, 38, 96 )
-    pd_draw( 1, 38, 88)
+    pd_draw(1,38,88)
 
     -- Country
     RenderFlag( 43, 29, Level )
