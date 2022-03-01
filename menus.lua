@@ -145,7 +145,7 @@ function RenderMenu_Campaign()
         sspr( 39, 75, 8, 11, 91, 44 ) -- lock
         print( "race locked", 43, 48, 9 )
 
-        sspr( 0, 104, 7, 5, 36, 62 ) -- lock
+        sspr( 23, 40, 7, 7, 36, 61 ) -- token
         print( tostr(TotalTkns).."/".. tostr(MenuLvlTokenReq[Level]) .. " tokens", 46, 62, 6 )
     end
     print( "\139\145 country", 38, 77, 6 )
