@@ -1,7 +1,6 @@
 -- Menus.lua ---------------------------------------
 
 -- 1. Title 2. Campaign 3. Custom race
--- (not implemented)
 MenuState=1
 
 MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
@@ -22,6 +21,7 @@ CUSTOM_SETSTR={ "low", "medium", "high", "extreme" }
 function SetLevel( n )
     Level=n
     Theme=LEVELDEF[Level][1]
+    BuildPreviewTrack()
 end
 
 function RenderFlag( x,y,lvl )
@@ -94,18 +94,18 @@ end
 function UpdateMenu_Campaign()
     if btnp(0) then -- left
         SetLevel( max(Level-1,1) )
-        BuildPreviewTrack()
     elseif btnp(1) then -- right
         SetLevel( min(Level+1,#LEVELDEF) )
-        BuildPreviewTrack()
     elseif btnp(4) and CountProfileTokens() >= MenuLvlTokenReq[Level] then -- btn1
         InitRace()
+    elseif btn(5) then -- btn 2
+        OpenMenu(1)
     end
 end
 
-function RenderMenu_BG()
-    rectfill( 13, 26, 115, 86, 13 )
-    rect( 12, 25, 116, 87, 1 )
+function RenderMenu_BG( y, h )
+    rectfill( 13, y, 115, h, 13 )
+    rect( 12, y-1, 116, h+1, 1 )
 
     -- logo
     sspr( 43, 114, 75, 14, 27, 5 )
@@ -116,7 +116,7 @@ end
 
 function RenderMenu_Campaign()
 
-    RenderMenu_BG()    
+    RenderMenu_BG(25,92)    
 
     -- Country
     RenderFlag( 43, 29, Level )
@@ -165,10 +165,11 @@ function RenderMenu_Campaign()
         sspr( 39, 75, 8, 11, 91, 44 ) -- lock
         print( "race locked", 43, 48, 9 )
 
-        sspr( 0, 104, 7, 5, 36, 62 ) -- lock
+        sspr( 23, 40, 7, 7, 36, 61 ) -- token
         print( tostr(TotalTkns).."/".. tostr(MenuLvlTokenReq[Level]) .. " tokens", 46, 62, 6 )
     end
     print( "\139\145 country", 38, 77, 6 )
+    print( "\151  back", 42, 84, 6 )
 
     -- arrows
     xoff=sin(time())*1.2
@@ -182,33 +183,34 @@ function RenderMenu_Campaign()
 end
 
 function RenderMenu_Custom()
-    RenderMenu_BG()
-    RenderTextOutlined( "custom race", 42, 30, 0, 7 )
+    RenderMenu_BG(24,92)
+    RenderTextOutlined( "custom race", 42, 29, 0, 7 )
 
     -- cursor
     xoff=(flr(time()*3  )%2)
-    ypos=33 + CustomOption * 8
+    ypos=32 + CustomOption * 8
     rectfill( 68, ypos-1, 104, ypos+5, 1 )
     sspr( 115, 70, 3, 5, 64-xoff, ypos, 3, 5, 1 )
     sspr( 115, 70, 3, 5, 106+xoff, ypos )
 
     -- Level/Theme
-    print( "country", 29, 41, 6 )
-    print( LEVELDEF[CustomLevel][6], 65, 41, 7 )
+    print( "country", 29, 40, 6 )
+    print( LEVELDEF[CustomLevel][6], 65, 40, 7 )
 
     -- Hills
-    print( "hills", 37, 49, 6 )
-    print( CUSTOM_SETSTR[CustomHills], 69, 49, 7 )
+    print( "hills", 37, 48, 6 )
+    print( CUSTOM_SETSTR[CustomHills], 69, 48, 7 )
 
     -- Curves
-    print( "curves", 33, 57, 6 )
-    print( CUSTOM_SETSTR[CustomCurves], 69, 57, 7 )
+    print( "curves", 33, 56, 6 )
+    print( CUSTOM_SETSTR[CustomCurves], 69, 56, 7 )
 
     -- Seed
-    print( "seed", 41, 65, 6 )
-    print( CustomSeed, 69, 65, 7 )
+    print( "seed", 41, 64, 6 )
+    print( CustomSeed, 69, 64, 7 )
 
-    print( " \142 race", 48, 78, 6 )
+    print( " \142 race", 44, 76, 6 )
+    print( " \151 back", 44, 83, 6 )
 end
 
 function UpdateMenu_Custom()
@@ -216,6 +218,10 @@ function UpdateMenu_Custom()
         if btnp(0) then dir=-1 else dir=1 end
         if CustomOption==1 then
             CustomLevel=max(min(CustomLevel+dir,#LEVELDEF),1)
+            TotalTkns=CountProfileTokens()
+            if TotalTkns < MenuLvlTokenReq[CustomLevel] then
+                CustomLevel-=1
+            end
             SetLevel( CustomLevel )
         elseif CustomOption==2 then
             CustomHills=max(min(CustomHills+dir,4),1)
@@ -224,6 +230,8 @@ function UpdateMenu_Custom()
         else --if CustomOption==4 then
             CustomSeed=max(min(CustomSeed+dir,100),1)
         end
+    elseif btn(5) then -- btn 2
+        OpenMenu(1)
     elseif btnp(2) then -- up
         CustomOption=max( CustomOption-1, 1 )
     elseif btnp(3) then -- down
@@ -235,19 +243,29 @@ function UpdateMenu_Custom()
 end
 
 function RenderMenu_Title()
-    RenderMenu_BG()
+    RenderMenu_BG(33,62)
 
-    sspr( 111, 76, 7, 7, 15, 37 )
-    print( "world tour", 29, 41, 6 )
+    ypos=31 + TitleOption * 10
+    rectfill( 30, ypos-2, 96, ypos+6, 1 )
+    
+    sspr( 111, 76, 7, 7, 35, 40 )
+    print( "world tour", 48, 41, 7 )
 
-    sspr( 111, 83, 7, 7, 15, 45 )
-    print( "custom race", 29, 49, 6 )
+    sspr( 111, 83, 7, 7, 35, 50 )
+    print( "custom race", 48, 51, 7 )
 
-    print( " \142 select", 48, 78, 6 )
-
+    RenderTextOutlined( "a game by pak-9", 35, 70, 0,6 )
+    RenderTextOutlined( "thx theroboz", 40, 80, 0,6 )
 end
 
 function UpdateMenu_Title()
+    if btnp(2) then -- up
+        TitleOption=1
+    elseif btnp(3) then -- down
+        TitleOption=2
+    elseif btnp(4) then -- btn 1
+        OpenMenu(TitleOption+1)
+    end
 end
 
 function RenderMenus()
@@ -279,6 +297,9 @@ function OpenMenu( i )
     TitleState=1
     menuitem(1)
     menuitem(2)
+    if MenuState==3 then
+        SetLevel(CustomLevel)
+    end
 end
 
 function UpdateMenus()
