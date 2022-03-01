@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 34
+version 35
 __lua__
 -- P2
 -- by PAK-9
@@ -14,7 +14,7 @@ __lua__
 #include profile.lua
 --#include debug.lua
 
--- numeric font definitions now uses pico-8 custom font
+-- numeric font definitions using pico-8 custom font
 font="8,8,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,240,248,252,28,28,0,0,0,15,31,63,56,56,0,0,0,192,192,192,128,128,0,0,0,3,3,3,3,3,0,0,0,252,252,252,0,240,0,0,0,15,31,63,56,63,0,0,0,252,252,252,0,252,0,0,0,15,31,63,56,63,0,0,0,224,240,120,60,28,0,0,0,28,28,28,28,28,0,0,0,252,252,252,28,252,0,0,0,63,63,63,0,15,0,0,0,240,248,252,28,252,0,0,0,31,31,31,0,15,0,0,0,240,248,252,28,0,0,0,0,15,31,63,56,56,28,28,28,252,248,240,0,0,56,56,56,63,31,15,0,0,128,128,128,128,128,128,0,0,3,3,3,3,3,3,0,0,248,252,28,252,252,252,0,0,31,15,0,63,63,63,0,0,252,252,0,252,252,252,0,0,63,63,56,63,31,15,0,0,28,252,248,0,0,0,0,0,28,63,63,28,28,28,0,0,252,252,0,252,252,252,0,0,31,63,56,63,31,15,0,0,252,252,28,252,248,240,0,0,31,63,56,63,31,15,0,0,0,0,0,0,128,128,0,0,56,60,30,15,7,3,0,0,0,0,0,240,248,252,28,252,0,0,0,15,31,63,56,63,0,0,0,240,248,252,28,252,0,0,0,15,31,63,56,63,0,0,0,240,248,252,28,156,0,0,0,63,63,63,0,63,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,252,252,28,252,248,240,0,0,63,63,56,63,31,15,0,0,252,248,0,248,248,248,0,0,63,63,56,63,63,31,0,0,156,156,28,252,248,240,0,0,63,63,56,63,63,63,0,0,0,0,0,0,0,0,0,0,0"
 
 -- music(0)
@@ -32,8 +32,9 @@ CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
 HORZSDEF = {
 split"0, 24, 48, 16, 1, 1" , -- 1. City
-split"0, 52, 48, 11, 1.2, 0.8 ", -- 2. Mountain
-split"0, 64, 45, 10, 1.2, 0.8 ", -- 3. Glacier
+split"0, 52, 48, 11, 1.2, 0.8", -- 2. Mountain
+split"0, 64, 45, 10, 1.2, 0.8", -- 3. Glacier
+split"46, 65, 46, 9, 1.4, 0.7", -- 4. Hills
 }
 
 -- 1. Road c1 2. Road c2 3. Road pat 4. Ground c1 5. Ground c2(x2) 6. Edge c1 7. Edge c2(x2) 8. Lane pat 9. Sky c1 10. Sky c2 11. horizon spr
@@ -43,7 +44,7 @@ THEMEDEF = {
   --    r1 r2   rp g1  g2   e1  e2   lp sk1 sk2 hz
   split"5, 0x5D, 1, 3, 0x3B, 6, 0x42, 1, 6, 12, 1 ", -- 1. USA
   split"5, 0x05, 1, 6, 0x6D, 6, 0x15, 3, 6, 12, 3 ",-- 2. Alaska
-  split"5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 12,7,  1 ", -- 3. Japan
+  split"5, 0x15, 1, 3, 0x23, 6, 0xC5, 2, 7, 12,  4 ", -- 3. Japan
   split"5, 0x25, 2, 2, 0x21, 5, 0x42, 3, 13, 2, 2 ", -- 4. Oz
   split"4, 0x45, 2, 4, 0x34, 1, 0xD5, 2, 13, 12, 2 ", -- 5. kenya
   split"5, 0x65, 2, 6, 0x76, 6, 0x15, 2, 6, 12, 3 ", -- 6. Nepal
@@ -829,14 +830,6 @@ function _draw()
             RenderRoad()
             camera( 0, 0 )
             RenderRaceUI()
-
-            --[[
-            if stat(1) < 0.65 then
-                DRAW_DIST+=1
-            elseif stat(1) > 0.8 then
-                DRAW_DIST-=5
-            end
-            --]]
         else
             RenderSummaryUI()
         end
@@ -920,8 +913,8 @@ function RenderRaceEndStanding()
     PrintBigDigit( RaceCompletePos, 64-(tw*0.5+4), 32)
     print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-3, 32, 7 )
 
-    sspr( 121, 32, 7, 19, 64-(tw+8+7), 27, 7, 19, true )
-    sspr( 121, 32, 7, 19, 64+(tw+8), 27, 7, 19 )
+    sspr( 121, 43, 7, 19, 64-(tw+8+7), 27, 7, 19, true )
+    sspr( 121, 43, 7, 19, 64+(tw+8), 27, 7, 19 )
 
     clip()
 
@@ -1035,8 +1028,6 @@ function RenderRaceUI()
         x1-= 4
     end
     print( spd, x1, 114, 6 )
-    --print(stat(1),88,114,6)
-    --print(DRAW_DIST,88,114,6)
     print( "mph", 94, 114, 6 )
     RenderCountdown()
     RenderRaceEndStanding()
@@ -1085,18 +1076,6 @@ function RenderSpriteWorld( s, rrect, d )
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], ceil(rrect[3] + 1), ceil(rrect[4] + 1), SDEF[s][7] == 1 )
     --BayerRectT( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 13, d )
 end
-
-function RenderSpriteRepeat( s, rrect, d, dx, dy, n )
-
-    for i=1,n do
-        RenderSpriteWorld( s, rrect, d )
-        rrect[1]=rrect[1]+rrect[3]*dx
-        rrect[2]=rrect[2]+rrect[4]*dy
-    end
-
-end
-
-oopon=0
 
 function RenderRoad()
 
@@ -1179,14 +1158,7 @@ function RenderRoad()
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             sindx=sSprite[segidx]
             rrect = GetSpriteSSRect( sindx, psx1, psy[i],psw[i], sSpriteSc[segidx] )
-            if sindx == 22 then
-                -- special case for buildings
-                srand(segidx)
-                nrep=flr(rnd( 3 ))+1
-                RenderSpriteRepeat( sindx, rrect, d, 0, -1, nrep )
-            else
-                RenderSpriteWorld( sindx, rrect, d )
-            end
+            RenderSpriteWorld( sindx, rrect, d )
             if i == 2 then
                 SpriteCollideRect = rrect
                 SpriteCollideIdx=sSprite[segidx]
@@ -1198,10 +1170,10 @@ function RenderRoad()
             psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -1.2 ) * 64));
             psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 1.2 ) * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            rrect = GetSpriteSSRect( 11, psx1l, psy[i],psw[i], 0.1 )
-            RenderSpriteRepeat( 11, rrect, d, 0, -1, 10 )
-            rrect = GetSpriteSSRect( 11, psx1r, psy[i],psw[i], 0.1 )
-            RenderSpriteRepeat( 11, rrect, d, 0, -1, 10 )
+            rrect = GetSpriteSSRect( 11, psx1l, psy[i],psw[i], 0.14 )
+            RenderSpriteWorld( 11, rrect, d )
+            rrect = GetSpriteSSRect( 11, psx1r, psy[i],psw[i], 0.14 )
+            RenderSpriteWorld( 11, rrect, d )
             if segidx == 1 then
                 psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -0.55 ) * 64));
                 psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 0.55 ) * 64));
@@ -1216,9 +1188,10 @@ function RenderRoad()
         -- tokens
         if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
             psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sTokensX[segidx] * ROAD_WIDTH ) * 64));
+            psy1 = flr(64 - (pscreenscale[i] * ( pcamy[i] + 4 )  * 64));
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
-            rrect = GetSpriteSSRect( 10, psx1, psy[i],psw[i], 0.2 )
-            RenderSpriteWorld( 10, rrect, d )
+            rrect = GetSpriteSSRect( 43, psx1, psy1,psw[i], 0.15 )
+            RenderSpriteWorld( 43, rrect, d )
         end
 
         -- opponents
@@ -1282,69 +1255,69 @@ function RenderRoad()
 end -- RenderRoad
 
 __gfx__
-fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffe1eeeeeeeeeeeeeeeeeeffffffffffffffffffffff
-ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dfffffffffffffffffffff1dddd1eeeeee55555555dddddffffffffffffffffffff
-ffff155ddd555555555555ddd551ffffffffeddddd0dddddddddddddddddd66fffffffffffffffffdddddddde0eddddddddd666666666fffffffffffffffffff
-fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffff8e8e8e1d5ddddddd5ee6666666ddddddddddddffffffffffffffffff
-ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffe800e811155d5dd5eeeddddddddddddd66666666ffffffffffffffff
-ff0dedddddddddddddddddddddded0ffffff2115ee666666666666666666666dddffffff8e108e8e11151de0eedddd66666666ddd5555555dfffffffffffffff
-ffde666666666666666666666666edffffff22eeedddd55555dddddd5555555555ddffffe001e8e8e8111d5eee66dd5555d5dddd55556666660000ffffffffff
-ffedddd55555dddddddd55555ddddeffffff00eedd555555666666666666000000000fff80000e8e8e8e15eeeedd555556666666000000000000000fffffffff
-fe6666666666666666666666666666efffff022eeee000000000000000000000000000ff10000218e811e8eeee666666000000000000022222000000ffffffff
-fee00000000000000000000000000eefffff002eee00000022222222222222222000000f100001212e818e88eeeeeee00002222222222222222eeeeeffffffff
-fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeee005002121218e8e0e8eeee00002222222eeeeeeeeeeeeeeeffffffff
-e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef015012121212e00008e8000eeeeeeeeeeeeeed44877888effffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff0002eeeeeeeeeeeeddddddddd448877888eeff1102121212120000e8eeeeeeeee4ddddddddd4487d222effffffff
-ee888877844dddddddddd448778888eefffff000ee888778844dddddddddd448878222eeffff002121212101010e8ee8877844dddd555dd442dd222effffffff
-ee888877844dddddddddd448778888eefffff000ee222dd2244d5555555dd4422d2222eeffffff00121212010008eee88dd244d555555deeeeeeeeeeffffffff
-ee2222dd244dd555555dd442dd2222eefffff000ee222dd2244d555eeeeeeeeeeeeeeeeefffffff000212101d0008ee22dd244eeeeeeeeeeeee22222ffffffff
-ee2222dd244dd555555dd442dd2222eeffffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222fffffffff0021201d0002eeeeeeeeeeeee22222222222225ffffffff
-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffffff00010150002eeeee2222222222222d6d555555ffffffff
-22222222222222222222222222222222ffffff002222222222222222225555d6d5555555ffffffffffff000100002222222222255555555d06500000ffffffff
-22222222222222222222222222222222fffffff055555555d6d555555555556065555550fffffffffffff00005002222555d6d555550000d6d000000ffffffff
-55555555d6d5555555555d6d55555555fffffff05555555560600000000000d6d0000000fffffffffffffff055002555555d0600000000000000000fffffffff
-00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffffffffff
-f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffffffffff
-f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffffffffff
-fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ffbb3bffffff666ffe7ffffffffffff65ff0ffffffffffffffffffffffffffffffffffff
-fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fb3bbbbbbff66666feeff0ffffffffff56f0ffff0fffaffffff11661166116611f555555
-fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a9bbbb3bb35bfdff66ffefff0fff00fff65fff0ff0fffa7af555500770077007700f55ff65
-fffffffffffffff75dffffffffff55fffdffffffffffffff999900095333333353fdddddffefff0ff0ffffff56fff0f0ffa777a555577007700770077f5f5f65
-ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a00099553333353bff555f7ff00f0ff0ffff3f5ff0f000fffa7af555577007700770077f5ff565
-ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999f555335533fffffffaff0f0ff0fffff353ff000fffffaff555500770077007700f566655
-ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ff4f4f33ffffffe7ffaf000f0ffff3fffffff00ffffffffffff11661166116611f555555
-ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151fff42f4fffffeeeffffff000ffffff3f3f3fffffffffffffffffffffffffffffffffffff
-ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffff222fffffeefffafff0f0ffffffd33dfffffffffffffffffffffffffffffffff7ffff
-ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffff22ffffffffff9affff00fffff3d5533ffffffffffffffffffffffffffffffff7ffff
-ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffff22ffffffa7ff899fff00ffffff3555ffffffffffffffffffffffffffffffff7fffff
-fff656d5d55151d55511161ddd15111d651166df6dffffff9949994ffff9ffffffaaffff98ffff00ffff66600ff255ffffffffffffffffffffffffffffffffff
-ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffff2221ff06660ff544fffffffffffffffffffffffffffffff7ff
-ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffff2dd6d1f00666ff549fffffffffffffffffffffffffffff777ff
-dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffff2dddd62f06660ff5245ffffffffffffffffffffffffffff77fff
-5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffff11d44d4266600ff1499fffffffffffffffffffffffffffffffff
-000000000000d0ddffffffffaa777ff888fff9ffff6ff887888878888eeeeeee5ffee2efffffffffffffff5ffff5445fffffffff9999a9ffffffffffffffff77
-066666666611111df4449ff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffff7777
-1611d11ddd118110444449f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffff77ff
-0611d16d6d1a7e1d444f4f99597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776fffffffff
-1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd7d373fff990ffffffff999afff6775776fffffff77
-1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3733373ff909fffffffff9affff6777576fffff7777
-1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd7333373f099fffffffff55fffff67776fffff7777f
-fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff36d3d63ff990fffffffff44ffffff666fffffffffff
-fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffffd63d6dfff909ffffffff4444fffffffffffff77ffff
-fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76ffffffff5ff5ffff099fffffffff21fffffffffffff77777ff
-fff41ff11ff14fffffffffffffffffff6ffff6ffff6ffffffffffffffc77777d5ffff44fffff22ffffffff6ff6ffff999ffff446664266666666ffffff77777f
-fffffffffffffffffffffffffffffffffffffffffffffffffffffffffccd7ddd5fff449fffff22ffffffff6ff6fffff5ffff41446642666666666fffffffffff
-fffffffffffffff25222fffffffffffffffffffffffffffffffffffffcc7d7dd5ff44494fff2288ffffffffffffffff6fff4144446666666666666ffffffffff
-ffffffffffff2255452222fffffffffffffffffffffffffffffffffffc7c7d7d55dd55555555555555555ffff5fffff6ff414444446666666666666fffffffff
-ffffffffffff55444522222ffffffffffffffffffffffffffffffffffcc777dd55555ddddddddddddddddfff33fffff6f41444444442222222222222ffffffff
-ffffffffff22445442222522fffffffffffffffffffffffffffffffffccc7ccd555d5d65d65dd65d65dffffff536fff6fff2222222111111111114ffffffffff
-fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc555d5d65d65dd65d65dffff3334ffffffff2222222122222222224ffffffffff
-ffffff222554454522222522222ffffffffffffffffffffffffffffffccccccc55555ddddddddddddddddfff3563fffffff4444444124442444224ffffffffff
-fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff55dd5ddddddddddddddddff3533ffffffff2222222129992444224ffffffffff
-fff25554455555544522222222222222255552222fffffffffffffffffffffff5fffffffffffffffffffffff45fffffffff4444444129992445224ffffffffff
-ff2545555555544445222222222222222252222222ffffffffffffffffffffff5ffffffffffffffffffffff33663fffffff2222222121112444224ffffffffff
-f25555255225455452222222222222222222222222222fffffffffffffffffff5fffffffffffffffffffff35533ffffffff4444444122222444224ffffffffff
-222222522255554522222222222222222222222222222222ffffffffffffffff5fffffffffffffffffffffff45ffffffffffffffffffffffffffff7181711111
+fffffffeeeeeeeeeeeeeeeeeeffffffffffffffff11eeeeeeeeeeeeeeeeeefffffffffffffffffffffffffe1eeeeeeeeeeeeeeeeeeffffffffffffffff776556
+ffffff5eeeeeeeeeeeeeeeeee5fffffffffffffddddeddd5555555555d555dfffffffffffffffffffff1dddd1eeeeee55555555dddddffffffffffffff75ff65
+ffff155ddd555555555555ddd551ffffffffeddddd0dddddddddddddddddd66fffffffffffffffffdddddddde0eddddddddd666666666fffffffffffff6f5f65
+fff555dddddddddddddddddddd555fffffff1155d5e6666666666dddddddddddffffffff8e8e8e1d5ddddddd5ee6666666ddddddddddddffffffffffff6ff565
+ff15e6666666666666666666666e51ffffff21555edddddddddddddddddddddddfffffffe800e811155d5dd5eeeddddddddddddd66666666ffffffffff566655
+ff0dedddddddddddddddddddddded0ffffff2115ee666666666666666666666dddffffff8e108e8e11151de0eedddd66666666ddd5555555dfffffffff655555
+ffde666666666666666666666666edffffff22eeedddd55555dddddd5555555555ddffffe001e8e8e8111d5eee66dd5555d5dddd55556666660000ffff55ff65
+ffedddd55555dddddddd55555ddddeffffff00eedd555555666666666666000000000fff80000e8e8e8e15eeeedd555556666666000000000000000fff5f5f65
+fe6666666666666666666666666666efffff022eeee000000000000000000000000000ff10000218e811e8eeee666666000000000000022222000000ff5ff565
+fee00000000000000000000000000eefffff002eee00000022222222222222222000000f100001212e818e88eeeeeee00002222222222222222eeeeeff566655
+fe0000022222222222222222200000efffff0002e000222222222222222222222eeeeeee005002121218e8e0e8eeee00002222222eeeeeeeeeeeeeeeff555555
+e000022222222222222222222220000effff0002eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeef015012121212e00008e8000eeeeeeeeeeeeeed44877888eff55ff65
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffff0002eeeeeeeeeeeeddddddddd448877888eeff1102121212120000e8eeeeeeeee4ddddddddd4487d222eff5f5f65
+ee888877844dddddddddd448778888eefffff000ee888778844dddddddddd448878222eeffff002121212101010e8ee8877844dddd555dd442dd222eff5ff565
+ee888877844dddddddddd448778888eefffff000ee222dd2244d5555555dd4422d2222eeffffff00121212010008eee88dd244d555555deeeeeeeeeeff566655
+ee2222dd244dd555555dd442dd2222eefffff000ee222dd2244d555eeeeeeeeeeeeeeeeefffffff000212101d0008ee22dd244eeeeeeeeeeeee22222ff555555
+ee2222dd244dd555555dd442dd2222eeffffff00eeeeeeeeeeeeeeeeeeeeeeeeeeeee222fffffffff0021201d0002eeeeeeeeeeeee22222222222225ff55ff65
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeffffff00eeee2222222222222222222222222222ffffffffff00010150002eeeee2222222222222d6d555555ff1f5f65
+22222222222222222222222222222222ffffff002222222222222222225555d6d5555555ffffffffffff000100002222222222255555555d06500000ff5ff565
+22222222222222222222222222222222fffffff055555555d6d555555555556065555550fffffffffffff00005002222555d6d555550000d6d000000ff166655
+55555555d6d5555555555d6d55555555fffffff05555555560600000000000d6d0000000fffffffffffffff055002555555d0600000000000000000fff555555
+00000000606000000000060600000000fffffff000000000d6d000000000000000000000ffffffffffffffff51002000000d6d0000000000000fffffff15ff65
+f0000000d6d0000000000d6d0000000fffffffff0000000000000000000000000000000fffffffffffffffffff000000000000000000ffffffffffffff5f5f65
+f000000000000000000000000000000ffffffffff0000000000ffffffffffffffffffffffffffffffffffffffffff00000000fffffffffffffffffffff1ff565
+fffffffffffffff7ddffffffffffffffffffffffffffffffa000a9a9ffffffffffff666ffe7ffffffffffff65ff0ffffffffffffffffffffffffffffff566655
+fffffffffffffff75dffffffffffffffffffffffffffffff9a000a99fffffffffff66666feefffffffffffff56f0ffff0fffaffffff11661166116611f151515
+fffffffffffffff75dffffffffffffffffffffffffffffffa9a000a9fffffffffffdff66ffeffffffffffff65fff0ff0fffa7af555500770077007700f51ff65
+fffffffffffffff75dffffffffff55fffdffffffffffffff99990009fffffffffffdddddffefffffffffffff56fff0f0ffa777a555577007700770077f1f5f65
+ffffffffffffff6d5dfffffffff5551ff5ffffffffffffffa9a00099ffffffffffff555f7fffffffffffff3f5ff0f000fffa7af555577007700770077f5ff565
+ffffffffffffff6555ffdffffff5111ff56fffffffffffff9a000999fffffffffffffffffafffffffffffff353ff000fffffaff555500770077007700f166615
+ffffffffffff51d551115ffffff5151ff55fffffffffffffa0009999ffffffffffffffe7ffaffffffffff3fffffff00ffffffffffff11661166116611f515155
+ffffffffdfffd16555111ffffff51116d51fffffffffffff55551151ffffffffffffeeefffffffffffffff3f3f3fffffffffffffffffffffffffffffff11ff65
+ffffffffddf6d16155111dd6d6551116651fffffffffffffffffffffffffffffffffeefffaffffffffffffd33dffffffffffffffffffffffffffffffff5f5f61
+ffffffddd5f5d1d5551116d6d65515166516ffffffffffffff9aaaffffffffffffffffff9afffffffffff3d5533fffffffffffffffffffffffffffffff1ff565
+ffff5fddd5d1d1d5111116ddd61115166515fffffffffffff994a9afffffffffffffa7ff899fffffffffff3555ffffffffffffffffffffffffffffffff166651
+fff656d5d55151d55511161ddd15111d651166df6dffffff9949994fffffffffffaaffff98ffffffffff66600ff255ffffffffffffffffffffffffffff111115
+ff5d5dd5d15151d51511161d1d11151111111ddd66ffffff49999999f9ff9fffffffffffffffff2221ff06660ff544ffffffffffffffffffffffffffff11ff61
+ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffff2dd6d1f00666ff549ffffffffffffffffffffffffffff1f5f61
+dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffff2dddd62f06660ff5245fffffffffffffffffffffffffff1ff561
+5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffff11d44d4266600ff1499fffffffffffffffffffffffffff166611
+000000000000d0ddffffffffaa777ff888fff9ffff6ff887888878888eeeeeee5ffee2efffffffffffffff5ffff5445fffffffff9999a9ffffffffffff111111
+066666666611111df4449ff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffffffff
+1611d11ddd118110444449f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffffffff
+0611d16d6d1a7e1d444f4f99597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776ffff7ffff
+1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd7d373fff990ffffffff999afff6775776ffff7ffff
+1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3733373ff909fffffffff9affff6777576fff7fffff
+1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd7333373f099fffffffff55fffff67776ffffffffff
+fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff36d3d63ff990fffffffff44ffffff666ffffffff7ff
+fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffffd63d6dfff909ffffffff4444ffffffffffffff777ff
+fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76ffffffff5ff5ffff099fffffffff21fffffffffffffff77fff
+fff41ff11ff14fffffffffffffffffff6ffff6ffff6ffffffffffffffc77777d5ffff44fffff22ffffffff6ff6ffff999ffff446664266666666ffffffffffff
+fffffffffffffffffffffffffffffffffffffffffffffffffffffffffccd7ddd5fff449fffff22ffffffff6ff6fffff5ffff41446642666666666fffffffff77
+fffffffffffffff25222fffffffffffffffffffffffffffffffffffffcc7d7dd5ff44494fff2288ffffffffffffffff6fff4144446666666666666ffffff7777
+ffffffffffff2255452222fffffffffffffffffffffffffffffffffffc7c7d7d5ffffffffffffffffffffffffffffff6ff414444446666666666666fffff77ff
+ffffffffffff55444522222ffffffffffffffffffffffffffffffffffcc777dd5ffffffffffffffffffffffffffffff6f41444444442222222222222ffffffff
+ffffffffff22445442222522fffffffffffffffffffffffffffffffffccc7ccd5ffffffffffffffffffffffffffffff6fff2222222111111111114ffffffff77
+fffffffff22554445522222222fffffffffffffffffffffffffffffffccccccc5ffffffffffffffffffffffffffffffffff2222222122222222224ffffff7777
+ffffff222554454522222522222ffffffffffffffffffffffffffffffccccccc5ffffffffffffffffffffffffffffffffff4444444124442444224fffff7777f
+fffff225544454552252522222222ff2222222ffffffffffffffffffffffffff5ffffffffffffffffffffffffffffffffff2222222129992444224ffffffffff
+fff25554455555544522222222222222255552222fffffffffffffffffffffff5ffffffffffffffffffffffffffffffffff4444444129992445224ffff77ffff
+ff2545555555544445222222222222222252222222ffffffffffffffffffffff5ffffffffffffffffffffffffffffffffff2222222121112444224fff77777ff
+f25555255225455452222222222222222222222222222fffffffffffffffffff5ffffffffffffffffffffffffffffffffff4444444122222444224ffff77777f
+222222522255554522222222222222222222222222222222ffffffffffffffff5fffffffffffffffffffffffffffffffffffffffffffffffffffff7181711111
 ffffffffffffffffffffffff6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff11fff8888811611
 ffffff7dfffffff7dd6dd66c66dfffffffffffffffffffffffffffffffffffffff000eeeeeeeeeeffffffffffffffffffffffffffffffffff171ff7181711116
 ffffff67ddddddd6dd76dd6c666dddffffffffffffffffffffffffff00000eeeeeeeeeeeeeeeeeee000ffffffffffffffffffffffffffffff1aa1f1111116111
@@ -1540,6 +1513,11 @@ bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb333333333333333111555555555555551111
 50505050505050505050505550555055505555555555555555555555555555555555555555555555555555555555555555555555555555555555555550555055
 00050505050505050505050505050505050505050505050505050555055505550555555505555555055505550555055505050505050505050505050505050505
 
+__map__
+524740495c4f0043614951480047464968540e4758627b550e4d626440520e4d614a7c570e46404d45530e435d484c490e4360657960004360647a5f00436163785f024363627a5e024d4a54585a024d575e4b5b024340544152024d5e5c6063024d60627a5d884d5553665e88436063795f814361627a5e8143634a6d501147
+504a67520d4d604b6c500d4d4e4a4b4f0d4d564c624a054d4e4b60510d437c59635e01474c4e4e5005437c58635d014d404d585688437c5a635f01437c59635e85437c58635d85437b5a635f85436c505953014369505853a543534b57530143534c57530143524c575101434b50585301434b4e4a4f01434c524d5301434e4c
+4e4c0143514b4e4a11435c4a524b014340565c62054340545c60054742504858004d495a41550043554a584a004d5c595e62004757585d62004341575f64004340565f630042585c5c620542595f5b620d42445546580d42445247595543524a524b0e4d4a54595a814749584051b14d5c614c5a814d5d5c6263814b5f3d8184
+0846665d695e0743695d695d0443685d695e0946665d675e7643795c656000437a5b655f004364617b5c88436658695902436158625802436259665a02437555775642437757765702437156745702435f536353044366526a5204434d4a4a4d054354514e5045434c534c530500000000000000000000000000000000000000
 __sfx__
 020500190111001120011200112001110011200112001120011200112001110011200112001120011200111001120011200112001110011200111001120011200112000000000000000000000000000000000000
 0401000f1272012710117201172011710117101172012710117001071010710127001271010710117102813028120281202812028120281202812028120281301a0401a050000000000000000000000000000000

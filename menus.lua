@@ -3,7 +3,9 @@
 -- 1. Title 2. Campaign 3. Custom race
 MenuState=1
 
-MenuLvlTokenReq={ 0,0,0,0,0,60,80,120 }
+MenuLvlTokenReq=split"0,0,0,0,0,60,80,120"
+
+pd_root={}
 
 -- 1. Level/Theme 2. Hills 3. Curves 4. Seed
 CustomOption=1
@@ -111,13 +113,12 @@ function RenderMenu_BG( y, h )
     sspr( 43, 114, 75, 14, 27, 5 )
 
     -- car
-    sspr( 49, 64, 62, 30, 38, 96 )
+    pd_draw(1,38,88)
 end
 
 function RenderMenu_Campaign()
 
     RenderMenu_BG(25,92)    
-
     -- Country
     RenderFlag( 43, 29, Level )
     RenderTextOutlined( LEVELDEF[Level][6], 56, 30, 0, 7 )
@@ -158,7 +159,6 @@ function RenderMenu_Campaign()
         sspr( 112, 41, 7, 7, 94, 44 ) -- clock
         PrintTime( ReadProfile(Level,3), 84, 57 )
 
-        --RenderTextOutlined( " \142  race", 38, 70, 1, 6 )
         print( " \142  race", 38, 70, 6 )
     else
         sspr( 39, 75, 8, 11, 30, 44 ) -- lock
