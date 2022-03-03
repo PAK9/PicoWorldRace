@@ -1,7 +1,7 @@
 -- Trackdef.lua ---------------------------------------
 
-CT_HILLS={0.5,0.8,1.1,1.3} -- custom track hills
-CT_CURVES={0.8,1.0,1.15,1.4} -- custom track curves
+CT_HILLS=split"0.5,0.8,1.1,1.3" -- custom track hills
+CT_CURVES=split"0.8,1.0,1.15,1.4" -- custom track curves
 
 function BuildCustomTrack( lvl, ysc, cmax, seed )
 
