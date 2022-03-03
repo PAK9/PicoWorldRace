@@ -22,7 +22,7 @@ font="8,8,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 Frame = 0
 
 SEG_LEN = 10
-DRAW_DIST = 80
+DRAW_DIST = 100
 CANVAS_SIZE = 128
 ROAD_WIDTH = 60 -- half
 CAM_HEIGHT = 21
@@ -834,7 +834,6 @@ function _draw()
         end
     end
     --DebugRender()
-    RenderTextOutlined( flr(stat(1)*100).."%", 98,2,0,6 )
 end
 
 function PrintBigDigit( n, x, y,nrend)
