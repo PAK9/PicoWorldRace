@@ -26,7 +26,7 @@ DRAW_DIST = 80
 CANVAS_SIZE = 128
 ROAD_WIDTH = 60 -- half
 CAM_HEIGHT = 21
-CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180)  (fov is 100)
+CAM_DEPTH = 0.55 -- 1 / tan((100/2) * pi/180)  (fov is 100)
 
 -- horizon sprite def
 -- 1. sx 2. sy 3. sw 4. sh 5. xscale 6. yscale
@@ -135,7 +135,7 @@ function LoopedTrackPos(z)
 end
 
 function DepthToSegIndex(z)
-  return flr(z/SEG_LEN) % NumSegs + 1;
+  return flr(z/SEG_LEN) % NumSegs + 1
 end
 
 function AddSeg( c, y )
@@ -369,8 +369,7 @@ function UpdatePlayer()
     if abs( PlayerXd ) < 0.005 then
         PlayerXd = 0
     end
-    PlayerX+=sPointsC[PlayerSeg]*0.45*PlayerVl*0.01
-    PlayerX+=PlayerXd*0.15
+    PlayerX+=sPointsC[PlayerSeg]*0.45*PlayerVl*0.01 + PlayerXd*0.15
 
     if abs( PlayerXd ) < 0.08 then
         PlayerDrift=0
@@ -568,8 +567,8 @@ function UpdateCollide()
 
             -- work out the range of pixels in the source sprite that we overlap
             -- player is ~40-80px
-            insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3];
-            insprx2=(80-SpriteCollideRect[1])/SpriteCollideRect[3];
+            insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3]
+            insprx2=(80-SpriteCollideRect[1])/SpriteCollideRect[3]
 
             it1=flr(max(sdef1[3]*insprx1,0))
             it2=flr(min(sdef1[3]*insprx2,sdef1[3]))
@@ -835,6 +834,7 @@ function _draw()
         end
     end
     --DebugRender()
+    RenderTextOutlined( flr(stat(1)*100).."%", 98,2,0,6 )
 end
 
 function PrintBigDigit( n, x, y,nrend)
@@ -932,7 +932,7 @@ function RenderSummaryUI()
     rectfill( 0, 0, 128, 128, 0 )
 
     fillp(0x33CC)
-    col = bor( 6 << 4, 0 );
+    col = bor( 6 << 4, 0 )
     rectfill(0,12,33,21, col)
     rectfill(94,12,128,21, col)
     print( "race complete", 38, 15, 7 )
@@ -1074,7 +1074,6 @@ end
 
 function RenderSpriteWorld( s, rrect, d )
     sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1], rrect[2], ceil(rrect[3] + 1), ceil(rrect[4] + 1), SDEF[s][7] == 1 )
-    --BayerRectT( rrect[1], rrect[2], rrect[1] + rrect[3], rrect[2] + rrect[4], 13, d )
 end
 
 function RenderRoad()
@@ -1108,9 +1107,9 @@ function RenderRoad()
         segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
 
         pcrv[i] = xoff - dxoff
-        pcamx[i] = sPointsX[segidx] - camx - pcrv[i];
-        pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY );
-        pcamz[i] = sPointsZ[segidx] - (Position - loopoff);
+        pcamx[i] = sPointsX[segidx] - camx - pcrv[i]
+        pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY )
+        pcamz[i] = sPointsZ[segidx] - (Position - loopoff)
 
         if segidx == NumSegs then
             loopoff+=NumSegs*SEG_LEN
@@ -1119,10 +1118,10 @@ function RenderRoad()
         xoff = xoff + dxoff
         dxoff = dxoff + sPointsC[segidx]
 
-        pscreenscale[i] = CAM_DEPTH/pcamz[i];
-        psx[i] = (64 + (pscreenscale[i] * pcamx[i]  * 64));
-        psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64));
-        psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64);
+        pscreenscale[i] = CAM_DEPTH/pcamz[i]
+        psx[i] = (64 + (pscreenscale[i] * pcamx[i]  * 64))
+        psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64))
+        psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64)
 
         -- store the min y to block out the ground
         if psy[i] < hrzny then
@@ -1154,7 +1153,7 @@ function RenderRoad()
         -- sprites
 
         if sSprite[segidx] != 0 then
-            psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64));
+            psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sSpriteX[segidx] * ROAD_WIDTH ) * 64))
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             sindx=sSprite[segidx]
             rrect = GetSpriteSSRect( sindx, psx1, psy[i],psw[i], sSpriteSc[segidx] )
@@ -1167,16 +1166,16 @@ function RenderRoad()
 
         -- Start gantry
         if segidx == 1 or segidx == 2 then
-            psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -1.2 ) * 64));
-            psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 1.2 ) * 64));
+            psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -1.2 ) * 64))
+            psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 1.2 ) * 64))
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             rrect = GetSpriteSSRect( 11, psx1l, psy[i],psw[i], 0.14 )
             RenderSpriteWorld( 11, rrect, d )
             rrect = GetSpriteSSRect( 11, psx1r, psy[i],psw[i], 0.14 )
             RenderSpriteWorld( 11, rrect, d )
             if segidx == 1 then
-                psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -0.55 ) * 64));
-                psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 0.55 ) * 64));
+                psx1l = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * -0.55 ) * 64))
+                psx1r = flr(64 + (pscreenscale[i] * ( pcamx[i] + ROAD_WIDTH * 0.55 ) * 64))
                 rrect = GetSpriteSSRect( 12, psx1l, psy[i],psw[i], 1 )
                 RenderSpriteWorld( 12, rrect, d )
 
@@ -1187,8 +1186,8 @@ function RenderRoad()
 
         -- tokens
         if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
-            psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sTokensX[segidx] * ROAD_WIDTH ) * 64));
-            psy1 = flr(64 - (pscreenscale[i] * ( pcamy[i] + 4 )  * 64));
+            psx1 = flr(64 + (pscreenscale[i] * ( pcamx[i] + sTokensX[segidx] * ROAD_WIDTH ) * 64))
+            psy1 = flr(64 - (pscreenscale[i] * ( pcamy[i] + 4 )  * 64))
             d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 )
             rrect = GetSpriteSSRect( 43, psx1, psy1,psw[i], 0.15 )
             RenderSpriteWorld( 43, rrect, d )
@@ -1201,7 +1200,7 @@ function RenderRoad()
                 opsx=0
                 opsy=0
                 opsw=0
-                if i>15 then
+                if i>20 then
                 -- Imposters, just render them at the seg pos (and in the middle of the road)
                 opsx=psx[i]
                 opsy=psy[i]
@@ -1218,16 +1217,16 @@ function RenderRoad()
                 if OpptLap[o] > PlayerLap then
                     ppos-=SEG_LEN*NumSegs
                 end
-                ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg );
+                ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg )
                 optx=OpptX[o]*ROAD_WIDTH
-                opcamx = lerp( sPointsX[OpptSeg[o]] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv;
-                opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY );
-                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - ppos;
+                opcamx = lerp( sPointsX[OpptSeg[o]] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv
+                opcamy = lerp( sPointsY[OpptSeg[o]], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY )
+                opcamz = lerp( sPointsZ[OpptSeg[o]], sPointsZ[nxtseg], opinseg ) - ppos
 
-                opss = CAM_DEPTH/opcamz;
-                opsx = flr(64 + (opss * opcamx * 64));
-                opsy = flr(64 - (opss * opcamy * 64));
-                opsw = flr(opss * ROAD_WIDTH * 64);
+                opss = CAM_DEPTH/opcamz
+                opsx = flr(64 + (opss * opcamx * 64))
+                opsy = flr(64 - (opss * opcamy * 64))
+                opsw = flr(opss * ROAD_WIDTH * 64)
                 end
 
                 opcols1 = { 12, 11, 10, 9, 8, 6 }

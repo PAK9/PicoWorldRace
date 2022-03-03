@@ -27,34 +27,10 @@ function SetLevel( n )
 end
 
 function RenderFlag( x,y,lvl )
-    -- TODO: Stick these sprite defs into a table to save some tokens
-    if lvl==1 then
-        --usa
-        sspr( 118, 69, 10, 7, x, y )
-    elseif lvl==2 then
-       -- oz
-       sspr( 118, 62, 10, 7, x, y )
-    elseif lvl==3 then
-         --alaska
-         sspr( 118, 76, 10, 7, x, y )
-    elseif lvl==4 then
-        --japan
-        sspr( 118, 83, 10, 7, x, y )
-    elseif lvl==5 then
-        -- kenya
-        sspr( 118, 97, 10, 7, x, y )
-    elseif lvl==6 then
-        -- nepal
-        sspr( 118, 90, 10, 7, x, y )
-    elseif lvl==7 then
-        -- germany
-        sspr( 118, 104, 10, 7, x, y )
-    elseif lvl==8 then
-        -- funland
-        sspr( 118, 111, 10, 7, x, y )
-    else
-        assert( false )
-    end
+    -- flattened x,y pairs (top left of sprite)
+    FLAGDEF=split("118, 69, 118, 62, 118, 76, 118, 83, 118, 97, 118, 90, 118, 104, 118, 111")
+    sspr( FLAGDEF[lvl*2-1],FLAGDEF[lvl*2], 10, 7, x, y )
+
 end
 
 function RenderTextOutlined( str, x, y, ocol, incol )
