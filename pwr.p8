@@ -404,14 +404,15 @@ function UpdatePlayer()
 
     if RecoverStage < 2 then
         if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
-            dirtfq=flr(6-min( PlayerVf, 6 ))
-            if Frame%(dirtfq*4) == 0 then
-                srand(Frame)
-                AddParticle( 3, 64 + rnd(32)-16, 124 + rnd( 2 ) )
-            end
-            if Frame%(dirtfq*8+20) == 0 then
-                sScreenShake[1] = 2 * PlayerVf * 0.2
-                sScreenShake[2] = 1 * PlayerVf * 0.2
+            if PlayerVf > 1 then
+                if Frame%5 == 0 then
+                    srand(Frame)
+                    AddParticle( 3, 64 + flr(rnd(32))-16, 120 + rnd( 1 ) )
+                end
+                if Frame%10 == 0 then
+                    sScreenShake[1] = 1
+                    sScreenShake[2] = 1
+                end
             end
         else
             if Frame%8 == 0 and PlayerAir == 0 then
@@ -1294,12 +1295,12 @@ ff56dd11d155d1d11511161d1d1111111111dddddd151fff99599499ff4f4ff9fffffffffffff2dd
 dd565d15d11dd1d11511161d1d5511111111115ddd66d5d655559595ff4f5f4fffffffffffff2dddd62f06660ff5245fffffffffffffffffffffffffff1ff561
 5d5d5666666dd5d11115155515515115111151ddddd66dd6f554555fff5f5f5fffffffffffff11d44d4266600ff1499fffffffffffffffffffffffffff166611
 000000000000d0ddffffffffaa777ff888fff9ffff6ff887888878888eeeeeee5ffee2efffffffffffffff5ffff5445fffffffff9999a9ffffffffffff111111
-066666666611111df4449ff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffffffff
-1611d11ddd118110444449f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffffffff
-0611d16d6d1a7e1d444f4f99597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776ffff7ffff
-1616d11ddd11c11054444449a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd7d373fff990ffffffff999afff6775776ffff7ffff
-1666666666111110f55f44f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3733373ff909fffffffff9affff6777576fff7fffff
-1110100100000000ff555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd7333373f099fffffffff55fffff67776ffffffffff
+066666666611111dfffffff9aa5aa788788f979ff666f888788887888eeeeeee5fe2eeeeeeffffffffffff6ffff51154fffffff9f999af9fff666fffffffffff
+1611d11ddd11811049ff49f9a585a7886889777966666888878888788e77777e5ee7e27eeeefffffffffff6fff1d49999ffffff9f999af9ff67576ffffffffff
+0611d16d6d1a7e1d4f4ff4f9597e5788788f979ff666f888788887888e7eee7e5e222722ee2fffffffffff6ff1204d4449ffffff9999a9ff6775776ffff7ffff
+1616d11ddd11c11054f54f49a5c5aaf888fff9ffff6ff887888878888d77777e52e2222272effffffffffd7d373fff990ffffffff999afff6775776ffff7ffff
+1666666666111110f454f4f9aa5aaaff5ffff5ffff5fffff55ff55fffd7eee7e5f2ee22ee22ffffffffff3733373ff909fffffffff9affff6777576fff7fffff
+111010010000000045555fff99999fff6ffff6ffff6fffff66ff66fffd77777e5ff4f5f22fff28fffffffd7333373f099fffffffff55fffff67776ffffffffff
 fff11ff11ff11fffffffffffffffffff6ffff6ffff6fffff66ff66fffd7dde7e5fff4445fff2558ffffff36d3d63ff990fffffffff44ffffff666ffffffff7ff
 fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffdddddee5ffff44fffff67fffffffd63d6dfff909ffffffff4444ffffffffffffff777ff
 fffd5ffddff5dfffffffffffffffffff6ffff6ffff6ffffffffffffffddd7dde5ffff49fffff76ffffffff5ff5ffff099fffffffff21fffffffffffffff77fff
