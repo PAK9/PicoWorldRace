@@ -364,7 +364,7 @@ function UpdatePlayer()
 
   HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf)
 
-   -- jumps / player y
+  -- jumps / player y
 
   ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
   PlayerY=max(PlayerY+PlayerYd, ground)
@@ -387,28 +387,26 @@ function UpdatePlayer()
     PlayerAir = PlayerAir + 1
   end
   
-    -- particles
+  -- particles
 
-    if RecoverStage < 2 then
-      if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
-          if PlayerVf > 1 then
-              if Frame%5 == 0 then
-                srand(Frame)
-              AddParticle( 3, 64 + flr(rnd(32))-16, 120 + rnd( 1 ) )
-            end
-            if Frame%10 == 0 then
-              sScreenShake[1] = 1
-              sScreenShake[2] = 1
-            end
-          end
-        else
-          if Frame%8 == 0 and PlayerAir == 0 then
-            if PlayerDrift < 0 then
-              AddParticle( 1, 58 - rnd( 4 ), 120 + rnd( 2 ) )
-            elseif PlayerDrift > 0 then
-              AddParticle( 2, 70 + rnd( 4 ), 120 + rnd( 2 ) )
-            end
-          end
+  if RecoverStage < 2 then
+    if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
+      if PlayerVf > 1 then
+        if Frame%5 == 0 then
+          srand(Frame)
+          AddParticle( 3, 64 + flr(rnd(32))-16, 120 + rnd( 1 ) )
+        end
+        if Frame%10 == 0 then
+          sScreenShake[1] = 1
+          sScreenShake[2] = 1
+        end
+      end
+    else
+      if Frame%8 == 0 and PlayerAir == 0 then
+        if PlayerDrift < 0 then
+          AddParticle( 1, 58 - rnd( 4 ), 120 + rnd( 2 ) )
+        elseif PlayerDrift > 0 then
+          AddParticle( 2, 70 + rnd( 4 ), 120 + rnd( 2 ) )
         end
       end
     end
