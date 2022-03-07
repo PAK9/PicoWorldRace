@@ -41,9 +41,9 @@ function pd_draw(index,x,y,s_start,s_end,flip_h)
   end
 
   local function _flip(p,f,o,n)
-    if (f==0) return
-    for i=0,o==0 and 2 or 0,2 do cmd[p+i] = f-cmd[p+i]-o end
-    cmd[n] = not cmd[n]
+  if (f==0) return
+  for i=0,o==0 and 2 or 0,2 do cmd[p+i] = f-cmd[p+i]-o end
+  cmd[n] = not cmd[n]
   end
 
   camera(%0x5f28-x,%0x5f2a-y)
@@ -51,29 +51,29 @@ function pd_draw(index,x,y,s_start,s_end,flip_h)
   --car is 82 bytes long
   for i=s_start and s_start or 1, s_end and s_end or l do
 
-    cmd={}
-    for j=1,5 do
-      cmd[j]=peek(0x2000+index+(i-1)*6+j-1)-64
-    end
+  cmd={}
+  for j=1,5 do
+    cmd[j]=peek(0x2000+index+(i-1)*6+j-1)-64
+  end
 
-    cmd[6]=peek(0x2000+index+(i-1)*6+5)
-    cmd[7],cmd[6]=(cmd[6]&240)>>4,(cmd[6]&15)
+  cmd[6]=peek(0x2000+index+(i-1)*6+5)
+  cmd[7],cmd[6]=(cmd[6]&240)>>4,(cmd[6]&15)
 
-    local s_cmd,px,ox,oy = cmd[1],2,0,0
+  local s_cmd,px,ox,oy = cmd[1],2,0,0
 
-    if ((s_cmd<=9 or s_cmd==13) and cmd[7]>0) fillp(-pd_fillp[cmd[7]]+.5,x,y)
+  if ((s_cmd<=9 or s_cmd==13) and cmd[7]>0) fillp(-pd_fillp[cmd[7]]+.5,x,y)
 
-    if s_cmd==5 then
-      cmd[1] = {unpack(cmd)} cmd[2]=0
-    else
-      if (s_cmd==10) cmd[8],cmd[7],px,ox,oy = cmd[7]%2==1,cmd[7]\2==1,3,cmd[5]*8-1,cmd[6]*8-1
-      if (s_cmd==12) cmd[2]+=x cmd[3]+=y cmd[6],cmd[7]=false,false
+  if s_cmd==5 then
+    cmd[1] = {unpack(cmd)} cmd[2]=0
+  else
+    if (s_cmd==10) cmd[8],cmd[7],px,ox,oy = cmd[7]%2==1,cmd[7]\2==1,3,cmd[5]*8-1,cmd[6]*8-1
+    if (s_cmd==12) cmd[2]+=x cmd[3]+=y cmd[6],cmd[7]=false,false
 
-      if(flip_h) _flip(px,flip_h,ox,7)
-    end
+    if(flip_h) _flip(px,flip_h,ox,7)
+  end
 
-    deli(cmd,1) _ENV[pd_modes[s_cmd]](unpack(cmd))
-    fillp()
+  deli(cmd,1) _ENV[pd_modes[s_cmd]](unpack(cmd))
+  fillp()
   end
 
   deli(pd_root,#pd_root)
