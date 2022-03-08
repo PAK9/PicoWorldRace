@@ -261,7 +261,7 @@ function InitRace()
   RecoverTimer = 0
   InvincibleTime = 0
   UpdatePlayer()
-  
+
 end
 
 function _init()
@@ -679,8 +679,6 @@ end
 function RenderHorizon()
 
   fillp(0)
-  --rectfill( 0, 74, 138, 128, 3 ) -- block out
-  --BayerRectV( 0, 64, 138, 74, THEMEDEF[Theme][4], THEMEDEF[Theme][9] )
   rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
   HrzSprite(10, 1.0, 0.7, true)
   HrzSprite(64, 0.3, 1.2, false)
@@ -891,7 +889,7 @@ function RenderRaceEndStanding()
   if RaceStateTime() < 1 then
     clip( 0, 0, (RaceStateTime()*8)*128, 128 )
   elseif RaceStateTime() > 3 then
-    clip( ((RaceStateTime()+3)*8)*128, 0, 128, 128 )
+    clip( ((RaceStateTime()-3)*8)*128, 0, 128, 128 )
   end
   rectfill( 0, 25, 128, 49, 1 )
   tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
@@ -905,9 +903,10 @@ function RenderRaceEndStanding()
 
   if RaceStateTime() > 3.6 then
     fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
-    BayerRectT( 0, 0, 128, 128, 0xE0, fade )
-    if RaceStateTime() > 4.2 then
+    BayerRectT( fade, 0, 0, 128, 128, 0xE0 )
+    if RaceStateTime() > 4.8 then
       RaceState = 4
+      RaceStateTimer=time()
     end
   end
 end
@@ -916,65 +915,76 @@ function RenderSummaryUI()
 
   rectfill( 0, 0, 128, 128, 0 )
   
+  if RaceStateTime() < 1 then
+    clip( 0, 0, 128, ((RaceStateTime())*3)*128 )
+  end
+
   for x=-1,7 do
     for y=-1,7 do
       off=(Frame*0.5)%16
       xoff=x*16+off
       yoff=y*16+off
       RenderFlag( xoff, yoff, Level )
-      BayerRectT( max(sin(Frame/120+xoff/53+yoff/63)+1,0.1), xoff, yoff, xoff+10, yoff+7  )
+      BayerRectT( max(sin(Frame/120+xoff/53+yoff/63)+1,0.1), xoff, yoff, xoff+10, yoff+7 )
     end
   end
   fillp()
 
-  rectfill( 0, 10, 128, 23, 13 )
-  rectfill( 0, 34, 128, 90, 13 )
-  line( 0, 33, 128, 33, 1 )
-  line( 0, 91, 128, 91, 1 )
-  rectfill( 0, 101, 128, 117, 13 )
+  if RaceStateTime() > 1 then
+  
+    clip( 0, 0, ((RaceStateTime()-1)*16)*128, 128 )
+  
+    rectfill( 0, 10, 128, 23, 13 )
+    rectfill( 0, 34, 128, 90, 13 )
+    line( 0, 33, 128, 33, 1 )
+    line( 0, 91, 128, 91, 1 )
+    rectfill( 0, 101, 128, 117, 13 )
 
-  fillp(0x33CC)
-  col = bor( 6 << 4, 0 )
-  rectfill(0,12,33,21, col)
-  rectfill(94,12,128,21, col)
-  RenderTextOutlined( "race complete", 38, 15, 0, 7 )
-  fillp()
+    fillp(0x33CC)
+    col = bor( 6 << 4, 0 )
+    rectfill(0,12,33,21, col)
+    rectfill(94,12,128,21, col)
+    RenderTextOutlined( "race complete", 38, 15, 0, 7 )
+    fillp()
 
-  -- position
-  rectfill(0,39,64,51, 1)
-  print( "position", 19, 43, 6 )
-  sspr( 103, 40, 8, 9, 54, 41 ) -- trophy
+    -- position
+    rectfill(0,39,64,51, 1)
+    print( "position", 19, 43, 6 )
+    sspr( 103, 40, 8, 9, 54, 41 ) -- trophy
 
-  -- tokens
-  rectfill(0,56,64,68, 2)
-  print( "tokens", 27, 60, 6 )
-  sspr( 23, 40, 7, 7, 55, 59 ) -- token
+    -- tokens
+    rectfill(0,56,64,68, 2)
+    print( "tokens", 27, 60, 6 )
+    sspr( 23, 40, 7, 7, 55, 59 ) -- token
 
-  -- time
-  rectfill(0,73,64,85, 3)
-  print( "time", 35, 77, 6 )
-  sspr( 112, 41, 7, 7, 55, 76 ) -- clock
+    -- time
+    rectfill(0,73,64,85, 3)
+    print( "time", 35, 77, 6 )
+    sspr( 112, 41, 7, 7, 55, 76 ) -- clock
 
-  -- position text
-  col=7
-  if RaceCompletePos == 1 then
-    col = 9
+    -- position text
+    col=7
+    if RaceCompletePos == 1 then
+      col = 9
+    end
+    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 43, col )
+
+    -- tokens text
+    col=7
+    if TokenCollected == NumTokens then
+      col = 9
+    end
+    print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 60, col )
+
+    -- time text
+    PrintTime( RaceCompleteTime, 69, 77 )
+
+    -- controls
+    print( " \142  menu", 45, 104, 6 )
+    print( " \151  retry", 45, 110, 6 )
+
+    clip()
   end
-  print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 43, col )
-
-  -- tokens text
-  col=7
-  if TokenCollected == NumTokens then
-    col = 9
-  end
-  print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 60, col )
-
-  -- time text
-  PrintTime( RaceCompleteTime, 69, 77 )
-
-  -- controls
-  print( " \142  menu", 45, 104, 6 )
-  print( " \151  retry", 45, 110, 6 )
 
 end
 
