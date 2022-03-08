@@ -261,6 +261,7 @@ function InitRace()
   RecoverTimer = 0
   InvincibleTime = 0
   UpdatePlayer()
+  
 end
 
 function _init()
@@ -914,52 +915,66 @@ end
 function RenderSummaryUI()
 
   rectfill( 0, 0, 128, 128, 0 )
+  
+  for x=-1,7 do
+    for y=-1,7 do
+      off=(Frame*0.5)%16
+      xoff=x*16+off
+      yoff=y*16+off
+      RenderFlag( xoff, yoff, Level )
+      BayerRectT( max(sin(Frame/120+xoff/53+yoff/63)+1,0.1), xoff, yoff, xoff+10, yoff+7  )
+    end
+  end
+  fillp()
+
+  rectfill( 0, 10, 128, 23, 13 )
+  rectfill( 0, 34, 128, 90, 13 )
+  line( 0, 33, 128, 33, 1 )
+  line( 0, 91, 128, 91, 1 )
+  rectfill( 0, 101, 128, 117, 13 )
 
   fillp(0x33CC)
   col = bor( 6 << 4, 0 )
   rectfill(0,12,33,21, col)
   rectfill(94,12,128,21, col)
-  print( "race complete", 38, 15, 7 )
+  RenderTextOutlined( "race complete", 38, 15, 0, 7 )
   fillp()
 
-  RenderFlag( 38, 28, Level )
-  print( LEVELDEF[Level][6], 50, 29, 7 )
-
   -- position
-  rectfill(0,44,64,56, 1)
-  print( "position", 19, 48, 6 )
-  sspr( 103, 40, 8, 9, 54, 46 ) -- trophy
+  rectfill(0,39,64,51, 1)
+  print( "position", 19, 43, 6 )
+  sspr( 103, 40, 8, 9, 54, 41 ) -- trophy
 
   -- tokens
-  rectfill(0,61,64,73, 2)
-  print( "tokens", 27, 65, 6 )
-  sspr( 23, 40, 7, 7, 55, 64 ) -- token
+  rectfill(0,56,64,68, 2)
+  print( "tokens", 27, 60, 6 )
+  sspr( 23, 40, 7, 7, 55, 59 ) -- token
 
   -- time
-  rectfill(0,78,64,90, 3)
-  print( "time", 35, 82, 6 )
-  sspr( 112, 41, 7, 7, 55, 81 ) -- clock
+  rectfill(0,73,64,85, 3)
+  print( "time", 35, 77, 6 )
+  sspr( 112, 41, 7, 7, 55, 76 ) -- clock
 
   -- position text
   col=7
   if RaceCompletePos == 1 then
     col = 9
   end
-  print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 48, col )
+  print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 43, col )
 
   -- tokens text
   col=7
   if TokenCollected == NumTokens then
     col = 9
   end
-  print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 65, col )
+  print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 60, col )
 
   -- time text
-  PrintTime( RaceCompleteTime, 69, 82 )
+  PrintTime( RaceCompleteTime, 69, 77 )
 
   -- controls
-  print( " \142  menu", 50, 103, 6 )
-  print( " \151  retry", 50, 109, 6 )
+  print( " \142  menu", 45, 104, 6 )
+  print( " \151  retry", 45, 110, 6 )
 
 end
 
