@@ -824,9 +824,12 @@ function PrintBigDigit( n, x, y,nrend)
   x-=2
   if not nrend then
   poke(0x5f58, 0x1 | 0x80) --set custom font
-    n=n*2+16+n\8*16
-    print(chr(n)..chr(n+1).."\n"..chr(n+16)..chr(n+17),x,y-3,7) --uses 4 chars to print 1 big
+    n1=n*2+16+n\8*16
+    print(chr(n1)..chr(n1+1).."\n"..chr(n1+16)..chr(n1+17),x,y-3,7) --uses 4 chars to print 1 big
   poke(0x5f58, 0x0) --set default font
+  end
+  if n==1 then
+  return 12
   end
   return 16
 end
@@ -893,11 +896,11 @@ function RenderRaceEndStanding()
   end
   rectfill( 0, 25, 128, 49, 1 )
   tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
-  PrintBigDigit( RaceCompletePos, 64-(tw*0.5+4), 32)
-  print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-3, 32, 7 )
+  PrintBigDigit( RaceCompletePos, 53, 32)
+  print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-5, 32, 7 )
 
-  sspr( 121, 43, 7, 19, 64-(tw+8+7), 27, 7, 19, true )
-  sspr( 121, 43, 7, 19, 64+(tw+8), 27, 7, 19 )
+  sspr( 121, 43, 7, 19, 37, 27, 7, 19, true )
+  sspr( 121, 43, 7, 19, 84, 27, 7, 19 )
 
   clip()
 
