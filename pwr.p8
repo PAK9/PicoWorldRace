@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 35
 __lua__
--- pico world race
+-- pico world race 1.1
 -- by pak-9
 
 #include menus.lua
