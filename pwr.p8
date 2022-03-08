@@ -1,8 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 35
 __lua__
--- P2
--- by PAK-9
+-- pico world race
+-- by pak-9
 
 #include menus.lua
 #include particle.lua
