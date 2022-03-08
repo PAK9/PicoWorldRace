@@ -19,7 +19,7 @@ font="8,8,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 
 -- music(0)
 
-Frame, SEG_LEN, DRAW_DIST, CANVAS_SIZE, CAM_HEIGHT = 0,10,80,128,21
+Frame, SEG_LEN, DRAW_DIST, CANVAS_SIZE, CAM_HEIGHT = 0,10,100,128,21
 
 ROAD_WIDTH = 60 -- half
 CAM_DEPTH = 0.55; -- 1 / tan((100/2) * pi/180) (fov is 100)
