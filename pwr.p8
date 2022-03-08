@@ -935,7 +935,9 @@ function RenderSummaryUI()
 
   if RaceStateTime() > 1 then
   
-    clip( 0, 0, ((RaceStateTime()-1)*16)*128, 128 )
+    if RaceStateTime() < 2 then
+      clip( 0, 0, ((RaceStateTime()-1)*16)*128, 128 )
+    end
   
     rectfill( 0, 10, 128, 23, 13 )
     rectfill( 0, 34, 128, 90, 13 )
