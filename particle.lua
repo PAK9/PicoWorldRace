@@ -49,10 +49,9 @@ function UpdateParticles()
     p = sPartic[i]
     if p != 0 then
       npart = npart + 1
-      srand(p)
-      sParticSc[i] += ( PDEF[p][8] + (rnd(0.5)) * PDEF[p][8] )
-      sParticX[i] += ( PDEF[p][6] + (rnd(0.5)) * PDEF[p][6] )
-      sParticY[i] += ( PDEF[p][7] + (rnd(0.5)) * PDEF[p][7] )
+      sParticSc[i] += ( PDEF[p][8] + rnd(0.5) * PDEF[p][8] )
+      sParticX[i] += ( PDEF[p][6] + rnd(0.5) * PDEF[p][6] )
+      sParticY[i] += ( PDEF[p][7] + rnd(0.5) * PDEF[p][7] )
       if sParticSc[i] <= 0 or time() - sParticT[i] > PDEF[p][5] then
         sPartic[i] = 0
       end

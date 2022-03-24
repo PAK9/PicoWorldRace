@@ -405,9 +405,9 @@ function UpdatePlayer()
     else
       if Frame%8 == 0 and PlayerAir == 0 then
         if PlayerDrift < 0 then
-          AddParticle( 1, 58 - rnd( 4 ), 120 + rnd( 2 ) )
+          AddParticle( 1, 62 - rnd( 4 ), 120 + rnd( 2 ) )
         elseif PlayerDrift > 0 then
-          AddParticle( 2, 70 + rnd( 4 ), 120 + rnd( 2 ) )
+          AddParticle( 2, 74 + rnd( 4 ), 120 + rnd( 2 ) )
         end
       end
     end
