@@ -477,8 +477,9 @@ function UpdateOpts()
       OpptV[i]=OpptV[i]+opspd
       OpptV[i]=OpptV[i]*0.92
 
-      if plsegoff1 < 20 and abs( PlayerX - OpptX[i] ) > 0.05 and RecoverStage == 0 then
-        OpptX[i] = min( max( OpptX[i] + 0.001 * sgn( PlayerX - OpptX[i] ), -0.8 ), 0.8 )
+      if RecoverStage == 0 then
+        srand(i)
+        OpptX[i] = min( max( OpptX[i] + sPointsC[OpptSeg[i]] * (0.008+rnd(0.01)), -0.6 ), 0.6 ) * (0.99+rnd(0.005))
       end
     end
   end
