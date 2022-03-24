@@ -94,6 +94,7 @@ PlayerAir = 0
 PlayerSeg = 0 -- current player segment
 PlayerLap = 0
 PlayerStandF = 0 -- final standing
+BURNOUT_SPD=1.3
 
 RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
 RecoverTimer = 0
@@ -291,6 +292,14 @@ function RaceStateTime()
   return time()-RaceStateTimer
 end
 
+function IsOffRoad()
+  return abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0
+end
+
+function IsBurnout()
+  return PlayerAir==0 and IsOffRoad() == false and PlayerVf < BURNOUT_SPD and btn(4) -- z / btn1
+end
+
 function UpdateRaceInput()
 
   if RaceState == 2 and PlayerAir == 0 then
@@ -327,7 +336,7 @@ function UpdatePlayer()
       UpdateRaceInput()
     end
     drftslw=(1-abs(PlayerDrift)*0.001)
-    if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH then
+    if IsOffRoad() then
       PlayerVl=PlayerVl*0.989*drftslw
       PlayerXd=PlayerXd*0.96
     else
@@ -391,7 +400,7 @@ function UpdatePlayer()
   -- particles
 
   if RecoverStage < 2 then
-    if abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0 then
+    if IsOffRoad() then
       if PlayerVf > 1 then
         if Frame%5 == 0 then
           srand(Frame)
@@ -408,6 +417,9 @@ function UpdatePlayer()
           AddParticle( 1, 62 - rnd( 4 ), 120 + rnd( 2 ) )
         elseif PlayerDrift > 0 then
           AddParticle( 2, 74 + rnd( 4 ), 120 + rnd( 2 ) )
+        elseif IsBurnout() then
+          AddParticle( 1, 50 - rnd( 4 ), 122 )
+          AddParticle( 2, 80 + rnd( 4 ), 122 )
         end
       end
     end
@@ -1055,17 +1067,18 @@ function RenderPlayer()
     return
   end
 
-  if PlayerDrift != 0 then
-    woby=0
-    if PlayerAir == 0 then
+  woby = 0
+  if PlayerDrift != 0 or IsBurnout() then -- z / btn1
     srand(time())
     woby=rnd(1.2)
-    end
-    spr( 9, 44, 100-woby, 6, 3, PlayerDrift > 0 )
+  end
+  
+  if PlayerDrift != 0 then
+    spr( 9, 44, 100+woby, 6, 3, PlayerDrift > 0 )
   elseif PlayerXd > 0.06 or PlayerXd < -0.06 then
-    spr( 4, 44, 100, 5, 3, PlayerXd > 0 )
+    spr( 4, 44+woby, 100, 5, 3, PlayerXd > 0 )
   else
-    spr( 0, 48, 100, 4, 3 )
+    spr( 0, 48+woby, 100, 4, 3 )
   end
 
 end
