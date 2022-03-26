@@ -1,6 +1,6 @@
 -- Debug.lua ---------------------------------------
 
---Current stats - Tokens:7957 Chars:49248 Compressed:15305
+--Current stats - Tokens:8003 Chars:49882 Compressed:15605
 
 local DEBUG_PRINT = {}
 local DEBUG_PRINT_I = 1

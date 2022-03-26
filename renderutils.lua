@@ -2,7 +2,9 @@
 
 BAYER =split" 0, 0x0208,   0x0A0A,   0x1A4A,   0x5A5A,   0xDA7A,   0xFAFA,   0xFBFE, 0xFFFF "
 BAYERT=split" 0, 0x0208.8, 0x0A0A.8, 0x1A4A.8, 0x5A5A.8, 0xDA7A.8, 0xFAFA.8, 0xFBFE.8 "
-pd_root={}
+
+opcols1 = split" 12, 11, 10, 9, 8, 6 "
+opcols2 = split" 1, 3, 4, 4, 2, 5 "
 
 function BayerRectT( fact, ...)
   --render a rect with a bayer pattern
@@ -29,53 +31,37 @@ pd_fillp = split"32768, 32736, 24544, 24416, 23392, 23391, 23135, 23131, 6747, 6
 
 function pd_draw(index,x,y,s_start,s_end,flip_h)
 
-  local l,cmd=peek(0x2000)
-
   function _trifill(x1,y1,x2,y2,c) --@JadeLombax
-   local inc=sgn(y2-y1)
-   local fy=y2-y1+inc/2
-   for i=inc\2,fy,inc do
-   line(x1+.5,y1+i,x1+(x2-x1)*i/fy+.5,y1+i,c)
-   end
-   line(x1,y1,x2,y2)
+    local inc=sgn(y2-y1)
+    local fy=y2-y1+inc/2
+    for i=inc\2,fy,inc do
+      line(x1+.5,y1+i,x1+(x2-x1)*i/fy+.5,y1+i,c)
+    end
+    line(x1,y1,x2,y2)
   end
 
+  local l,cmd= #brush[index]
+
   local function _flip(p,f,o,n)
-  if (f==0) return
-  for i=0,o==0 and 2 or 0,2 do cmd[p+i] = f-cmd[p+i]-o end
-  cmd[n] = not cmd[n]
+    for i=0,o==0 and 2 or 0,2 do cmd[p+i] = f-cmd[p+i]-o end
+    cmd[n] = not cmd[n]
   end
 
   camera(%0x5f28-x,%0x5f2a-y)
 
-  --car is 82 bytes long
   for i=s_start and s_start or 1, s_end and s_end or l do
 
-  cmd={}
-  for j=1,5 do
-    cmd[j]=peek(0x2000+index+(i-1)*6+j-1)-64
+  cmd={unpack(brush[index][i])}
+
+
+  local s_cmd,px,ox = deli(cmd,1),2,0
+
+  if ((s_cmd<=9 or s_cmd==13) and cmd[6]>0) fillp(-pd_fillp[cmd[6]]+.5,x,y)
+    if(flip_h and flip_h!=0) _flip(px,flip_h,ox,6)
+   _ENV[pd_modes[s_cmd]](unpack(cmd))
+    fillp()
   end
 
-  cmd[6]=peek(0x2000+index+(i-1)*6+5)
-  cmd[7],cmd[6]=(cmd[6]&240)>>4,(cmd[6]&15)
-
-  local s_cmd,px,ox,oy = cmd[1],2,0,0
-
-  if ((s_cmd<=9 or s_cmd==13) and cmd[7]>0) fillp(-pd_fillp[cmd[7]]+.5,x,y)
-
-  if s_cmd==5 then
-    cmd[1] = {unpack(cmd)} cmd[2]=0
-  else
-    if (s_cmd==10) cmd[8],cmd[7],px,ox,oy = cmd[7]%2==1,cmd[7]\2==1,3,cmd[5]*8-1,cmd[6]*8-1
-    if (s_cmd==12) cmd[2]+=x cmd[3]+=y cmd[6],cmd[7]=false,false
-
-    if(flip_h) _flip(px,flip_h,ox,7)
-  end
-
-  deli(cmd,1) _ENV[pd_modes[s_cmd]](unpack(cmd))
-  fillp()
-  end
-
-  deli(pd_root,#pd_root)
   camera(%0x5f28+x,%0x5f2a+y)
+
 end
