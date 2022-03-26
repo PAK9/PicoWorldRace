@@ -79,7 +79,9 @@ PlayerX, PlayerXd, PlayerY, PlayerYd, PlayerVl, PlayerVf, PlayerDrift, PlayerAir
 
 PlayerSeg = 0 -- current player segment
 PlayerStandF = 0 -- final standing
+
 BURNOUT_SPD = 1.3
+
 RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
 RecoverTimer, InvincibleTime = 0,0
 
@@ -319,7 +321,9 @@ function UpdatePlayer()
     if RecoverStage == 0 then
       UpdateRaceInput()
     end
+      
     local drftslw=(1-abs(PlayerDrift)*0.001)
+      
     if IsOffRoad() then
       PlayerVl=PlayerVl*0.989*drftslw
       PlayerXd=PlayerXd*0.96
