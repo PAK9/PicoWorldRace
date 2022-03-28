@@ -50,9 +50,7 @@ function BuildCustomTrack( lvl, ysc, cmax, seed )
     sPointsY[i]=y*sin(i/NumSegs*0.5)*ysc
   end
 
-  -- tokens
-  -- its always 4 groups of 5
-
+  -- tokens, always 4 groups of 5
   for i=1,4 do
     sttkn=(NumSegs-200)/4*i
     xx=rnd(0.7)-0.35
