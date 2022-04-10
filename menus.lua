@@ -176,7 +176,7 @@ end
 
 function UpdateMenu_Custom()
   if btnp(⬅️) or btnp(➡️) then -- left/right
-    if btnp(➡️) then dir=-1 else dir=1 end
+    if btnp(⬅️) then dir=-1 else dir=1 end
     if CustomOption==1 then
       CustomLevel=max(min(CustomLevel+dir,#LEVELDEF),1)
       TotalTkns=CountProfileTokens()
