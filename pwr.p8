@@ -1105,7 +1105,7 @@ function RenderRoad()
     local opsx,opsy,opsw =psx[i],psy[i],psw[i]
     local seg = OpptSeg[o]
 
-    if i<21 then
+    if i<50 then
 
       local plsegoff1=(seg-PlayerSeg)%NumSegs+1
       local opinseg=1-(seg*SEG_LEN-OpptPos[o])/SEG_LEN
