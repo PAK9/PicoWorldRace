@@ -1255,6 +1255,22 @@ for i = DRAW_DIST - 1, 1, -1 do
   end
   pal( 14, 14 )
   pal( 2, 2 )
+
+-- snow
+if Theme==6 then
+fillp()
+rdst=60
+if i < rdst and i > 1 then
+  for r=1,(rdst-i)*0.2 do
+  srand( segidx * r * 777 )
+  local psx1 = flr(64 + (psscale * ( pcamx + (rnd(10)-5) * ROAD_WIDTH ) * 64))
+  tt=(Frame*0.5*(rnd(2)+1) + rnd(128))%200
+  sz=psw[i]*0.02
+  circfill( psx1, min( tt, psy[i] ), sz, 7 )
+  end
+end
+end
+
 end
 
 end
