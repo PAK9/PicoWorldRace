@@ -99,1163 +99,1163 @@ RaceStateTimer, RaceCompleteTime = 0,0
 RaceCompletePos = 0 -- player standing
 
 function LoopedTrackPos(z)
-  lps=flr(z/(SEG_LEN*NumSegs))
-  return z-SEG_LEN*NumSegs*lps
+lps=flr(z/(SEG_LEN*NumSegs))
+return z-SEG_LEN*NumSegs*lps
 end
 
 function DepthToSegIndex(z)
-  return flr(z/SEG_LEN) % NumSegs + 1
+return flr(z/SEG_LEN) % NumSegs + 1
 end
 
 function AddSeg( c, y )
-  NumSegs+=1
-  add( sPointsC, c )
-  add( sPointsX, 0 )
-  add( sPointsY, y )
-  add( sPointsZ, NumSegs * SEG_LEN + 1 )
-  add( sTokensX, 0 )
-  add( sTokensExist, 0 )
+NumSegs+=1
+add( sPointsC, c )
+add( sPointsX, 0 )
+add( sPointsY, y )
+add( sPointsZ, NumSegs * SEG_LEN + 1 )
+add( sTokensX, 0 )
+add( sTokensExist, 0 )
 end
 
 function AddSprites( n, p )
-  sp=LEVELDEF[Level][2]
-  sd=SPDEF[sp][p]
-  for i = 1, n do
+sp=LEVELDEF[Level][2]
+sd=SPDEF[sp][p]
+for i = 1, n do
 
-    if p == 0 then
+  if p == 0 then
+    add( sSprite, 0 )
+    add( sSpriteX, 0 )
+    add( sSpriteSc, 0 )
+  else
+    srand( #sSprite )
+    added = false
+    for j = 1, #sd do
+      sdi=sd[j]
+      if (#sSprite+sdi[3]) % sdi[2] == 0 then
+        -- SDEF, interval, interval offset, minx (*roadw), maxx (*roadw), rand l/r
+
+        xrand = 1
+        if (sdi[6] == 1 and rnd( 30000 ) > 15000) xrand = -1
+
+        spindex=sdi[1]
+        add( sSprite, spindex )
+        add( sSpriteX, ( sdi[4] + rnd( sdi[5] - sdi[4] ) ) * xrand )
+        add( sSpriteSc, 0.3*(SDEF[spindex][5]+rnd(SDEF[spindex][6]-SDEF[spindex][5])) )
+        added = true
+        break
+      end
+    end
+    if added == false then
       add( sSprite, 0 )
       add( sSpriteX, 0 )
       add( sSpriteSc, 0 )
-    else
-      srand( #sSprite )
-      added = false
-      for j = 1, #sd do
-        sdi=sd[j]
-        if (#sSprite+sdi[3]) % sdi[2] == 0 then
-          -- SDEF, interval, interval offset, minx (*roadw), maxx (*roadw), rand l/r
-
-          xrand = 1
-          if (sdi[6] == 1 and rnd( 30000 ) > 15000) xrand = -1
-
-          spindex=sdi[1]
-          add( sSprite, spindex )
-          add( sSpriteX, ( sdi[4] + rnd( sdi[5] - sdi[4] ) ) * xrand )
-          add( sSpriteSc, 0.3*(SDEF[spindex][5]+rnd(SDEF[spindex][6]-SDEF[spindex][5])) )
-          added = true
-          break
-        end
-      end
-      if added == false then
-        add( sSprite, 0 )
-        add( sSpriteX, 0 )
-        add( sSpriteSc, 0 )
-      end
     end
   end
+end
 end
 
 function AddCurve( enter, hold, exit, c, y, sprp )
 
-  tot=(enter+hold+exit)
-  AddSprites( tot, sprp )
+tot=(enter+hold+exit)
+AddSprites( tot, sprp )
 
-  for i=1,enter do
-    AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
-  end
-  for i=1,hold do
-    AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
-  end
-  for i=1,exit do
-    AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
-  end
-  LastY=y
+for i=1,enter do
+  AddSeg( easein( 0, c, i/enter ), easeinout( LastY,y,i/tot ) )
+end
+for i=1,hold do
+  AddSeg( c, easeinout( LastY,y,(i+enter)/tot ) )
+end
+for i=1,exit do
+  AddSeg( easeout(c, 0, i/exit ), easeinout( LastY,y,(i+enter+hold)/tot ) )
+end
+LastY=y
 
 end
 
 function AddStraight( n, y, sprp )
-  AddSprites( n, sprp )
-  for i=1,n do
-    AddSeg( 0, easeinout( LastY, y, i/n ) )
-  end
-  LastY=y
+AddSprites( n, sprp )
+for i=1,n do
+  AddSeg( 0, easeinout( LastY, y, i/n ) )
+end
+LastY=y
 end
 
 function AddTokens( seg, x, n )
-  for i=1,n do
-    sTokensX[seg+i*3-3] = x
-    sTokensExist[seg+i*3-3]=1
-  end
-  NumTokens += n
+for i=1,n do
+  sTokensX[seg+i*3-3] = x
+  sTokensExist[seg+i*3-3]=1
+end
+NumTokens += n
 end
 
 function InitOps()
-  for i=1,8 do
-    OpptPos[i] = SEG_LEN+SEG_LEN *  i
-    OpptX[i]=((i%2)*2-1)*0.2
-    OpptV[i]=0
-    OpptLap[i]=1
-  end
+for i=1,8 do
+  OpptPos[i] = SEG_LEN+SEG_LEN *  i
+  OpptX[i]=((i%2)*2-1)*0.2
+  OpptV[i]=0
+  OpptLap[i]=1
+end
 end
 
 function MenuRestart()
-  InitRace()
+InitRace()
 end
 
 function MenuQuit()
-  OpenMenu(MenuState)
+OpenMenu(MenuState)
 end
 
 function InitRace()
 
-  TitleState=2
+TitleState=2
 
-  menuitem( 1, "restart race", MenuRestart )
-  menuitem( 2, "abandon race", MenuQuit )
+menuitem( 1, "restart race", MenuRestart )
+menuitem( 2, "abandon race", MenuQuit )
 
-  NumTokens=0
-  TokenCollected=0
+NumTokens=0
+TokenCollected=0
 
-  EraseTrack()
-  if IsCustomRace==1 then
-    BuildCustomTrack( CustomLevel, CT_HILLS[CustomHills], CT_CURVES[CustomCurves], CustomSeed )
-  else
-    BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] )
-  end
-  InitOps()
-  RaceStateTimer = time()
-  RaceState = 1
+EraseTrack()
+if IsCustomRace==1 then
+  BuildCustomTrack( CustomLevel, CT_HILLS[CustomHills], CT_CURVES[CustomCurves], CustomSeed )
+else
+  BuildCustomTrack( Level, LEVELDEF[Level][3], LEVELDEF[Level][4], LEVELDEF[Level][5] )
+end
+InitOps()
+RaceStateTimer = time()
+RaceState = 1
 
-  Position = SEG_LEN
-  PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
-  PlayerXd, PlayerY, PlayerYd, PlayerVl, PlayerVf, PlayerDrift, PlayerAir, Pfrm = 0,0,0,0,0,0,0,0
-  PlayerSeg = 0 -- current player segment
-  PlayerLap = 1
+Position = SEG_LEN
+PlayerX = -0.2 -- -1 to 1 TODO: maybe don't make relative to road width
+PlayerXd, PlayerY, PlayerYd, PlayerVl, PlayerVf, PlayerDrift, PlayerAir, Pfrm = 0,0,0,0,0,0,0,0
+PlayerSeg = 0 -- current player segment
+PlayerLap = 1
 
-  RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
-  RecoverTimer, InvincibleTime = 0,0
-  UpdatePlayer()
+RecoverStage = 0 -- 1. pause 2. lerp to track 3. flash
+RecoverTimer, InvincibleTime = 0,0
+UpdatePlayer()
 end
 
 function _init()
-  --font init
-  memset(0x5600,0,256*8)
-  poke(0x5600,unpack(split(font)))
+--font init
+memset(0x5600,0,256*8)
+poke(0x5600,unpack(split(font)))
 
-  brush={}
+brush={}
 
-  for n=0,4,4 do
+for n=0,4,4 do
 
-    brush[n]={}
+  brush[n]={}
 
-    local start = 0x2000+n*128
-    local l=peek(start)
+  local start = 0x2000+n*128
+  local l=peek(start)
 
-    for i=1, l do
+  for i=1, l do
 
-      local cmd={}
+    local cmd={}
 
-      for j=1,5 do
-        cmd[j]=peek(start+(i-1)*6+j)-64
-      end
-      cmd[6]=peek(start+(i-1)*6+6)
-      cmd[7],cmd[6]=(cmd[6]&240)>>4,(cmd[6]&15)
-      add(brush[n],cmd)
+    for j=1,5 do
+      cmd[j]=peek(start+(i-1)*6+j)-64
     end
-
+    cmd[6]=peek(start+(i-1)*6+6)
+    cmd[7],cmd[6]=(cmd[6]&240)>>4,(cmd[6]&15)
+    add(brush[n],cmd)
   end
 
-  LoadProfile()
-  --EraseProfile()
-  InitSpriteDef()
+end
 
-  palt(0, false)
-  palt(15, true)
+LoadProfile()
+--EraseProfile()
+InitSpriteDef()
 
-  InitParticles()
-  OpenMenu(1)
+palt(0, false)
+palt(15, true)
+
+InitParticles()
+OpenMenu(1)
 end
 
 function RaceStateTime()
-  return time()-RaceStateTimer
+return time()-RaceStateTimer
 end
 
 function IsOffRoad()
-  return abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0
+return abs( PlayerX*ROAD_WIDTH ) > ROAD_WIDTH and PlayerAir == 0
 end
 
 function IsBurnout()
-  return PlayerAir==0 and IsOffRoad() == false and PlayerVf < BURNOUT_SPD and btn(🅾️) -- z / btn1
+return PlayerAir==0 and IsOffRoad() == false and PlayerVf < BURNOUT_SPD and btn(🅾️) -- z / btn1
 end
 
 function UpdateRaceInput()
 
-  if RaceState == 2 and PlayerAir == 0 then
-    if btn(❎) then -- btn2
-      if abs( PlayerXd ) > 0.1 then
-        PlayerDrift=sgn(PlayerXd)
-        Pfrm=max(.2,Pfrm)
-      else
-        PlayerVl=PlayerVl-0.08
-      end
-    end
-
-    if btn(🅾️) then -- z / btn1
-      PlayerVl=PlayerVl+0.09
-    end
-
-    if btn(⬅️) then -- left
-      PlayerXd-= (0.022 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
-    elseif btn(➡️) then -- right
-      PlayerXd+= (0.022 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+if RaceState == 2 and PlayerAir == 0 then
+  if btn(❎) then -- btn2
+    if abs( PlayerXd ) > 0.1 then
+      PlayerDrift=sgn(PlayerXd)
+      Pfrm=max(.2,Pfrm)
+    else
+      PlayerVl=PlayerVl-0.08
     end
   end
+
+  if btn(🅾️) then -- z / btn1
+    PlayerVl=PlayerVl+0.09
+  end
+
+  if btn(⬅️) then -- left
+    PlayerXd-= (0.022 + -PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+  elseif btn(➡️) then -- right
+    PlayerXd+= (0.022 + PlayerDrift*0.01) * (1-PlayerVl*0.0005)*min(PlayerVl*0.125,1)
+  end
+end
 end
 
 function UpdatePlayer()
 
-  if InvincibleTime-time() < 0 then
-    InvincibleTime = 0
+if InvincibleTime-time() < 0 then
+  InvincibleTime = 0
+end
+
+if PlayerAir == 0 then
+  if RecoverStage == 0 then
+    UpdateRaceInput()
   end
-
-  if PlayerAir == 0 then
-    if RecoverStage == 0 then
-      UpdateRaceInput()
-    end
-      
-    local drftslw=(1-abs(PlayerDrift)*0.001)
-      
-    if IsOffRoad() then
-      PlayerVl=PlayerVl*0.989*drftslw
-      PlayerXd=PlayerXd*0.96
-    else
-      PlayerVl=PlayerVl*0.995*drftslw
-      PlayerXd=PlayerXd*0.95
-    end
-  end
-  if PlayerVl < 0.02 then
-    PlayerVl = 0
-  end
-
-  PlayerVf = PlayerVl*0.35
-  Position=Position+PlayerVf
-  if Position > SEG_LEN*NumSegs then
-    Position -= SEG_LEN*NumSegs
-    PlayerLap += 1
-  end
-
-  PlayerSeg=DepthToSegIndex(Position)
-
-  nxtseg=(PlayerSeg)%NumSegs + 1
-  posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
-
-  if RaceState == 3 then
-    PlayerX=lerp(PlayerX,sPointsX[PlayerSeg],0.05)
-  end
-  if abs( PlayerXd ) < 0.005 then
-    PlayerXd = 0
-  end
-  PlayerX+=sPointsC[PlayerSeg]*0.45*PlayerVl*0.01 + PlayerXd*0.15
-
-  if abs( PlayerXd ) < 0.08 then
-    PlayerDrift=0
-  end
-
-  HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf)
-
-  if PlayerDrift==0 then
-    Pfrm-=.2
+    
+  local drftslw=(1-abs(PlayerDrift)*0.001)
+    
+  if IsOffRoad() then
+    PlayerVl=PlayerVl*0.989*drftslw
+    PlayerXd=PlayerXd*0.96
   else
-    Pfrm+=.2
+    PlayerVl=PlayerVl*0.995*drftslw
+    PlayerXd=PlayerXd*0.95
   end
-  Pfrm=mid(0,Pfrm,1)
+end
+if PlayerVl < 0.02 then
+  PlayerVl = 0
+end
 
-  -- jumps / player y
+PlayerVf = PlayerVl*0.35
+Position=Position+PlayerVf
+if Position > SEG_LEN*NumSegs then
+  Position -= SEG_LEN*NumSegs
+  PlayerLap += 1
+end
 
-  local ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
-  PlayerY=max(PlayerY+PlayerYd, ground)
-  if( PlayerY == ground ) then
-    if PlayerYd < -2 and PlayerAir > 4 then
-      sScreenShake = {1.5,4}
-      sfx( 11, 2 )
-      AddParticle( 6, 52, 122 )
-      AddParticle( 7, 78, 126 )
-      AddParticle( 1, 52, 122 )
-      AddParticle( 2, 78, 122 )
-    end
-    local nposinseg=1-(PlayerSeg*SEG_LEN-(Position+PlayerVf ))/SEG_LEN
-    local nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
-    PlayerYd = ( nground - ground ) - 0.2
-    PlayerAir = 0
-  else
-    PlayerYd=PlayerYd-0.25
-    PlayerAir = PlayerAir + 1
+PlayerSeg=DepthToSegIndex(Position)
+
+nxtseg=(PlayerSeg)%NumSegs + 1
+posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
+
+if RaceState == 3 then
+  PlayerX=lerp(PlayerX,sPointsX[PlayerSeg],0.05)
+end
+if abs( PlayerXd ) < 0.005 then
+  PlayerXd = 0
+end
+PlayerX+=sPointsC[PlayerSeg]*0.45*PlayerVl*0.01 + PlayerXd*0.15
+
+if abs( PlayerXd ) < 0.08 then
+  PlayerDrift=0
+end
+
+HznOffset = HznOffset + sPointsC[PlayerSeg] * 0.14 * (PlayerVf)
+
+if PlayerDrift==0 then
+  Pfrm-=.2
+else
+  Pfrm+=.2
+end
+Pfrm=mid(0,Pfrm,1)
+
+-- jumps / player y
+
+local ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
+PlayerY=max(PlayerY+PlayerYd, ground)
+if( PlayerY == ground ) then
+  if PlayerYd < -2 and PlayerAir > 4 then
+    sScreenShake = {1.5,4}
+    sfx( 11, 2 )
+    AddParticle( 6, 52, 122 )
+    AddParticle( 7, 78, 126 )
+    AddParticle( 1, 52, 122 )
+    AddParticle( 2, 78, 122 )
   end
+  local nposinseg=1-(PlayerSeg*SEG_LEN-(Position+PlayerVf ))/SEG_LEN
+  local nground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], nposinseg )
+  PlayerYd = ( nground - ground ) - 0.2
+  PlayerAir = 0
+else
+  PlayerYd=PlayerYd-0.25
+  PlayerAir = PlayerAir + 1
+end
 
-  -- particles
+-- particles
 
-  if RecoverStage < 2 then
-    if IsOffRoad() then
-      if PlayerVf > 1 then
-        if Frame%5 == 0 then
-          srand(Frame)
-          AddParticle( 3, 64 + flr(rnd(32))-16, 120 + rnd( 1 ) )
-        end
-        if Frame%10 == 0 then
-          sScreenShake[1],sScreenShake[2] = 1,1
-        end
+if RecoverStage < 2 then
+  if IsOffRoad() then
+    if PlayerVf > 1 then
+      if Frame%5 == 0 then
+        srand(Frame)
+        AddParticle( 3, 64 + flr(rnd(32))-16, 120 + rnd( 1 ) )
       end
-    else
-      if Frame%8 == 0 and PlayerAir == 0 then
-        if PlayerDrift < 0 then
-          AddParticle( 1, 62 - rnd( 4 ), 120 + rnd( 2 ) )
-        elseif PlayerDrift > 0 then
-          AddParticle( 2, 74 + rnd( 4 ), 120 + rnd( 2 ) )
-        elseif IsBurnout() then
-          AddParticle( 1, 50 - rnd( 4 ), 122 )
-          AddParticle( 2, 80 + rnd( 4 ), 122 )
-        end
+      if Frame%10 == 0 then
+        sScreenShake[1],sScreenShake[2] = 1,1
       end
     end
+  else
+    if Frame%8 == 0 and PlayerAir == 0 then
+      if PlayerDrift < 0 then
+        AddParticle( 1, 62 - rnd( 4 ), 120 + rnd( 2 ) )
+      elseif PlayerDrift > 0 then
+        AddParticle( 2, 74 + rnd( 4 ), 120 + rnd( 2 ) )
+      elseif IsBurnout() then
+        AddParticle( 1, 50 - rnd( 4 ), 122 )
+        AddParticle( 2, 80 + rnd( 4 ), 122 )
+      end
+    end
   end
+end
 end
 
 function UpdateRecover()
 
-  if RecoverStage == 0 then
-    return
-  else
+if RecoverStage == 0 then
+  return
+else
 
-    t1,t2,t3=1.5,2.5,3.5
-    if RecoverStage == 1 then
-      srand( time() )
-      if Frame%2==0 then
-        AddParticle( 8, 64 + rnd(8)-4, 98 + rnd( 2 ) )
-      end
-      if Frame%4==0 then
-        AddParticle( 9, 64 + rnd(8)-4, 88 + rnd( 8 ) )
-      end
-
-      if time() - RecoverTimer >= t1 then
-        RecoverStage = 2
-        ClearParticles()
-      end
-    elseif RecoverStage == 2 then
-      instage=(time()-RecoverTimer-t1)/(t2-t1)
-      PlayerVl=8
-      PlayerX=lerp(PlayerX,0,instage)
-      if time() - RecoverTimer >= t2 then
-        RecoverStage = 3
-        InvincibleTime=time()+1
-      end
-    elseif RecoverStage == 3 then
-      PlayerX = 0
-      PlayerVl=8
-      if time() - RecoverTimer >= t3 then RecoverStage = 0 end
+  t1,t2,t3=1.5,2.5,3.5
+  if RecoverStage == 1 then
+    srand( time() )
+    if Frame%2==0 then
+      AddParticle( 8, 64 + rnd(8)-4, 98 + rnd( 2 ) )
     end
+    if Frame%4==0 then
+      AddParticle( 9, 64 + rnd(8)-4, 88 + rnd( 8 ) )
+    end
+
+    if time() - RecoverTimer >= t1 then
+      RecoverStage = 2
+      ClearParticles()
+    end
+  elseif RecoverStage == 2 then
+    instage=(time()-RecoverTimer-t1)/(t2-t1)
+    PlayerVl=8
+    PlayerX=lerp(PlayerX,0,instage)
+    if time() - RecoverTimer >= t2 then
+      RecoverStage = 3
+      InvincibleTime=time()+1
+    end
+  elseif RecoverStage == 3 then
+    PlayerX = 0
+    PlayerVl=8
+    if time() - RecoverTimer >= t3 then RecoverStage = 0 end
   end
+end
 end
 
 function UpdateOpts()
 
-  for i=1,#OpptPos do
+for i=1,#OpptPos do
 
-    OpptPos[i]=OpptPos[i]+OpptV[i]
+  OpptPos[i]=OpptPos[i]+OpptV[i]
 
-    if OpptPos[i] > SEG_LEN*NumSegs then
-      OpptPos[i] -= SEG_LEN*NumSegs
-      OpptLap[i] += 1
+  if OpptPos[i] > SEG_LEN*NumSegs then
+    OpptPos[i] -= SEG_LEN*NumSegs
+    OpptLap[i] += 1
+  end
+  OpptSeg[i]=DepthToSegIndex(OpptPos[i])
+  plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
+
+  if RaceState > 1 then
+    local opv=(NUM_LAPS-OpptLap[i])*0.017
+    local opspd=(0.04+PlayerVl*0.022+i*0.008+opv)
+    if RaceState >= 3 then
+      opspd=0.08
     end
-    OpptSeg[i]=DepthToSegIndex(OpptPos[i])
-    plsegoff1=(OpptSeg[i]-PlayerSeg)%NumSegs+1
+    OpptV[i]=OpptV[i]+opspd
+    OpptV[i]=OpptV[i]*0.92
 
-    if RaceState > 1 then
-      local opv=(NUM_LAPS-OpptLap[i])*0.017
-      local opspd=(0.04+PlayerVl*0.022+i*0.008+opv)
-      if RaceState >= 3 then
-        opspd=0.08
-      end
-      OpptV[i]=OpptV[i]+opspd
-      OpptV[i]=OpptV[i]*0.92
-
-      if RecoverStage == 0 then
-        srand(i)
-        OpptX[i] = min( max( OpptX[i] + sPointsC[OpptSeg[i]] * (0.008+rnd(0.01)), -0.6 ), 0.6 ) * (0.99+rnd(0.005))
-      end
+    if RecoverStage == 0 then
+      srand(i)
+      OpptX[i] = min( max( OpptX[i] + sPointsC[OpptSeg[i]] * (0.008+rnd(0.01)), -0.6 ), 0.6 ) * (0.99+rnd(0.005))
     end
   end
 end
+end
 
 function AddCollisionParticles()
-  AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-  AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-  AddParticle( 6, 64 + rnd(16)-8, 102 - rnd( 8 ) )
-  AddParticle( 7, 54 + rnd(32)-16, 102 + rnd( 8 ) )
-  AddParticle( 7, 64 + rnd(16)-8, 102 - rnd( 8 ) )
-  AddParticle( 6, 74 + rnd(32)-16, 102 + rnd( 8 ) )
+AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+AddParticle( 6, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+AddParticle( 7, 54 + rnd(32)-16, 102 + rnd( 8 ) )
+AddParticle( 7, 64 + rnd(16)-8, 102 - rnd( 8 ) )
+AddParticle( 6, 74 + rnd(32)-16, 102 + rnd( 8 ) )
 end
 
 function UpdateCollide()
 
-  if InvincibleTime > 0 or RecoverStage > 0 or RaceState >= 3 then
-    return
+if InvincibleTime > 0 or RecoverStage > 0 or RaceState >= 3 then
+  return
+end
+
+local nxtseg=(PlayerSeg)%NumSegs + 1
+
+-- opponents
+
+local carlen=2+PlayerVl*0.1
+
+local ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
+for i=1,#OpptPos do
+
+  local opposl = LoopedTrackPos( OpptPos[i] )
+
+  if ( Position + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
+      ( Position + PlayerVf ) < ( opposl + OpptV[i] ) and
+    ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 12 and
+    ( PlayerY-ground ) < 2 then
+
+    sfx( 7, 2 )
+
+    PlayerVl = OpptV[i]
+    PlayerXd = -sgn(PlayerX) * 0.2
+
+    sScreenShake[1],sScreenShake[2] = 4, 2
+
+    AddCollisionParticles()
+
   end
+end
 
-  local nxtseg=(PlayerSeg)%NumSegs + 1
+-- tokens
 
-  -- opponents
-
-  local carlen=2+PlayerVl*0.1
-
-  local ground = lerp( sPointsY[PlayerSeg], sPointsY[nxtseg], posinseg)
-  for i=1,#OpptPos do
-
-    local opposl = LoopedTrackPos( OpptPos[i] )
-
-    if ( Position + PlayerVf ) > ( opposl - carlen + OpptV[i] ) and
-       ( Position + PlayerVf ) < ( opposl + OpptV[i] ) and
-      ROAD_WIDTH * abs( PlayerX - OpptX[i] ) < 12 and
-      ( PlayerY-ground ) < 2 then
-
-      sfx( 7, 2 )
-
-      PlayerVl = OpptV[i]
-      PlayerXd = -sgn(PlayerX) * 0.2
-
-      sScreenShake[1],sScreenShake[2] = 4, 2
-
-      AddCollisionParticles()
-
-    end
+if sTokensX[nxtseg] != 0 and sTokensExist[nxtseg] != 0 then
+  hitbox=0.2
+  if PlayerDrift != 0 then
+    hitbox=0.25
   end
-
-  -- tokens
-
-  if sTokensX[nxtseg] != 0 and sTokensExist[nxtseg] != 0 then
-    hitbox=0.2
-    if PlayerDrift != 0 then
-      hitbox=0.25
-    end
-    if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and
-      ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
-      sTokensExist[nxtseg] = 0
-      TokenCollected+=1
-      if TokenCollected == NumTokens then
-        sfx( 10, 3 )
-      else
-        sfx( 9, 3 )
-      end
-    end
-  end
-
-  -- sprites
-
-  if SpriteCollideIdx > 0 then --and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
-
-    sdef1=SDEF[SpriteCollideIdx]
-    if sdef1[8]==1 then
-
-      -- work out range of pixels in the source sprite that we overlap
-      -- player is ~40-80px
-      local insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3]
-      local insprx2=(80-SpriteCollideRect[1])/SpriteCollideRect[3]
-
-      it1=flr(max(sdef1[3]*insprx1,0))
-      it2=flr(min(sdef1[3]*insprx2,sdef1[3]))
-
-      collided=0
-      if sdef1[7]==0 then
-        for colit=flr(it1), flr(it2)-1 do
-          if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
-            collided=1
-            break
-          end
-        end
-      else
-        --flipped
-        for colit=sdef1[3]-flr(it2), (sdef1[3]-flr(it1))-1 do
-          if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
-            collided=1
-            break
-          end
-        end
-      end
-
-      if collided == 1 then
-
-    if PlayerVf < 4 then
-      -- small hit
-      sfx( 7, 2 )
-      sScreenShake[1],sScreenShake[2] = 3, 1
-      PlayerVl = PlayerVl * 0.2
-      PlayerXd = -sgn(PlayerX) * 0.2
-      InvincibleTime=time()+1
-      AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
-      AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+  if abs( PlayerX - sTokensX[nxtseg] ) < hitbox and
+    ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+    sTokensExist[nxtseg] = 0
+    TokenCollected+=1
+    if TokenCollected == NumTokens then
+      sfx( 10, 3 )
     else
-      -- big hit
-      sfx( 6, 2 )
-      sScreenShake[1],sScreenShake[2] = 10, 4
-
-      PlayerXd = sgn(PlayerX) * 0.2
-      PlayerVl = PlayerVl * 0.2
-      RecoverStage = 1
-      RecoverTimer = time()
-      AddCollisionParticles()
-    end
-
-      end
+      sfx( 9, 3 )
     end
   end
+end
+
+-- sprites
+
+if SpriteCollideIdx > 0 then --and ( Position + carlen + PlayerVf ) > PlayerSeg*SEG_LEN then
+
+  sdef1=SDEF[SpriteCollideIdx]
+  if sdef1[8]==1 then
+
+    -- work out range of pixels in the source sprite that we overlap
+    -- player is ~40-80px
+    local insprx1=(48-SpriteCollideRect[1])/SpriteCollideRect[3]
+    local insprx2=(80-SpriteCollideRect[1])/SpriteCollideRect[3]
+
+    it1=flr(max(sdef1[3]*insprx1,0))
+    it2=flr(min(sdef1[3]*insprx2,sdef1[3]))
+
+    collided=0
+    if sdef1[7]==0 then
+      for colit=flr(it1), flr(it2)-1 do
+        if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
+          collided=1
+          break
+        end
+      end
+    else
+      --flipped
+      for colit=sdef1[3]-flr(it2), (sdef1[3]-flr(it1))-1 do
+        if sget(sdef1[1]+colit,sdef1[2]+sdef1[4]-1)!=15 then
+          collided=1
+          break
+        end
+      end
+    end
+
+    if collided == 1 then
+
+  if PlayerVf < 4 then
+    -- small hit
+    sfx( 7, 2 )
+    sScreenShake[1],sScreenShake[2] = 3, 1
+    PlayerVl = PlayerVl * 0.2
+    PlayerXd = -sgn(PlayerX) * 0.2
+    InvincibleTime=time()+1
+    AddParticle( 4, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+    AddParticle( 5, 64 + rnd(32)-16, 96 + rnd( 8 ) )
+  else
+    -- big hit
+    sfx( 6, 2 )
+    sScreenShake[1],sScreenShake[2] = 10, 4
+
+    PlayerXd = sgn(PlayerX) * 0.2
+    PlayerVl = PlayerVl * 0.2
+    RecoverStage = 1
+    RecoverTimer = time()
+    AddCollisionParticles()
+  end
+
+    end
+  end
+end
 end
 
 function UpdateRaceState()
-  if RaceState==1 and RaceStateTime() > 3 then
-    RaceState=2
-    RaceStateTimer=time()
-  elseif RaceState==2 and PlayerLap == NUM_LAPS+1 then
-    RaceState=3
-    RaceCompleteTime=RaceStateTime()
-    RaceCompletePos=GetPlayerStanding()
-    RaceStateTimer=time()
-    ProfTime=ReadProfile( Level, 3 )
-    if ProfTime==0 or RaceCompleteTime < ProfTime then
-      WriteProfile( Level, 3, RaceCompleteTime )
-    end
-    ProfStand=ReadProfile( Level, 1 )
-    if ProfStand==0 or RaceCompletePos < ProfStand then
-      WriteProfile( Level, 1, RaceCompletePos )
-    end
-    if TokenCollected > ReadProfile( Level, 2 ) then
-      WriteProfile( Level, 2, TokenCollected )
-    end
+if RaceState==1 and RaceStateTime() > 3 then
+  RaceState=2
+  RaceStateTimer=time()
+elseif RaceState==2 and PlayerLap == NUM_LAPS+1 then
+  RaceState=3
+  RaceCompleteTime=RaceStateTime()
+  RaceCompletePos=GetPlayerStanding()
+  RaceStateTimer=time()
+  ProfTime=ReadProfile( Level, 3 )
+  if ProfTime==0 or RaceCompleteTime < ProfTime then
+    WriteProfile( Level, 3, RaceCompleteTime )
   end
+  ProfStand=ReadProfile( Level, 1 )
+  if ProfStand==0 or RaceCompletePos < ProfStand then
+    WriteProfile( Level, 1, RaceCompletePos )
+  end
+  if TokenCollected > ReadProfile( Level, 2 ) then
+    WriteProfile( Level, 2, TokenCollected )
+  end
+end
 end
 
 function UpdateRace()
-  if RaceState < 4 then
-    -- screenshake
-    sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
-    sScreenShake[2]=lerp(sScreenShake[2],0, 0.1)
-    if Frame%3 == 0 then
-      sScreenShake[1]=-sScreenShake[1]
-      sScreenShake[2]=-sScreenShake[2]
-    end
-    if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
-      sScreenShake = {0,0}
-    end
-
-    UpdatePlayer()
-    UpdateRecover()
-    UpdateCollide()
-    UpdateOpts()
-    UpdateParticles()
-    UpdateRaceState()
-  else
-    if btnp(🅾️) then
-      OpenMenu(MenuState)
-    elseif btnp(❎) then
-      InitRace()
-    end
+if RaceState < 4 then
+  -- screenshake
+  sScreenShake[1]=lerp(sScreenShake[1],0, 0.1)
+  sScreenShake[2]=lerp(sScreenShake[2],0, 0.1)
+  if Frame%3 == 0 then
+    sScreenShake[1]=-sScreenShake[1]
+    sScreenShake[2]=-sScreenShake[2]
   end
+  if( abs( sScreenShake[1] ) + abs( sScreenShake[2] ) < 1 ) then
+    sScreenShake = {0,0}
+  end
+
+  UpdatePlayer()
+  UpdateRecover()
+  UpdateCollide()
+  UpdateOpts()
+  UpdateParticles()
+  UpdateRaceState()
+else
+  if btnp(🅾️) then
+    OpenMenu(MenuState)
+  elseif btnp(❎) then
+    InitRace()
+  end
+end
 end
 
 function _update60()
 
-  --DebugUpdate()
-  Frame=Frame+1
-  if TitleState == 1 then
-    UpdateMenus()
-  elseif TitleState == 2 then
-    UpdateRace()
-  end
-  UpdateRaceSound()
+--DebugUpdate()
+Frame=Frame+1
+if TitleState == 1 then
+  UpdateMenus()
+elseif TitleState == 2 then
+  UpdateRace()
+end
+UpdateRaceSound()
 end
 
 function HrzSprite( x, ssx, ssy, f )
-  hsprdef=HORZSDEF[THEMEDEF[Theme][11]]
-  ssy=ssy*hsprdef[6]
-  sspr( hsprdef[1],hsprdef[2],hsprdef[3],hsprdef[4],
-    (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx*hsprdef[5] * 48, ssy * 16, f )
+hsprdef=HORZSDEF[THEMEDEF[Theme][11]]
+ssy=ssy*hsprdef[6]
+sspr( hsprdef[1],hsprdef[2],hsprdef[3],hsprdef[4],
+  (HznOffset + x) % 256 - 128, 64 - flr( ssy * 16 ), ssx*hsprdef[5] * 48, ssy * 16, f )
 end
 
 function RenderHorizon()
 
-  fillp(0)
-  rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
-  HrzSprite(10, 1.0, 0.7, true)
-  HrzSprite(64, 0.3, 1.2, false)
-  HrzSprite(60, 2.3, 0.3, false)
-  HrzSprite(128, 1, 1, false)
-  HrzSprite(178, 1.5, 0.5, true)
+fillp(0)
+rectfill( 0, 64, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
+HrzSprite(10, 1.0, 0.7, true)
+HrzSprite(64, 0.3, 1.2, false)
+HrzSprite(60, 2.3, 0.3, false)
+HrzSprite(128, 1, 1, false)
+HrzSprite(178, 1.5, 0.5, true)
 
 end
 
 function RenderSky()
-  local thm = THEMEDEF[Theme]
-  fillp(0)
-  rectfill( 0, 0, 128, 20, thm[10] ) -- block out
-  BayerRectV( 0, 20, 138, 50, thm[9], thm[10] )
-  fillp(0)
-  rectfill( 0, 50, 128, 64, thm[9] ) -- block out
+local thm = THEMEDEF[Theme]
+fillp(0)
+rectfill( 0, 0, 128, 20, thm[10] ) -- block out
+BayerRectV( 0, 20, 138, 50, thm[9], thm[10] )
+fillp(0)
+rectfill( 0, 50, 128, 64, thm[9] ) -- block out
 end
 
 function RenderP4( xlt, xrt, xlb, xrb, yt, yb, c )
 
-  if yt - yb < 1 then
-  return
-  elseif yt - yb < 2 then
-    line( xlt, yt, xrt, yt, c)
-  else
-    yd=yt-yb
-    rp=1/yd
-    xldlt=(xlt-xlb)*rp
-    xrdlt=(xrt-xrb)*rp
-    for i=yb,yt do
-      if i > 126 then return end
-      line( xlb, i, xrb, i, c)
-      xlb+=xldlt
-      xrb+=xrdlt
-    end
+if yt - yb < 1 then
+return
+elseif yt - yb < 2 then
+  line( xlt, yt, xrt, yt, c)
+else
+  yd=yt-yb
+  rp=1/yd
+  xldlt=(xlt-xlb)*rp
+  xrdlt=(xrt-xrb)*rp
+  for i=yb,yt do
+    if i > 126 then return end
+    line( xlb, i, xrb, i, c)
+    xlb+=xldlt
+    xrb+=xrdlt
   end
+end
 end
 
 function RenderSeg( x1, y1, w1, x2, y2, w2, idx )
 
-  local thm=THEMEDEF[Theme]
+local thm=THEMEDEF[Theme]
 
-  -- Ground, We only render intermittent strips, most of the ground has been
-  -- blocked out in the road render before this
-  if idx % 8 <= 3 then
-    fillp(0x5A5A)
-    RenderP4( -1, x1-w1, -1, x2-w2, y1, y2, thm[5] )
-    RenderP4( x1+w1, 128, x2+w2, 128, y1, y2,thm[5] )
-  end
+-- Ground, We only render intermittent strips, most of the ground has been
+-- blocked out in the road render before this
+if idx % 8 <= 3 then
+  fillp(0x5A5A)
+  RenderP4( -1, x1-w1, -1, x2-w2, y1, y2, thm[5] )
+  RenderP4( x1+w1, 128, x2+w2, 128, y1, y2,thm[5] )
+end
 
-  -- Edge
-  if idx % 4 > 1 then
-    fillp(0)
-    col = thm[6]
-  else
-    fillp(0x5A5A)
-    col = thm[7]
-  end
-  edgew1=w1*0.86
-  edgew2=w2*0.86
-  RenderP4( x1-edgew1, x1-w1,x2-edgew2, x2-w2, y1, y2, col )
-  RenderP4( x1+w1, x1+edgew1, x2+w2, x2+edgew2, y1, y2, col )
-
-  -- Road
+-- Edge
+if idx % 4 > 1 then
   fillp(0)
-  if thm[3] == 1 then
-    -- stripes
-    if idx == 1 then
-      col = 1
-    else
-      if idx % 3 == 0 then
-        fillp(0x5A5A)
-        col = thm[2]
-      else
-        col = thm[1]
-      end
-    end
-    RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, col )
-  elseif thm[3] == 2 then
-    -- patches
-    fillp(0x5A5A)
-    -- TODO: dont overdraw
-    RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, thm[2] )
-    fillp(0)
-    if idx == 1 then
-      col = 1
+  col = thm[6]
+else
+  fillp(0x5A5A)
+  col = thm[7]
+end
+edgew1=w1*0.86
+edgew2=w2*0.86
+RenderP4( x1-edgew1, x1-w1,x2-edgew2, x2-w2, y1, y2, col )
+RenderP4( x1+w1, x1+edgew1, x2+w2, x2+edgew2, y1, y2, col )
+
+-- Road
+fillp(0)
+if thm[3] == 1 then
+  -- stripes
+  if idx == 1 then
+    col = 1
+  else
+    if idx % 3 == 0 then
+      fillp(0x5A5A)
+      col = thm[2]
     else
       col = thm[1]
     end
-    srand( idx )
-    rx1=rnd( 0.6 ) + 0.3
-    rx2=rnd( 0.6 ) + 0.3
-    RenderP4( x1-edgew1*rx1, x1+edgew1*rx2, x2-edgew2*rx1, x2+edgew2*rx2, y1, y2, col )
   end
+  RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, col )
+elseif thm[3] == 2 then
+  -- patches
+  fillp(0x5A5A)
+  -- TODO: dont overdraw
+  RenderP4( x1-edgew1, x1+edgew1, x2-edgew2, x2+edgew2, y1, y2, thm[2] )
+  fillp(0)
+  if idx == 1 then
+    col = 1
+  else
+    col = thm[1]
+  end
+  srand( idx )
+  rx1=rnd( 0.6 ) + 0.3
+  rx2=rnd( 0.6 ) + 0.3
+  RenderP4( x1-edgew1*rx1, x1+edgew1*rx2, x2-edgew2*rx1, x2+edgew2*rx2, y1, y2, col )
+end
 
-   -- Lanes
-   if thm[8] == 1 then
-    -- edge lane
-    if idx % 2 > 0 then
-      fillp(0)
-      RenderP4( x1-w1*0.74, x1-w1*0.78, x2-w2*0.74, x2-w2*0.78, y1, y2, 6 )
-      RenderP4( x1+w1*0.78, x1+w1*0.74, x2+w2*0.78, x2+w2*0.74, y1, y2, 6 )
-    end
-  elseif thm[8] == 2 then
-    -- centre alternating
-    if idx % 4 > 2 then
-      fillp(0)
-      lanew=0.02
-      RenderP4(x1-w1*lanew,x1+w1*lanew,x2-w2*lanew,x2+w2*lanew,y1,y2,6 )
-    end
-  elseif thm[8] == 3 then
-     -- 3 lane yellow
-    if idx % 4 == 0 then
-      fillp(0)
-      RenderP4( x1-w1*0.3, x1-w1*0.34, x2-w2*0.3, x2-w2*0.34, y1, y2, 9 )
-      RenderP4( x1+w1*0.34, x1+w1*0.3, x2+w2*0.34, x2+w2*0.3, y1, y2, 9 )
-    end
+  -- Lanes
+  if thm[8] == 1 then
+  -- edge lane
+  if idx % 2 > 0 then
+    fillp(0)
+    RenderP4( x1-w1*0.74, x1-w1*0.78, x2-w2*0.74, x2-w2*0.78, y1, y2, 6 )
+    RenderP4( x1+w1*0.78, x1+w1*0.74, x2+w2*0.78, x2+w2*0.74, y1, y2, 6 )
   end
+elseif thm[8] == 2 then
+  -- centre alternating
+  if idx % 4 > 2 then
+    fillp(0)
+    lanew=0.02
+    RenderP4(x1-w1*lanew,x1+w1*lanew,x2-w2*lanew,x2+w2*lanew,y1,y2,6 )
+  end
+elseif thm[8] == 3 then
+    -- 3 lane yellow
+  if idx % 4 == 0 then
+    fillp(0)
+    RenderP4( x1-w1*0.3, x1-w1*0.34, x2-w2*0.3, x2-w2*0.34, y1, y2, 9 )
+    RenderP4( x1+w1*0.34, x1+w1*0.3, x2+w2*0.34, x2+w2*0.3, y1, y2, 9 )
+  end
+end
 end
 
 
 function _draw()
-  --cls()
-  if TitleState == 1 then
-    RenderMenus()
-  elseif TitleState == 2 then
-    if RaceState < 4 then
-      camera( sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
-      RenderSky()
-      RenderHorizon()
-      RenderRoad()
-      camera( 0, 0 )
-      RenderRaceUI()
-    else
-      RenderSummaryUI()
-    end
+--cls()
+if TitleState == 1 then
+  RenderMenus()
+elseif TitleState == 2 then
+  if RaceState < 4 then
+    camera( sScreenShake[1], HUD_HEIGHT + sScreenShake[2] )
+    RenderSky()
+    RenderHorizon()
+    RenderRoad()
+    camera( 0, 0 )
+    RenderRaceUI()
+  else
+    RenderSummaryUI()
   end
-  --DebugRender()
+end
+--DebugRender()
 end
 
 function PrintBigDigit( n, x, y,nrend)
-  x-=2
-  if not nrend then
-  poke(0x5f58, 0x1 | 0x80) --custom font
-    n1=n*2+16+n\8*16
-    print(chr(n1)..chr(n1+1).."\n"..chr(n1+16)..chr(n1+17),x,y-3,7) --4 chars to print 1 big
-  poke(0x5f58, 0x0) --default font
-  end
-  if (n==1) return 12
-  return 16
+x-=2
+if not nrend then
+poke(0x5f58, 0x1 | 0x80) --custom font
+  n1=n*2+16+n\8*16
+  print(chr(n1)..chr(n1+1).."\n"..chr(n1+16)..chr(n1+17),x,y-3,7) --4 chars to print 1 big
+poke(0x5f58, 0x0) --default font
+end
+if (n==1) return 12
+return 16
 end
 
 function PrintBigDigitOutline( n, x, y, col )
-  i=n+1
-  pal( 7, col )
-  PrintBigDigit( n, x-1, y )
-  PrintBigDigit( n, x+1, y )
-  PrintBigDigit( n, x, y-1 )
-  PrintBigDigit( n, x, y+1 )
-  pal( 7, 7 )
+i=n+1
+pal( 7, col )
+PrintBigDigit( n, x-1, y )
+PrintBigDigit( n, x+1, y )
+PrintBigDigit( n, x, y-1 )
+PrintBigDigit( n, x, y+1 )
+pal( 7, 7 )
 end
 
 function GetPlayerStanding()
-  s=#OpptPos+1
-  for i=1,#OpptPos do
-    if OpptLap[i] < PlayerLap then
-      s-=1
-    elseif OpptLap[i] == PlayerLap and OpptPos[i]<Position then
-      s-=1
-    end
+s=#OpptPos+1
+for i=1,#OpptPos do
+  if OpptLap[i] < PlayerLap then
+    s-=1
+  elseif OpptLap[i] == PlayerLap and OpptPos[i]<Position then
+    s-=1
   end
-  return s
+end
+return s
 end
 
 function GetStandingSuffix(n)
-  stnd=split"st,nd,rd"
-  if n < 4 then
-    return stnd[n]
-  end
-  return "th"
+stnd=split"st,nd,rd"
+if n < 4 then
+  return stnd[n]
+end
+return "th"
 end
 
 function RenderCountdown()
-  if RaceState == 2 and RaceStateTime() < 1 then
-    frac=( time() - RaceStateTimer )%1
-    x=64-16
-    PrintBigDigitOutline( 10,x,30, 0 )
-    PrintBigDigit( 10,x,30)
-    x=x+16
-    PrintBigDigitOutline( 0,x,30, 0 )
-    PrintBigDigit( 0,x,30)
-  elseif RaceState == 1 then
-    num= 3-flr( RaceStateTime() )
-    frac=( RaceStateTime() )%1
-    if num <= 0 then
-      return
-    elseif frac < 0.9 then
-      x=64-8
-      PrintBigDigitOutline( num,x,30, 0 )
-      PrintBigDigit( num,x,30)
-    end
+if RaceState == 2 and RaceStateTime() < 1 then
+  frac=( time() - RaceStateTimer )%1
+  x=64-16
+  PrintBigDigitOutline( 10,x,30, 0 )
+  PrintBigDigit( 10,x,30)
+  x=x+16
+  PrintBigDigitOutline( 0,x,30, 0 )
+  PrintBigDigit( 0,x,30)
+elseif RaceState == 1 then
+  num= 3-flr( RaceStateTime() )
+  frac=( RaceStateTime() )%1
+  if num <= 0 then
+    return
+  elseif frac < 0.9 then
+    x=64-8
+    PrintBigDigitOutline( num,x,30, 0 )
+    PrintBigDigit( num,x,30)
   end
+end
 end
 
 function RenderRaceEndStanding()
-  if (RaceState != 3) return
+if (RaceState != 3) return
 
-  if RaceStateTime() < 1 then
-    clip( 0, 0, (RaceStateTime()*8)*128, 128 )
-  elseif RaceStateTime() > 3 then
-    clip( ((RaceStateTime()-3)*8)*128, 0, 128, 128 )
+if RaceStateTime() < 1 then
+  clip( 0, 0, (RaceStateTime()*8)*128, 128 )
+elseif RaceStateTime() > 3 then
+  clip( ((RaceStateTime()-3)*8)*128, 0, 128, 128 )
+end
+rectfill( 0, 25, 128, 49, 1 )
+tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
+PrintBigDigit( RaceCompletePos, 53, 32)
+print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-5, 32, 7 )
+
+sspr(unpack(split"120, 16, 7, 18, 37, 27, -7, 18"))
+sspr(unpack(split"120, 16, 7, 18, 84, 27, 7, 18"))
+
+clip()
+
+if RaceStateTime() > 3.6 then
+  fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
+  BayerRectT( fade, 0, 0, 128, 128, 0xE0 )
+  if RaceStateTime() > 4.8 then
+    RaceState = 4
+    RaceStateTimer=time()
   end
-  rectfill( 0, 25, 128, 49, 1 )
-  tw=PrintBigDigit( RaceCompletePos, 0, 0, 1 )
-  PrintBigDigit( RaceCompletePos, 53, 32)
-  print( GetStandingSuffix(RaceCompletePos), 64+tw*0.5-5, 32, 7 )
-
-  sspr(unpack(split"120, 16, 7, 18, 37, 27, -7, 18"))
-  sspr(unpack(split"120, 16, 7, 18, 84, 27, 7, 18"))
-
-  clip()
-
-  if RaceStateTime() > 3.6 then
-    fade=max( (0.5-(time()-(RaceStateTimer+3.6)))/0.5, 0 )
-    BayerRectT( fade, 0, 0, 128, 128, 0xE0 )
-    if RaceStateTime() > 4.8 then
-      RaceState = 4
-      RaceStateTimer=time()
-    end
-  end
+end
 end
 
 function RenderSummaryUI()
 
-  rectfill( 0, 0, 128, 128, 0 )
+rectfill( 0, 0, 128, 128, 0 )
 
-  if RaceStateTime() < 1 then
-    clip( 0, 0, 128, ((RaceStateTime())*3)*128 )
+if RaceStateTime() < 1 then
+  clip( 0, 0, 128, ((RaceStateTime())*3)*128 )
+end
+
+for x=-1,7 do
+  for y=-1,7 do
+    off=(Frame*0.5)%16
+    xoff=x*16+off
+    yoff=y*16+off
+    RenderFlag( xoff, yoff, Level )
+    BayerRectT( max(sin(Frame/120+xoff/53+yoff/63)+1,0.1), xoff, yoff, xoff+10, yoff+7 )
+  end
+end
+fillp()
+
+if RaceStateTime() > 1 then
+
+  if (RaceStateTime() < 2) then
+    clip( 0, 0, ((RaceStateTime()-1)*16)*128, 128 )
   end
 
-  for x=-1,7 do
-    for y=-1,7 do
-      off=(Frame*0.5)%16
-      xoff=x*16+off
-      yoff=y*16+off
-      RenderFlag( xoff, yoff, Level )
-      BayerRectT( max(sin(Frame/120+xoff/53+yoff/63)+1,0.1), xoff, yoff, xoff+10, yoff+7 )
-    end
-  end
+  rectfill( 0, 10, 128, 23, 13 )
+  rectfill( 0, 34, 128, 90, 13 )
+  line( 0, 33, 128, 33, 1 )
+  line( 0, 91, 128, 91, 1 )
+  rectfill( 0, 101, 128, 117, 13 )
+
+  fillp(0x33CC)
+  col = bor( 6 << 4, 0 )
+  rectfill(0,12,33,21, col)
+  rectfill(94,12,128,21, col)
+  RenderTextOutlined( "race complete", 38, 15, 0, 7 )
   fillp()
 
-  if RaceStateTime() > 1 then
+  -- position
+  rectfill(0,39,64,51, 1)
+  print( "position", 19, 43, 6 )
+  sspr( 65, 49, 8, 8, 54, 41 ) -- trophy
 
-    if (RaceStateTime() < 2) then
-      clip( 0, 0, ((RaceStateTime()-1)*16)*128, 128 )
-    end
+  -- tokens
+  rectfill(0,56,64,68, 2)
+  print( "tokens", 27, 60, 6 )
+  sspr( 17, 121, 7, 7, 55, 59 )
 
-    rectfill( 0, 10, 128, 23, 13 )
-    rectfill( 0, 34, 128, 90, 13 )
-    line( 0, 33, 128, 33, 1 )
-    line( 0, 91, 128, 91, 1 )
-    rectfill( 0, 101, 128, 117, 13 )
+  -- time
+  rectfill(0,73,64,85, 3)
+  print( "time", 35, 77, 6 )
+  sspr( 73, 50, 7, 7, 55, 76 )
 
-    fillp(0x33CC)
-    col = bor( 6 << 4, 0 )
-    rectfill(0,12,33,21, col)
-    rectfill(94,12,128,21, col)
-    RenderTextOutlined( "race complete", 38, 15, 0, 7 )
-    fillp()
+  -- position text
+  col=RaceCompletePos == 1 and 9 or 7
+  print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 43, col )
 
-    -- position
-    rectfill(0,39,64,51, 1)
-    print( "position", 19, 43, 6 )
-    sspr( 65, 49, 8, 8, 54, 41 ) -- trophy
-
-    -- tokens
-    rectfill(0,56,64,68, 2)
-    print( "tokens", 27, 60, 6 )
-    sspr( 17, 121, 7, 7, 55, 59 )
-
-    -- time
-    rectfill(0,73,64,85, 3)
-    print( "time", 35, 77, 6 )
-    sspr( 73, 50, 7, 7, 55, 76 )
-
-    -- position text
-    col=RaceCompletePos == 1 and 9 or 7
-    print( tostr( RaceCompletePos ).. tostr( GetStandingSuffix(RaceCompletePos) ), 69, 43, col )
-
-    -- tokens text
-    col=7
-    if TokenCollected == NumTokens then
-      col = 9
-    end
-    print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 60, col )
-
-    -- time text
-    PrintTime( RaceCompleteTime, 69, 77 )
-
-    -- controls
-    print( " \142  menu", 45, 104, 6 )
-    print( " \151  retry", 45, 110, 6 )
-
-    clip()
+  -- tokens text
+  col=7
+  if TokenCollected == NumTokens then
+    col = 9
   end
+  print( tostr( TokenCollected ).."/".. tostr( NumTokens ), 69, 60, col )
+
+  -- time text
+  PrintTime( RaceCompleteTime, 69, 77 )
+
+  -- controls
+  print( " \142  menu", 45, 104, 6 )
+  print( " \151  retry", 45, 110, 6 )
+
+  clip()
+end
 end
 
 function RenderRaceUI()
 
-  fillp(0)
-  rectfill( 0,111, 127, 127, 0 )
-  rect( 0, 111, 127, 127, 6 )
-  rect( 1, 112, 126, 126, 13 )
+fillp(0)
+rectfill( 0,111, 127, 127, 0 )
+rect( 0, 111, 127, 127, 6 )
+rect( 1, 112, 126, 126, 13 )
 
-  stand=GetPlayerStanding()
-  strlen=PrintBigDigit( GetPlayerStanding(), 3, 114)
-  print( GetStandingSuffix(stand), strlen+1, 114, 7 )
+stand=GetPlayerStanding()
+strlen=PrintBigDigit( GetPlayerStanding(), 3, 114)
+print( GetStandingSuffix(stand), strlen+1, 114, 7 )
 
-  sspr(unpack(split"52, 24, 7, 5, 38, 120"))
-  sspr(unpack(split"59, 24, 9, 5, 37, 114"))
-  print( min(PlayerLap, NUM_LAPS), 49, 114, 6 )
-  print( "/"..tostr(NUM_LAPS), 57, 114, 5 )
-  print( TokenCollected, 49, 120, 6 )
-  print( "/" ..tostr(NumTokens), 57, 120, 5 )
+sspr(unpack(split"52, 24, 7, 5, 38, 120"))
+sspr(unpack(split"59, 24, 9, 5, 37, 114"))
+print( min(PlayerLap, NUM_LAPS), 49, 114, 6 )
+print( "/"..tostr(NUM_LAPS), 57, 114, 5 )
+print( TokenCollected, 49, 120, 6 )
+print( "/" ..tostr(NumTokens), 57, 120, 5 )
 
-  for i=80, 124, 2 do
-    y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
-    y1=max(min(y1,121),115)
-    -- top speed is ~17.5 m/s
-    norm=(i-80)/(128-80)
+for i=80, 124, 2 do
+  y1 = flr(lerp( 121, 115, (i-107)/(113-107) ))
+  y1=max(min(y1,121),115)
+  -- top speed is ~17.5 m/s
+  norm=(i-80)/(128-80)
 
-    col = 5
-    if norm < PlayerVl/19 then
-      if i < 104 then col = 6
-      elseif i < 118 then col = 7
-      elseif i < 122 then col = 9
-      else col = 8
-      end
+  col = 5
+  if norm < PlayerVl/19 then
+    if i < 104 then col = 6
+    elseif i < 118 then col = 7
+    elseif i < 122 then col = 9
+    else col = 8
     end
-    line( i, y1, i, 124, col )
   end
+  line( i, y1, i, 124, col )
+end
 
-  spd=flr( PlayerVl * 8.5 )
-  x1=88
-  if spd > 9 then
-    x1 -= 4
-  end
-  if spd > 99 then
-    x1-= 4
-  end
-  print( spd, x1, 114, 6 )
-  print( "mph", 94, 114, 6 )
-  RenderCountdown()
-  RenderRaceEndStanding()
+spd=flr( PlayerVl * 8.5 )
+x1=88
+if spd > 9 then
+  x1 -= 4
+end
+if spd > 99 then
+  x1-= 4
+end
+print( spd, x1, 114, 6 )
+print( "mph", 94, 114, 6 )
+RenderCountdown()
+RenderRaceEndStanding()
 
 end
 
 function RenderPlayer()
 
-  if RecoverStage == 2 or ( InvincibleTime-time() > 0 and time()%0.4>0.2 ) then
-    return
+if RecoverStage == 2 or ( InvincibleTime-time() > 0 and time()%0.4>0.2 ) then
+  return
+end
+
+local woby=0
+
+function drawDrift()
+  if Pfrm==0 and (PlayerXd <= 0.28 and PlayerXd >=-0.28) then
+    fillp()
+    local px=48+woby
+    pd_draw(4,px+PlayerXd,92,1,9)
+    pd_draw(4,px-PlayerXd*6\1,92,10,17)
+    pd_draw(4,px-PlayerXd*11\1,92,18,40)
+  elseif Pfrm > .6 then
+    sspr(52, 0, 47, 23, 44, 100+woby, 47, 23, PlayerXd > 0 ) --drift
+  else
+    sspr(16, 0, 35, 23, 47+woby, 100, 35, 23, PlayerXd>0) --turn
   end
+end
 
-  local woby=0
+if PlayerDrift != 0 or IsBurnout() then -- z / btn1
+  srand(time())
+  woby=rnd(1.2)
+end
 
-  function drawDrift()
-    if Pfrm==0 and (PlayerXd <= 0.28 and PlayerXd >=-0.28) then
-      fillp()
-      local px=48+woby
-      pd_draw(4,px+PlayerXd,92,1,9)
-      pd_draw(4,px-PlayerXd*6\1,92,10,17)
-      pd_draw(4,px-PlayerXd*11\1,92,18,40)
-    elseif Pfrm > .6 then
-      sspr(52, 0, 47, 23, 44, 100+woby, 47, 23, PlayerXd > 0 ) --drift
-    else
-      sspr(16, 0, 35, 23, 47+woby, 100, 35, 23, PlayerXd>0) --turn
-    end
-  end
-
-  if PlayerDrift != 0 or IsBurnout() then -- z / btn1
-    srand(time())
-    woby=rnd(1.2)
-  end
-
-  drawDrift()
+drawDrift()
 
 end
 
 function GetSpriteSSRect( s, x1, y1, w1, sc )
-  ssc = w1*sc
-  aspx = ssc
-  aspy = ssc
-  if SDEF[s][3] > SDEF[s][4] then
-    aspx = ssc*SDEF[s][3]/SDEF[s][4]
-  else
-    aspy = ssc*SDEF[s][4]/SDEF[s][3]
-  end
+ssc = w1*sc
+aspx = ssc
+aspy = ssc
+if SDEF[s][3] > SDEF[s][4] then
+  aspx = ssc*SDEF[s][3]/SDEF[s][4]
+else
+  aspy = ssc*SDEF[s][4]/SDEF[s][3]
+end
 
-  rrect= { x1 - aspx * 0.5,
-    y1 - aspy,
-    aspx,
-    aspy }
-  return rrect
+rrect= { x1 - aspx * 0.5,
+  y1 - aspy,
+  aspx,
+  aspy }
+return rrect
 end
 
 function RenderSpriteWorld( s, rrect, f)
-  local w = ceil(rrect[3] + 1)
-  sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1]+(f and w or 0), rrect[2], w, ceil(rrect[4] + 1), f or SDEF[s][7] == 1 )
+local w = ceil(rrect[3] + 1)
+sspr( SDEF[s][1], SDEF[s][2], SDEF[s][3], SDEF[s][4], rrect[1]+(f and w or 0), rrect[2], w, ceil(rrect[4] + 1), f or SDEF[s][7] == 1 )
 end
 
 function RenderRoad()
 
-  local loopoff,xoff = 0,0
+local loopoff,xoff = 0,0
 
-  local pscreenscale, psx, psy, psw, pcamx, pcamy, pcamz, pcrv, clipy={},{},{},{},{},{},{},{},{}
+local pscreenscale, psx, psy, psw, pcamx, pcamy, pcamz, pcrv, clipy={},{},{},{},{},{},{},{},{}
 
-  local camx = PlayerX * ROAD_WIDTH
+local camx = PlayerX * ROAD_WIDTH
 
-  local function RenderOpponent(o,i,t)
+local function RenderOpponent(o,i,t)
 
-    -- Imposters, render at the seg pos/middle of road
-    local opsx,opsy,opsw =psx[i],psy[i],psw[i]
-    local seg = OpptSeg[o]
+  -- Imposters, render at the seg pos/middle of road
+  local opsx,opsy,opsw =psx[i],psy[i],psw[i]
+  local seg = OpptSeg[o]
 
-    if i<50 then
+  if i<50 then
 
-      local plsegoff1=(seg-PlayerSeg)%NumSegs+1
-      local opinseg=1-(seg*SEG_LEN-OpptPos[o])/SEG_LEN
-      local nxtseg = seg % NumSegs + 1
-      local plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
-      local ppos=Position
+    local plsegoff1=(seg-PlayerSeg)%NumSegs+1
+    local opinseg=1-(seg*SEG_LEN-OpptPos[o])/SEG_LEN
+    local nxtseg = seg % NumSegs + 1
+    local plsegoff2=(nxtseg-PlayerSeg)%NumSegs+1
+    local ppos=Position
 
-      if OpptLap[o] > PlayerLap then
-        ppos-=SEG_LEN*NumSegs
-      end
-
-      local ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg )
-      local optx=OpptX[o]*ROAD_WIDTH
-
-      local opcamx = lerp( sPointsX[seg ] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv
-      local opcamy = lerp( sPointsY[seg ], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY )
-      local opcamz = lerp( sPointsZ[seg ], sPointsZ[nxtseg], opinseg ) - ppos
-
-      local opss = CAM_DEPTH/opcamz
-      opsx = flr(64 + (opss * opcamx * 64))
-      opsy = flr(64 - (opss * opcamy * 64))
-      opsw = flr(opss * ROAD_WIDTH * 64)
+    if OpptLap[o] > PlayerLap then
+      ppos-=SEG_LEN*NumSegs
     end
 
-    pal( 14, opcols1[o%#opcols1+1] )
-    pal( 2, opcols2[o%#opcols2+1] )
+    local ocrv=lerp( pcrv[plsegoff1], pcrv[plsegoff2], opinseg )
+    local optx=OpptX[o]*ROAD_WIDTH
 
-    if sPointsC[seg ] > 0.5 then
-      local rrect = GetSpriteSSRect( 8, opsx, opsy,opsw, .16 )
-      RenderSpriteWorld( 8+t, rrect)
-    elseif sPointsC[seg ] < -0.5 then
-      local rrect = GetSpriteSSRect( 9, opsx, opsy,opsw, .16 )
-      RenderSpriteWorld( 9+t, rrect )
-    else
-      local rrect = GetSpriteSSRect( 7, opsx, opsy,opsw, .12 )
-      RenderSpriteWorld( 7+t, rrect )
-      RenderSpriteWorld( 7+t, rrect,1)
+    local opcamx = lerp( sPointsX[seg ] + optx, sPointsX[nxtseg] + optx, opinseg ) - camx - ocrv
+    local opcamy = lerp( sPointsY[seg ], sPointsY[nxtseg], opinseg ) - ( CAM_HEIGHT + PlayerY )
+    local opcamz = lerp( sPointsZ[seg ], sPointsZ[nxtseg], opinseg ) - ppos
+
+    local opss = CAM_DEPTH/opcamz
+    opsx = flr(64 + (opss * opcamx * 64))
+    opsy = flr(64 - (opss * opcamy * 64))
+    opsw = flr(opss * ROAD_WIDTH * 64)
+  end
+
+  pal( 14, opcols1[o%#opcols1+1] )
+  pal( 2, opcols2[o%#opcols2+1] )
+
+  if sPointsC[seg ] > 0.5 then
+    local rrect = GetSpriteSSRect( 8, opsx, opsy,opsw, .16 )
+    RenderSpriteWorld( 8+t, rrect)
+  elseif sPointsC[seg ] < -0.5 then
+    local rrect = GetSpriteSSRect( 9, opsx, opsy,opsw, .16 )
+    RenderSpriteWorld( 9+t, rrect )
+  else
+    local rrect = GetSpriteSSRect( 7, opsx, opsy,opsw, .12 )
+    RenderSpriteWorld( 7+t, rrect )
+    RenderSpriteWorld( 7+t, rrect,1)
+  end
+end
+
+local posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
+local dxoff = - sPointsC[PlayerSeg] * posinseg
+
+-- calculate projections
+local hrzny=128
+local hrzseg=DRAW_DIST
+
+for i = 1, DRAW_DIST do
+
+  -- fun foreshortening hack (add to i in statement below)
+  -- oop=flr(max(i/DRAW_DIST-0.4,0)*50)
+  local segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+
+  pcrv[i] = xoff - dxoff
+  pcamx[i] = sPointsX[segidx] - camx - pcrv[i]
+  pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY )
+  pcamz[i] = sPointsZ[segidx] - (Position - loopoff)
+
+  if segidx == NumSegs then
+    loopoff+=NumSegs*SEG_LEN
+  end
+
+  xoff = xoff + dxoff
+  dxoff = dxoff + sPointsC[segidx]
+
+  pscreenscale[i] = CAM_DEPTH/pcamz[i]
+  psx[i] = (64 + (pscreenscale[i] * pcamx[i]  * 64))
+  psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64))
+  psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64)
+
+  -- store the min y to block out the ground
+  if psy[i] < hrzny then
+    hrzny=psy[i]+1
+    hrzseg=i
+  end
+
+end
+
+SpriteCollideIdx=-1
+
+for i = DRAW_DIST - 1, 1, -1 do
+
+  segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
+
+    if i+1== hrzseg then
+    fillp(0)
+    rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
+  end
+
+  -- segments
+  local j=i+1
+  if psy[i] > psy[j] and ( psy[i] >= hrzny ) then
+    RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
+  end
+  if i==1 and TitleState == 2 then
+    RenderPlayer()
+    RenderParticles()
+  end
+
+  -- sprites
+
+  --local d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 ) --passed to RenderSpriteworld but unused?
+  local pcamx,psscale,rrect=pcamx[i],pscreenscale[i]
+  if sSprite[segidx] != 0 then
+    local psx1 = flr(64 + (psscale * ( pcamx + sSpriteX[segidx] * ROAD_WIDTH ) * 64))
+
+    local sindx=sSprite[segidx]
+    rrect = GetSpriteSSRect( sindx, psx1, psy[i],psw[i], sSpriteSc[segidx] )
+    RenderSpriteWorld( sindx, rrect)
+    if i == 2 then
+      SpriteCollideRect = rrect
+      SpriteCollideIdx=sSprite[segidx]
     end
   end
 
-  local posinseg=1-(PlayerSeg*SEG_LEN-Position)/SEG_LEN
-  local dxoff = - sPointsC[PlayerSeg] * posinseg
+  -- Start gantry
+  if segidx == 1 or segidx == 2 then
+    local psx1l = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * -1.2 ) * 64))
+    local psx1r = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * 1.2 ) * 64))
+    rrect = GetSpriteSSRect( 11, psx1l, psy[i],psw[i], 0.14 )
+    RenderSpriteWorld( 11, rrect)
+    rrect = GetSpriteSSRect( 11, psx1r, psy[i],psw[i], 0.14 )
+    RenderSpriteWorld( 11, rrect )
 
-  -- calculate projections
-  local hrzny=128
-  local hrzseg=DRAW_DIST
-
-  for i = 1, DRAW_DIST do
-
-    -- fun foreshortening hack (add to i in statement below)
-    -- oop=flr(max(i/DRAW_DIST-0.4,0)*50)
-    local segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
-
-    pcrv[i] = xoff - dxoff
-    pcamx[i] = sPointsX[segidx] - camx - pcrv[i]
-    pcamy[i] = sPointsY[segidx] - ( CAM_HEIGHT + PlayerY )
-    pcamz[i] = sPointsZ[segidx] - (Position - loopoff)
-
-    if segidx == NumSegs then
-      loopoff+=NumSegs*SEG_LEN
-    end
-
-    xoff = xoff + dxoff
-    dxoff = dxoff + sPointsC[segidx]
-
-    pscreenscale[i] = CAM_DEPTH/pcamz[i]
-    psx[i] = (64 + (pscreenscale[i] * pcamx[i]  * 64))
-    psy[i] = flr(64 - (pscreenscale[i] * pcamy[i]  * 64))
-    psw[i] = (pscreenscale[i] * ROAD_WIDTH * 64)
-
-    -- store the min y to block out the ground
-    if psy[i] < hrzny then
-      hrzny=psy[i]+1
-      hrzseg=i
-    end
-
-  end
-
-  SpriteCollideIdx=-1
-
-  for i = DRAW_DIST - 1, 1, -1 do
-
-    segidx = (PlayerSeg - 2 + i ) % NumSegs + 1
-
-     if i+1== hrzseg then
-      fillp(0)
-      rectfill( 0, hrzny, 128, 128, THEMEDEF[Theme][4] ) -- block out the ground
-    end
-
-    -- segments
-    local j=i+1
-    if psy[i] > psy[j] and ( psy[i] >= hrzny ) then
-      RenderSeg( psx[i], psy[i], psw[i], psx[j], psy[j], psw[j], segidx )
-    end
-    if i==1 and TitleState == 2 then
-      RenderPlayer()
-      RenderParticles()
-    end
-
-    -- sprites
-
-    --local d = min( ( 1 - pcamz[i] / (DRAW_DIST*SEG_LEN) ) * 8 , 1 ) --passed to RenderSpriteworld but unused?
-    local pcamx,psscale,rrect=pcamx[i],pscreenscale[i]
-    if sSprite[segidx] != 0 then
-      local psx1 = flr(64 + (psscale * ( pcamx + sSpriteX[segidx] * ROAD_WIDTH ) * 64))
-
-      local sindx=sSprite[segidx]
-      rrect = GetSpriteSSRect( sindx, psx1, psy[i],psw[i], sSpriteSc[segidx] )
-      RenderSpriteWorld( sindx, rrect)
-      if i == 2 then
-        SpriteCollideRect = rrect
-        SpriteCollideIdx=sSprite[segidx]
+    if segidx == 1 then
+      psx1l = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * -0.55 ) * 64))
+      psx1r = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * 0.55 ) * 64))
+      for j=12,13 do
+        rrect = GetSpriteSSRect( j, j==12 and psx1l or psx1r, psy[i], psw[i], .75 )
+        rrect[2]-=.25*psw[i]
+        RenderSpriteWorld( j, rrect )
       end
     end
-
-    -- Start gantry
-    if segidx == 1 or segidx == 2 then
-      local psx1l = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * -1.2 ) * 64))
-      local psx1r = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * 1.2 ) * 64))
-      rrect = GetSpriteSSRect( 11, psx1l, psy[i],psw[i], 0.14 )
-      RenderSpriteWorld( 11, rrect)
-      rrect = GetSpriteSSRect( 11, psx1r, psy[i],psw[i], 0.14 )
-      RenderSpriteWorld( 11, rrect )
-
-      if segidx == 1 then
-        psx1l = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * -0.55 ) * 64))
-        psx1r = flr(64 + (psscale * ( pcamx + ROAD_WIDTH * 0.55 ) * 64))
-        for j=12,13 do
-          rrect = GetSpriteSSRect( j, j==12 and psx1l or psx1r, psy[i], psw[i], .75 )
-          rrect[2]-=.25*psw[i]
-          RenderSpriteWorld( j, rrect )
-        end
-      end
-    end
-
-    -- tokens
-    if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
-      local psx1 = flr(64 + (psscale * ( pcamx + sTokensX[segidx] * ROAD_WIDTH ) * 64))
-      local psy1 = flr(64 - (psscale * ( pcamy[i] + 4 )  * 64))
-      rrect = GetSpriteSSRect( 43, psx1, psy1,psw[i], 0.15 )
-      RenderSpriteWorld( 43, rrect)
-    end
-
-    -- opponents
-    for o = 1,#OpptPos do
-      if (OpptSeg[o] == segidx) RenderOpponent(o,i,CType[o%3+1])
-    end
-    pal( 14, 14 )
-    pal( 2, 2 )
   end
+
+  -- tokens
+  if sTokensX[segidx] !=0 and sTokensExist[segidx] != 0 then
+    local psx1 = flr(64 + (psscale * ( pcamx + sTokensX[segidx] * ROAD_WIDTH ) * 64))
+    local psy1 = flr(64 - (psscale * ( pcamy[i] + 4 )  * 64))
+    rrect = GetSpriteSSRect( 43, psx1, psy1,psw[i], 0.15 )
+    RenderSpriteWorld( 43, rrect)
+  end
+
+  -- opponents
+  for o = 1,#OpptPos do
+    if (OpptSeg[o] == segidx) RenderOpponent(o,i,CType[o%3+1])
+  end
+  pal( 14, 14 )
+  pal( 2, 2 )
+end
 
 end
 
