@@ -5,7 +5,7 @@ PlayerProfile = {}
 
 -- note: 1 based in cart memory
 function LoadProfile()
-cartdata("pak9_pwr_1")
+cartdata("pak9_pwr_2")
 for i=1,#LEVELDEF*3 do
   add(PlayerProfile, dget(i))
   assert( PlayerProfile[i] != nil )

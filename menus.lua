@@ -36,19 +36,21 @@ print( str, x,y+1, ocol )
 print( str, x,y, incol )
 end
 
-function PrintTime( secs,x,y )
-mins=flr(secs/60)
-secs=flr(secs%60)
+function PrintTime( frames,x,y )
+mins=flr(frames/3600)
+secs=flr((frames/60)%60)
+hnd=flr(frames%60*16.66)
 if secs > 9 then
   secstr=tostr(secs)
 else
   secstr="0"..tostr(secs)
 end
-hnd=flr(secs%1*100)
-if hnd > 9 then
-  hndstr=tostr(hnd)
+if hnd < 10 then
+  hndstr="00"..tostr(hnd)
+elseif hnd < 100 then
+    hndstr="0"..tostr(hnd)
 else
-  hndstr="0"..tostr(hnd)
+  hndstr=tostr(hnd)
 end
 print( tostr( mins )..":".. secstr.."."..hndstr , x, y, 7 )
 end
@@ -75,8 +77,8 @@ end
 end
 
 function RenderMenu_BG( y, h )
-rectfill( 13, y, 115, h, 13 )
-rect( 12, y-1, 116, h+1, 1 )
+rectfill( 15, y, 111, h, 13 )
+rect( 15, y-1, 111, h+1, 1 )
 
 -- logo
 sspr(unpack(split"33, 57, 56, 14, 27, 5"))
@@ -88,56 +90,55 @@ end
 
 function RenderMenu_Campaign()
 
-RenderMenu_BG(25,92)
+RenderMenu_BG(22,70)
 -- Country
-RenderFlag( 43, 29, Level )
-RenderTextOutlined( LEVELDEF[Level][6], 56, 30, 0, 7 )
+RenderFlag( 43, 24, Level )
+RenderTextOutlined( LEVELDEF[Level][6], 54, 25, 0, 7 )
 
 TotalTkns=CountProfileTokens()
 if TotalTkns >= MenuLvlTokenReq[Level] then
   -- position
   ProfStnd=ReadProfile(Level,1)
-  rectfill( 16, 41, 46, 64, 1 )
-  sspr(unpack(split"65, 49, 8, 8, 27, 43")) -- trophy
+  rectfill( unpack(split"29, 34, 62, 58, 1") )
+  sspr(unpack(split"65, 49, 8, 8, 42, 37")) -- trophy
   col=7
   if ProfStnd == 1 then
-    BestParticles( 27, 43 )
-    rect( 16, 41, 46, 64, 10 )
+    BestParticles( 41, 39 )
+    rect( 29, 34, 62, 58, 10 )
     col=10
   end
 
   if ProfStnd == 0 then
-    print( "none", 24, 57, 7 )
+    print( "none", 39, 50, 7 )
   else
-    print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 26, 57, col )
+    print( tostr(ProfStnd)..tostr( GetStandingSuffix(ProfStnd) ), 41, 50, col )
   end
 
   ProfTkns=ReadProfile(Level,2)
-  rectfill( 49, 41, 79, 64, 2 )
-  sspr(unpack(split"17, 121, 7, 7, 61, 44")) -- token
+  rectfill( unpack(split"66, 34, 99, 58, 2" ) )
+  sspr(unpack(split"17, 121, 7, 7, 79, 37")) -- token
   col=7
   if ProfTkns == 20 then
-    BestParticles( 61, 43 )
-    rect( 49, 41, 79, 64, 10 )
+    BestParticles( 79, 39 )
+    rect( 66, 34, 100, 58, 10 )
     col=10
   end
-  print( tostr(ProfTkns).."/20", 56, 57, col )
+  print( tostr(ProfTkns).."/20", 73, 50, col )
 
-  rectfill( 82, 41, 112, 64, 3 )
-  sspr(unpack(split"73, 50, 7, 7, 94, 44")) -- clock
-  PrintTime( ReadProfile(Level,3), 84, 57 )
+  sspr(unpack(split"73, 50, 7, 7, 43, 61")) -- clock
+  PrintTime( ReadProfile(Level,3), 53, 62 )
 
-  print( " \142  race", 38, 70, 6 )
+  RenderTextOutlined( " \142/z race", 34, 75, 0,9 )
 else
-  sspr(unpack(split"120, 34, 8, 11, 30, 44")) -- lock
-  sspr(unpack(split"120, 34, 8, 11, 91, 44")) -- lock
-  print( "race locked", 43, 48, 9 )
+  sspr(unpack(split"120, 34, 8, 11, 30, 36")) -- lock
+  sspr(unpack(split"120, 34, 8, 11, 91, 36")) -- lock
+  print( "race locked", 43, 41, 9 )
 
-  sspr(unpack(split"17, 121, 7, 7, 36, 61")) -- token
-  print( tostr(TotalTkns).."/".. tostr(MenuLvlTokenReq[Level]) .. " tokens", 46, 62, 6 )
+  sspr(unpack(split"17, 121, 7, 7, 34, 54")) -- token
+  print( tostr(TotalTkns).."/".. tostr(MenuLvlTokenReq[Level]) .. " tokens", 44, 55, 6 )
 end
-print( "\139\145 country", 38, 77, 6 )
-print( "\151  back", 42, 84, 6 )
+RenderTextOutlined( "\139\145 country", 38, 81, 0,6 )
+RenderTextOutlined( "\151/x back", 38, 87, 0,6 )
 
 -- arrows
 xoff=sin(time())*1.2

@@ -8,8 +8,7 @@ function BuildCustomTrack( lvl, ysc, cmax, seed )
 sp=LEVELDEF[Level][2]
 
 len=28
---len=5
-srand(seed)
+srand(seed*lvl+ysc+cmax)
 for n=1,len do
   w=rnd(1)
   slen=((w*1.4)*(w*1.4))*0.5 -- tend towards shorter

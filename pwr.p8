@@ -612,9 +612,10 @@ function UpdateRaceState()
 if RaceState==1 and RaceStateTime() > 3 then
   RaceState=2
   RaceStateTimer=time()
+  Frame=0
 elseif RaceState==2 and PlayerLap == NUM_LAPS+1 then
   RaceState=3
-  RaceCompleteTime=RaceStateTime()
+  RaceCompleteTime=Frame
   RaceCompletePos=GetPlayerStanding()
   RaceStateTimer=time()
   ProfTime=ReadProfile( Level, 3 )
@@ -660,7 +661,6 @@ end
 end
 
 function _update60()
-
 --DebugUpdate()
 Frame=Frame+1
 if TitleState == 1 then
